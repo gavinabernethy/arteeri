@@ -1,0 +1,10 @@
+.DS_Store
+*.pdf
+*.png
+
+venv/
+results/
+spatial_data_files/
+
+.idea/
+__pycache__/

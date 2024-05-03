@@ -367,6 +367,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                         local_pop_score = 0.0
                         local_pop_to_score = 0.0
                         if patch_to_num == patch.number:
+                            # score is NOT SCALED BY FORAGING MOBILITY FOR WITHIN-PATCH FEEDING!
                             local_pop_score = 1.0
                             local_pop_to_score = 1.0
                         else:

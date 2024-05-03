@@ -315,14 +315,15 @@ class System_state:
                             if new_path_cost < patch_costs[other_patch_num]["best"][1]:
                                 # convert in [2] to low score being bad and high score being easy to reach
                                 # (so same patch should be score of 1)
-                                patch_costs[other_patch_num]["best"] = (new_path_length,
-                                                                        new_path_cost, 1.0 / (new_path_cost + 1.0),
-                                                                        new_path)
+                                patch_costs[other_patch_num]["best"] = (
+                                    new_path_length, new_path_cost, 1.0 / (new_path_cost + parameters[
+                                        "pop_dyn_para"]["SCORES_KAPPA"]), new_path)
                             # is best for this length?
                             if new_path_length not in patch_costs[other_patch_num] or \
                                     new_path_cost < patch_costs[other_patch_num][new_path_length][1]:
                                 patch_costs[other_patch_num][new_path_length] = (
-                                    new_path_cost, 1.0 / (new_path_cost + 1.0), new_path)
+                                    new_path_cost, 1.0 / (new_path_cost + parameters[
+                                        "pop_dyn_para"]["SCORES_KAPPA"]), new_path)
 
             # save
             patch.species_movement_scores[species_name] = patch_costs

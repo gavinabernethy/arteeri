@@ -156,6 +156,7 @@ master_para = {
         },
     "pop_dyn_para":
         {
+            "SCORES_KAPPA": 1.0,  # saturation term in the path scores calculation for all species
             "MU_OVERALL": 0.2,  # scales dispersal for all species and movements
             "GENERAL_DISPERSAL_PENALTY": 0.1,  # in [0, 1], this sets a baseline fractional LOSS for all movement,
             # and is overwritten ONLY if the species-specific cost is HIGHER.
