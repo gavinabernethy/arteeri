@@ -460,13 +460,18 @@ class Local_population:
                 prey = population["object"]
                 if prey.holding_population > 0.0:
                     if prey.name in self.species.current_prey_dict:
+
+                        # disparity is d_{i,j,k,l}
                         disparity = max(0.0, self.kills["g0"][prey][0] - self.kills["g2"][prey][0])
-                        denominator = self.prey_shortfall * prey.predator_shortfall
-                        if denominator == 0.0:
+
+                        denominator_1 = self.prey_shortfall
+                        denominator_2 = prey.predator_shortfall
+
+                        if denominator_1 * denominator_2 == 0.0:
                             top_up = 0.0
                         else:
-                            top_up = max(0.0, disparity * (self.g_values["g2"] -
-                                                           self.g_values["g1"]) * prey.survivors / denominator)
+                            top_up = max(0.0, disparity * (self.g_values["g2"] - self.g_values["g1"])/denominator_1 *
+                                         min(1.0, prey.survivors / denominator_2))
                             g3_running_total += top_up
                         total_of_this_prey_killed = self.kills["g2"][prey][0] + top_up
                         self.kills["g3"][prey] = total_of_this_prey_killed
