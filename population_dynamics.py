@@ -259,26 +259,41 @@ def pre_dispersal_of_local_population(
                 local_pop.leaving_array[patch_to_num])
 
 
-def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobility_attr):
+def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobility_scaling_attr,
+                            heaviside_threshold_attr, is_heaviside_manual, heaviside_manual_value,
+                            home_patch_traversal_score):
     # used by both build_actual_dispersal_targets() and build_interacting_populations_list() to determine the
     # local_population's access to distant patches given their CURRENT mobility scores and path length restrictions
-
-    if getattr(local_pop.species, query_attr):
-        # path length restricted, but is the best one within the allowed range anyway?
-        if target["best"][0] <= getattr(local_pop.species, max_path_attr):
-            score = target["best"][2]
-        else:
-            score = 0.0
-            # otherwise look for best reachable
-            for try_path_length in range(1, getattr(local_pop.species, max_path_attr) + 1):
-                if try_path_length in target:
-                    score = max(score, target[try_path_length][1])
+    if home_patch_traversal_score == 0.0:
+        score = 0.0
     else:
-        # path unrestricted so just return the best overall score
-        score = target["best"][2]
-    # scale by mobility attribute and return
-    full_score = getattr(local_pop.species, mobility_attr) * score
-    return full_score
+        if getattr(local_pop.species, query_attr):
+            # path length restricted, but is the best one within the allowed range anyway?
+            if target["best"][0] <= getattr(local_pop.species, max_path_attr):
+                cost = target["best"][1]
+            else:
+                cost = float('inf')
+                # otherwise look for best reachable
+                for try_path_length in range(1, getattr(local_pop.species, max_path_attr) + 1):
+                    if try_path_length in target:
+                        cost = min(cost, target[try_path_length][0])
+        else:
+            # path unrestricted so just return the best overall cost
+            cost = target["best"][1]
+
+        # now pass into Heaviside step function
+        if is_heaviside_manual:
+            heaviside_threshold = heaviside_manual_value
+        else:
+            heaviside_threshold = getattr(local_pop.species, heaviside_threshold_attr)
+        if cost <= heaviside_threshold:
+            filtered_cost = 0.0
+        else:
+            filtered_cost = cost - heaviside_threshold
+        # scale by mobility attribute and return
+        score = getattr(local_pop.species, mobility_scaling_attr) * (
+                1.0/home_patch_traversal_score + filtered_cost)**(-1.0)
+    return score
 
 
 def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time):
@@ -291,11 +306,14 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
             if None in [species.current_dispersal_mechanism, species.current_dispersal_mobility,
                         species.current_max_dispersal_path_length, species.current_minimum_link_strength_dispersal,
                         species.current_dispersal_direction, species.current_coefficients_lists]:
-                species.current_dispersal_mechanism = temporal_function(species.dispersal_mechanism, time)
-                species.current_dispersal_mobility = temporal_function(species.dispersal_mobility, time)
-                species.current_max_dispersal_path_length = temporal_function(species.max_dispersal_path_length, time)
+                species.current_dispersal_mechanism = temporal_function(
+                    species.dispersal_para["DISPERSAL_MECHANISM"], time)
+                species.current_dispersal_mobility = temporal_function(
+                    species.dispersal_para["DISPERSAL_MOBILITY"], time)
+                species.current_max_dispersal_path_length = temporal_function(
+                    species.dispersal_para["MAX_DISPERSAL_PATH_LENGTH"], time)
                 species.current_minimum_link_strength_dispersal = temporal_function(
-                    species.minimum_link_strength_dispersal, time)
+                    species.dispersal_para["MINIMUM_LINK_STRENGTH_DISPERSAL"], time)
                 species.current_dispersal_direction = temporal_function(
                     species.dispersal_para['DISPERSAL_DIRECTION'], time)
                 species.current_coefficients_lists = temporal_function(
@@ -310,17 +328,24 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                     # Iterate through the patches that can IN PRINCIPLE be reached, as determined during
                     # system_state.build_paths_and_adjacency_lists() based on more fundamental properties of the
                     # spatial network topology/adjacency, habitat types, and species-habitat traversal scores.
+                    this_patch_species_traversal = patch.this_habitat_species_traversal[local_pop.species.name]
                     for reachable_patch_num in patch.adjacency_lists[local_pop.name]:
 
                         # don't include same patch
                         if reachable_patch_num != patch.number:
 
                             z = patch.species_movement_scores[local_pop.name][reachable_patch_num]
-                            target_score = find_best_actual_scores(local_pop=local_pop,
-                                                                   target=z,
-                                                                   query_attr="is_dispersal_path_restricted",
-                                                                   max_path_attr="current_max_dispersal_path_length",
-                                                                   mobility_attr="current_dispersal_mobility")
+                            target_score = find_best_actual_scores(
+                                local_pop=local_pop,
+                                target=z,
+                                query_attr="is_dispersal_path_restricted",
+                                max_path_attr="current_max_dispersal_path_length",
+                                mobility_scaling_attr="current_dispersal_mobility",
+                                is_heaviside_manual=True,
+                                heaviside_manual_value=0.0,
+                                heaviside_threshold_attr=None,
+                                home_patch_traversal_score=this_patch_species_traversal,
+                            )
                             if target_score >= local_pop.species.current_minimum_link_strength_dispersal:
                                 temp_dict[reachable_patch_num] = target_score
                 local_pop.actual_dispersal_targets = temp_dict
@@ -333,13 +358,17 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
 
     # initialise if running for the first time
     for species in species_list:
-        if None in [species.current_foraging_mobility, species.current_max_foraging_path_length,
-                    species.current_minimum_link_strength_foraging, species.current_predation_rate,
-                    species.current_predation_efficiency, species.current_predation_focus]:
-            species.current_foraging_mobility = temporal_function(species.foraging_mobility, time)
-            species.current_max_foraging_path_length = temporal_function(species.max_foraging_path_length, time)
+        if None in [species.current_prey_dict, species.current_foraging_mobility, species.current_foraging_kappa,
+                    species.current_max_foraging_path_length, species.current_minimum_link_strength_foraging,
+                    species.current_predation_rate, species.current_predation_efficiency,
+                    species.current_predation_focus]:
+            species.current_prey_dict = temporal_function(species.predation_para["PREY_DICT"], time)
+            species.current_foraging_mobility = temporal_function(species.predation_para['FORAGING_MOBILITY'], time)
+            species.current_foraging_kappa = temporal_function(species.predation_para["FORAGING_KAPPA"], time)
+            species.current_max_foraging_path_length = temporal_function(
+                species.predation_para["MAX_FORAGING_PATH_LENGTH"], time)
             species.current_minimum_link_strength_foraging = temporal_function(
-                species.minimum_link_strength_foraging, time)
+                species.predation_para["MINIMUM_LINK_STRENGTH_FORAGING"], time)
             species.current_predation_efficiency = temporal_function(
                 species.predation_para["PREDATION_EFFICIENCY"], time)
             species.current_predation_focus = temporal_function(
@@ -353,12 +382,15 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
     # Build list of dictionaries of all the populations that each population can interact with (in either way)
     for patch in patch_list:
         for local_pop in patch.local_populations.values():
+            this_patch_species_traversal = patch.this_habitat_species_traversal[local_pop.species.name]
+
             for patch_to_num in patch.adjacency_lists[local_pop.name]:
+                patch_to = patch_list[patch_to_num]
 
                 # only permit including local_populations of other patches if stated
                 if is_nonlocal_foraging or patch_to_num == patch.number:
 
-                    for local_pop_to in patch_list[patch_to_num].local_populations.values():
+                    for local_pop_to in patch_to.local_populations.values():
                         # we need to include both, as there may be a local population who can reach but cannot be
                         # reached, and we need to note them as interacting with the other the adjacency lists may not
                         # be symmetric, so it is insufficient to just have one of these
@@ -366,6 +398,8 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                         # now account for species-specific limitations and foraging path length limits
                         local_pop_score = 0.0
                         local_pop_to_score = 0.0
+                        patch_to_species_traversal = patch_to.this_habitat_species_traversal[local_pop_to.species.name]
+
                         if patch_to_num == patch.number:
                             # score is NOT SCALED BY FORAGING MOBILITY FOR WITHIN-PATCH FEEDING!
                             local_pop_score = 1.0
@@ -378,19 +412,27 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                     local_pop=local_pop, target=z,
                                     query_attr="is_foraging_path_restricted",
                                     max_path_attr="current_max_foraging_path_length",
-                                    mobility_attr="current_foraging_mobility"
+                                    mobility_scaling_attr="current_foraging_mobility",
+                                    is_heaviside_manual=False,
+                                    heaviside_manual_value=None,
+                                    heaviside_threshold_attr="current_foraging_kappa",
+                                    home_patch_traversal_score=this_patch_species_traversal,
                                 )
                                 if local_pop_score < local_pop.species.current_minimum_link_strength_foraging:
                                     local_pop_score = 0.0
 
                             if local_pop_to.species.is_nonlocal_foraging:
                                 # score dictionary for THAT species' local population to THIS patch
-                                z = patch_list[patch_to_num].species_movement_scores[local_pop_to.name][patch.number]
+                                z = patch_to.species_movement_scores[local_pop_to.name][patch.number]
                                 local_pop_to_score = find_best_actual_scores(
                                     local_pop=local_pop_to, target=z,
                                     query_attr="is_foraging_path_restricted",
                                     max_path_attr="current_max_foraging_path_length",
-                                    mobility_attr="current_foraging_mobility"
+                                    mobility_scaling_attr="current_foraging_mobility",
+                                    is_heaviside_manual=False,
+                                    heaviside_manual_value=None,
+                                    heaviside_threshold_attr="current_foraging_kappa",
+                                    home_patch_traversal_score=patch_to_species_traversal,
                                 )
                                 if local_pop_to_score < local_pop_to.species.current_minimum_link_strength_foraging:
                                     local_pop_to_score = 0.0
@@ -437,24 +479,25 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
         # for each entry: [to update, base attribute, nested attribute (if needed)]
         update_and_check = [
             ['current_r_value', 'growth_para', 'R'],
-            ['current_prey_dict', 'prey_dict', None],
+            ['current_prey_dict', 'predation_para', 'PREY_DICT'],
             ['current_predation_efficiency', 'predation_para', 'PREDATION_EFFICIENCY'],
             ['current_predation_focus', 'predation_para', 'PREDATION_FOCUS'],
             ['current_predation_rate', 'predation_para', 'PREDATION_RATE'],
-            ['current_foraging_mobility', 'foraging_mobility', None],
-            ['current_minimum_link_strength_foraging', 'minimum_link_strength_foraging', None],
-            ['current_max_foraging_path_length', 'max_foraging_path_length', None],
+            ['current_foraging_mobility', 'predation_para', 'FORAGING_MOBILITY'],
+            ['current_foraging_kappa', 'predation_para', 'FORAGING_KAPPA'],
+            ['current_minimum_link_strength_foraging', 'predation_para', 'MINIMUM_LINK_STRENGTH_FORAGING'],
+            ['current_max_foraging_path_length', 'predation_para', 'MAX_FORAGING_PATH_LENGTH'],
         ]
         # don't bother checking dispersal parameters if dispersal is not enabled (remember that is_dispersal is NOT
         # allowed to vary with time!
         if species.is_dispersal:
             update_and_check = update_and_check + [
-                ['current_dispersal_mobility', 'dispersal_mobility', None],
+                ['current_dispersal_mobility', 'dispersal_para', 'DISPERSAL_MOBILITY'],
                 ['current_dispersal_direction', 'dispersal_para', 'DISPERSAL_DIRECTION'],
-                ['current_dispersal_mechanism', 'dispersal_mechanism', None],
+                ['current_dispersal_mechanism', 'dispersal_para', 'DISPERSAL_MECHANISM'],
                 ['current_coefficients_lists', 'dispersal_para', 'COEFFICIENTS_LISTS'],
-                ['current_minimum_link_strength_dispersal', 'minimum_link_strength_dispersal', None],
-                ['current_max_dispersal_path_length', 'max_dispersal_path_length', None]
+                ['current_minimum_link_strength_dispersal', 'dispersal_para', 'MINIMUM_LINK_STRENGTH_DISPERSAL'],
+                ['current_max_dispersal_path_length', 'dispersal_para', 'MAX_DISPERSAL_PATH_LENGTH']
             ]
         for _ in update_and_check:
             if _[2] is not None:

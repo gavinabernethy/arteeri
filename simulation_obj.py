@@ -116,18 +116,10 @@ class Simulation_obj:
                     "RESOURCE_USAGE_CONVERSION"],
                 is_dispersal=self.parameters["species_para"][species_name]["DISPERSAL_PARA"]["IS_DISPERSAL"],
                 dispersal_para=self.parameters["species_para"][species_name]["DISPERSAL_PARA"],
-                minimum_link_strength_dispersal=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                    "MINIMUM_LINK_STRENGTH_DISPERSAL"],
                 is_dispersal_path_restricted=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
                     "IS_DISPERSAL_PATH_RESTRICTED"],
-                max_dispersal_path_length=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                    "MAX_DISPERSAL_PATH_LENGTH"],
                 always_move_with_minimum=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
                     "ALWAYS_MOVE_WITH_MINIMUM"],
-                dispersal_mechanism=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                    "DISPERSAL_MECHANISM"],
-                dispersal_mobility=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                    "DISPERSAL_MOBILITY"],
                 dispersal_penalty=max(self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
                                           "SS_DISPERSAL_PENALTY"],
                                       self.parameters["pop_dyn_para"]["GENERAL_DISPERSAL_PENALTY"]),
@@ -148,18 +140,12 @@ class Simulation_obj:
                 growth_offset_local=self.parameters["species_para"][species_name]["GROWTH_PARA"]["ANNUAL_OFFSET"][
                     "GROWTH_OFFSET_LOCAL"],
                 predation_para=self.parameters["species_para"][species_name]["PREDATION_PARA"],
-                prey_dict=self.parameters["species_para"][species_name]["PREDATION_PARA"]["PREY_DICT"],
                 is_predation_only_prevents_death=self.parameters["species_para"][species_name]["PREDATION_PARA"][
                     "IS_PREDATION_ONLY_PREVENTS_DEATH"],
                 is_nonlocal_foraging=self.parameters["species_para"][species_name]["PREDATION_PARA"][
                     "IS_NONLOCAL_FORAGING"],
-                minimum_link_strength_foraging=self.parameters["species_para"][species_name]["PREDATION_PARA"][
-                    "MINIMUM_LINK_STRENGTH_FORAGING"],
                 is_foraging_path_restricted=self.parameters["species_para"][species_name]["PREDATION_PARA"][
                     "IS_NONLOCAL_FORAGING_PATH_RESTRICTED"],
-                max_foraging_path_length=self.parameters["species_para"][species_name]["PREDATION_PARA"][
-                    "MAX_FORAGING_PATH_LENGTH"],
-                foraging_mobility=self.parameters["species_para"][species_name]["PREDATION_PARA"]["FORAGING_MOBILITY"],
                 is_pure_direct_impact=self.parameters["species_para"][species_name]["IS_PURE_DIRECT_IMPACT"],
                 pure_direct_impact_para=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"],
                 is_direct_offset=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][

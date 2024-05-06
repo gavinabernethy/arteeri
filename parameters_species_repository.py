@@ -84,6 +84,16 @@ default_species = {
                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
             },
+            "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                "constant_value": 0.0,
+                "period": None,
+                "amplitude": None,
+                "phase_shift": None,
+                "vertical_shift": None,
+                "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+            },
             "PREDATION_RATE": {
                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                 "constant_value": 0.0,
@@ -349,6 +359,16 @@ ARTEMIS_01_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
                 "PREDATION_RATE": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
@@ -407,7 +427,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.5,
+                    "constant_value": 1.0,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -498,7 +518,7 @@ ARTEMIS_01_MASTER = {
             "MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.2,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-            "PATCH_VECTOR": [0 for x in range(22)] + [0.01] + [0 for y in range(377)],
+            "PATCH_VECTOR": [0.01] + [0 for x in range(4)],
         },
         "SEASONAL_PERIOD": 0,
         "GROWTH_PARA":
@@ -550,7 +570,7 @@ ARTEMIS_01_MASTER = {
                 "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": True,
                 "MAX_FORAGING_PATH_LENGTH": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 1,
+                    "constant_value": 2,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -561,6 +581,16 @@ ARTEMIS_01_MASTER = {
                 "FORAGING_MOBILITY": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 1.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -785,6 +815,16 @@ SINGLE_SPECIES_TEST_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_MOBILITY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
                     "period": None,
@@ -1022,6 +1062,16 @@ TWO_COMPETITORS_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
                 "PREDATION_RATE": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
@@ -1232,6 +1282,16 @@ TWO_COMPETITORS_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_MOBILITY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
                     "period": None,
@@ -1464,6 +1524,16 @@ SINGLE_PREDATOR_SINGLE_PREY_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
                 "PREDATION_RATE": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 20.0,
@@ -1675,6 +1745,16 @@ SINGLE_PREDATOR_SINGLE_PREY_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_MOBILITY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
                     "period": None,
@@ -1908,6 +1988,16 @@ WATER_VOLE_MINK_MASTER = {
                         "vector_exp": None,  # [value_0, value_1, ..., value_period]
                         "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                     },
+                    "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                        "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                        "constant_value": 0.0,
+                        "period": None,
+                        "amplitude": None,
+                        "phase_shift": None,
+                        "vertical_shift": None,
+                        "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                        "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    },
                     "PREDATION_RATE": {
                         "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                         "constant_value": 0.0,
@@ -2122,6 +2212,16 @@ WATER_VOLE_MINK_MASTER = {
                     "FORAGING_MOBILITY": {
                         "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                         "constant_value": 2.0,
+                        "period": None,
+                        "amplitude": None,
+                        "phase_shift": None,
+                        "vertical_shift": None,
+                        "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                        "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    },
+                    "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                        "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                        "constant_value": 0.0,
                         "period": None,
                         "amplitude": None,
                         "phase_shift": None,
@@ -2361,6 +2461,16 @@ PREDATOR_MULTIPLE_PREY_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
                 "PREDATION_RATE": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 20.0,
@@ -2581,6 +2691,16 @@ PREDATOR_MULTIPLE_PREY_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
                 "PREDATION_RATE": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
@@ -2790,6 +2910,16 @@ PREDATOR_MULTIPLE_PREY_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_MOBILITY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
                     "period": None,
@@ -3026,6 +3156,16 @@ GENERALIST_SPECIALIST_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
                 "PREDATION_RATE": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
@@ -3245,6 +3385,16 @@ GENERALIST_SPECIALIST_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_MOBILITY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.0,
                     "period": None,

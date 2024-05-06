@@ -55,10 +55,9 @@ def generate_patch_position_and_adjacency(num_patches, graph_para):
     # Now adjacency
     graph_type = graph_para["GRAPH_TYPE"]
     adjacency_array = np.zeros([num_patches, num_patches])
-
+    adjacency_spec = graph_para["ADJACENCY_MANUAL_SPEC"]
     if graph_type == "manual":
         # the "ADJACENCY_MANUAL_SPEC" should be a list (length = num_patches) of lists (length = num_patches)
-        adjacency_spec = graph_para["ADJACENCY_MANUAL_SPEC"]
         if adjacency_spec is not None and type(adjacency_spec) == list and len(adjacency_spec) == num_patches:
             # check dimensions and values and that the result is a symmetric matrix
             for x in range(num_patches):
@@ -79,50 +78,55 @@ def generate_patch_position_and_adjacency(num_patches, graph_para):
             adjacency_array = np.asarray(adjacency_spec)
         else:
             raise Exception("Error in graph_para['ADJACENCY_MANUAL_SPEC']. Incorrect number of rows.")
-    elif graph_type == "lattice":
-        for x in range(num_patches):
-            for y in range(num_patches):
-                if np.linalg.norm(np.array([position_array[x, 0] - position_array[y, 0],
-                                            position_array[x, 1] - position_array[y, 1]])) < 1.999:  # include diagonals
-                    draw = np.random.binomial(n=1, p=graph_para["LATTICE_GRAPH_CONNECTIVITY"])
+    else:
+        # check that user was not attempting to manually specify adjacency
+        if adjacency_spec is not None and type(adjacency_spec) == list and len(adjacency_spec) != 0:
+            raise Exception("Check that graph type is `manual' or clear the manual adjacency specification.")
+
+        if graph_type == "lattice":
+            for x in range(num_patches):
+                for y in range(num_patches):
+                    if np.linalg.norm(np.array([position_array[x, 0] - position_array[y, 0],
+                                                position_array[x, 1] - position_array[y, 1]])) < 1.999:  # include diagonals
+                        draw = np.random.binomial(n=1, p=graph_para["LATTICE_GRAPH_CONNECTIVITY"])
+                        adjacency_array[x, y] = draw
+                        adjacency_array[y, x] = draw
+        elif graph_type == "line":
+            for x in range(num_patches):
+                if x > 0:
+                    adjacency_array[x - 1, x] = 1
+                if x < num_patches - 1:
+                    adjacency_array[x, x + 1] = 1
+        elif graph_type == "star":
+            # all patches only adjacent to the first patch
+            for x in range(num_patches):
+                adjacency_array[x, 0] = 1
+                adjacency_array[0, x] = 1
+        elif graph_type == "random":
+            for x in range(num_patches):
+                for y in range(x):
+                    draw = np.random.binomial(n=1, p=graph_para["RANDOM_GRAPH_CONNECTIVITY"])
                     adjacency_array[x, y] = draw
                     adjacency_array[y, x] = draw
-    elif graph_type == "line":
-        for x in range(num_patches):
-            if x > 0:
-                adjacency_array[x - 1, x] = 1
-            if x < num_patches - 1:
-                adjacency_array[x, x + 1] = 1
-    elif graph_type == "star":
-        # all patches only adjacent to the first patch
-        for x in range(num_patches):
-            adjacency_array[x, 0] = 1
-            adjacency_array[0, x] = 1
-    elif graph_type == "random":
-        for x in range(num_patches):
-            for y in range(x):
-                draw = np.random.binomial(n=1, p=graph_para["RANDOM_GRAPH_CONNECTIVITY"])
-                adjacency_array[x, y] = draw
-                adjacency_array[y, x] = draw
-    elif graph_type == "small_world":
-        # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.watts_strogatz_graph.html
-        graph = networkx.watts_strogatz_graph(n=num_patches,
-                                              k=graph_para["SMALL_WORLD_NUM_NEIGHBOURS"],
-                                              p=graph_para["SMALL_WORLD_SHORTCUT_PROBABILITY"])
-        adjacency_array = networkx.to_numpy_array(graph)
-    elif graph_type == "scale_free":
-        # https://networkx.org/documentation/stable/reference/generated/networkx.generators.directed.scale_free_graph.html
-        graph = networkx.scale_free_graph(n=num_patches)  # directed
-        adjacency_array = networkx.to_numpy_array(networkx.to_undirected(graph))
-        adjacency_array[adjacency_array > 1] = 1
-    elif graph_type == "cluster":
-        # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.powerlaw_cluster_graph.html
-        graph = networkx.powerlaw_cluster_graph(n=num_patches,
-                                                m=graph_para["CLUSTER_NUM_NEIGHBOURS"],
-                                                p=graph_para["CLUSTER_PROBABILITY"], )
-        adjacency_array = networkx.to_numpy_array(graph)
-    else:
-        raise Exception("Which type of graph is the spatial network?")
+        elif graph_type == "small_world":
+            # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.watts_strogatz_graph.html
+            graph = networkx.watts_strogatz_graph(n=num_patches,
+                                                  k=graph_para["SMALL_WORLD_NUM_NEIGHBOURS"],
+                                                  p=graph_para["SMALL_WORLD_SHORTCUT_PROBABILITY"])
+            adjacency_array = networkx.to_numpy_array(graph)
+        elif graph_type == "scale_free":
+            # https://networkx.org/documentation/stable/reference/generated/networkx.generators.directed.scale_free_graph.html
+            graph = networkx.scale_free_graph(n=num_patches)  # directed
+            adjacency_array = networkx.to_numpy_array(networkx.to_undirected(graph))
+            adjacency_array[adjacency_array > 1] = 1
+        elif graph_type == "cluster":
+            # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.powerlaw_cluster_graph.html
+            graph = networkx.powerlaw_cluster_graph(n=num_patches,
+                                                    m=graph_para["CLUSTER_NUM_NEIGHBOURS"],
+                                                    p=graph_para["CLUSTER_PROBABILITY"], )
+            adjacency_array = networkx.to_numpy_array(graph)
+        else:
+            raise Exception("Which type of graph is the spatial network?")
 
     # ensure every patch is always considered adjacent to itself
     for x in range(num_patches):

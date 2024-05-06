@@ -4,7 +4,7 @@ meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
-    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": False,  # should we execute sample_spatial_data() before running the batch set?
+    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
 }
@@ -14,7 +14,7 @@ master_para = {
         {
             # This set of parameters is accessed during the execution of sample_spatial_data.py for generating
             # the spatial network files that are then used in the simulation.
-            "SPATIAL_TEST_SET": 1,
+            "SPATIAL_TEST_SET": 3,
             "SPATIAL_DESCRIPTION": "artemis_01_lattice_fc_one_species",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
             "GRAPH_TYPE": "lattice",
@@ -83,10 +83,11 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 5,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
+                1: 'habitat_type_1',
             },
             "GENERATED_SPEC": {
                 #
@@ -99,12 +100,14 @@ master_para = {
                     # length equal to the total possible number of scores (i.e. the number of species)
                     "HABITAT_SCORES": {
                         0: [1.0, 1.0],
+                        1: [1.0, 1.0],
                     },
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated
                     "HABITAT_SCORES": {
                         0: [1.0, 1.0],
+                        1: [0.1, 0.1],
                     },
                 },
             },
@@ -116,14 +119,14 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0},
+            "INITIAL_HABITAT_SET": {0,1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
         },
     "plot_save_para":
         {
             "IS_SAVE": True,  # do you save ANY data files?
-            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.
@@ -141,7 +144,7 @@ master_para = {
             "IS_SAVE_CURRENT_MOVE_SCORES": False,  # writes the final movement scores to the simulation-specific folder.
             #
             # Plot control options (requires IS_PLOT to be true):
-            "IS_PLOT_LOCAL_TIME_SERIES": True,  # produce plots of all local time-series of species properties, imposed
+            "IS_PLOT_LOCAL_TIME_SERIES": False,  # produce plots of all local time-series of species properties, imposed
             # on the same figure.
             "LOCAL_PLOTS": False,  # produce separate plot files for each patch showing the time-series.
             "IS_PLOT_ACCESSIBLE_SUB_GRAPHS": False,  # patch plots showing the fully-connected network sub-graphs from
@@ -156,7 +159,6 @@ master_para = {
         },
     "pop_dyn_para":
         {
-            "SCORES_KAPPA": 1.0,  # saturation term in the path scores calculation for all species
             "MU_OVERALL": 0.2,  # scales dispersal for all species and movements
             "GENERAL_DISPERSAL_PENALTY": 0.1,  # in [0, 1], this sets a baseline fractional LOSS for all movement,
             # and is overwritten ONLY if the species-specific cost is HIGHER.

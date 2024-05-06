@@ -259,8 +259,8 @@ class System_state:
             patch_costs = {x: {"best": (float('inf'), float('inf'), 0.0, [])} for x in range(len(self.patch_list))}
 
             # zero cost to travel to self (i.e. this patch) for any species
-            patch_costs[patch.number]["best"] = (0, 0.0, 1.0, [])  # 0 steps, 0.0 cost, 1.0 score, no intermediate steps
-            patch_costs[patch.number][0] = (0.0, 1.0, [])
+            patch_costs[patch.number]["best"] = (0, 0.0, [])  # 0 steps, 0.0 cost, no intermediate steps
+            patch_costs[patch.number][0] = (0.0, [])
 
             # list of patches whose shortest path has been found
             visited = []
@@ -273,19 +273,18 @@ class System_state:
                 best_tentative_path = []
                 next_vertex_num = 0
                 for possible_next_patch_num in not_visited:
-                    tentative_cost = patch_costs[possible_next_patch_num]["best"][1]
                     tentative_length = patch_costs[possible_next_patch_num]["best"][0]
-                    tentative_path = patch_costs[possible_next_patch_num]["best"][3]
+                    tentative_cost = patch_costs[possible_next_patch_num]["best"][1]
+                    tentative_path = patch_costs[possible_next_patch_num]["best"][2]
                     if tentative_cost < best_tentative_cost:
-                        best_tentative_cost = tentative_cost
-                        best_tentative_length = tentative_length
                         next_vertex_num = possible_next_patch_num
+                        best_tentative_length = tentative_length
+                        best_tentative_cost = tentative_cost
                         best_tentative_path = tentative_path
                 # if this cost is still infinity, then quit algorithm as the graph is disconnected
                 if best_tentative_cost == float('inf'):
                     break
                 else:
-                    next_vertex = self.patch_list[next_vertex_num]
                     visited.append(next_vertex_num)
                     not_visited.remove(next_vertex_num)
                     # now see if a better score to other patches can be achieved through this one
@@ -293,7 +292,7 @@ class System_state:
                         if next_vertex_num != other_patch_num:
                             # not self!
                             if self.patch_adjacency_matrix[next_vertex_num, other_patch_num] == 0.0 \
-                                    or next_vertex.this_habitat_species_traversal[species_name] <= 0.0:
+                                    or other_patch.this_habitat_species_traversal[species_name] <= 0.0:
                                 new_path_cost = float('inf')
                                 new_path_length = float('inf')
                                 new_path = []
@@ -302,9 +301,9 @@ class System_state:
                                 new_path = best_tentative_path + [next_vertex_num]
                                 # single-path-cost = 1 / ( habitat-species-traversal * adjacency-border * patch-size)
                                 new_path_cost = \
-                                    best_tentative_cost + (1.0 / next_vertex.this_habitat_species_traversal[
+                                    best_tentative_cost + (1.0 / other_patch.this_habitat_species_traversal[
                                         species_name]) * (1.0 / self.patch_adjacency_matrix[
-                                        next_vertex_num, other_patch_num]) / next_vertex.size
+                                        next_vertex_num, other_patch_num]) / other_patch.size
                                 # Note: patch_adjacency_matrix is currently binary, so if this branch is reached
                                 # then part of this function will be 1/1;
                                 # However it is included because in the future we may wish to alter this matrix
@@ -313,17 +312,11 @@ class System_state:
 
                             # is best overall?
                             if new_path_cost < patch_costs[other_patch_num]["best"][1]:
-                                # convert in [2] to low score being bad and high score being easy to reach
-                                # (so same patch should be score of 1)
-                                patch_costs[other_patch_num]["best"] = (
-                                    new_path_length, new_path_cost, 1.0 / (new_path_cost + parameters[
-                                        "pop_dyn_para"]["SCORES_KAPPA"]), new_path)
+                                patch_costs[other_patch_num]["best"] = (new_path_length, new_path_cost, new_path)
                             # is best for this length?
                             if new_path_length not in patch_costs[other_patch_num] or \
-                                    new_path_cost < patch_costs[other_patch_num][new_path_length][1]:
-                                patch_costs[other_patch_num][new_path_length] = (
-                                    new_path_cost, 1.0 / (new_path_cost + parameters[
-                                        "pop_dyn_para"]["SCORES_KAPPA"]), new_path)
+                                    new_path_cost < patch_costs[other_patch_num][new_path_length][0]:
+                                patch_costs[other_patch_num][new_path_length] = (new_path_cost, new_path)
 
             # save
             patch.species_movement_scores[species_name] = patch_costs
@@ -333,7 +326,7 @@ class System_state:
             # traverse certain habitats remains unchanged.
             reachable_patch_nums = []
             for patch_num in patch.species_movement_scores[species_name]:
-                if patch.species_movement_scores[species_name][patch_num]["best"][2] > 0.0:
+                if patch.species_movement_scores[species_name][patch_num]["best"][1] < float('inf'):
                     reachable_patch_nums.append(patch_num)
             patch.adjacency_lists[species_name] = reachable_patch_nums
             # gather a set of the patches used as stepping stones AND the reachable patches (inc. endpoints) using them
