@@ -11,7 +11,7 @@ def functional_response(predation_func, predation_para, predator_population, pre
         "beddington_deangelis": functional_response_beddington_deangelis,
         "ratio_dependent": functional_response_ratio_dependent,
     }
-    # include the min function to prevent feeding on more than the entire prey population
+    # include the min function to prevent an individual predator species feeding on more than the entire prey population
     func_res = min(prey_population,
                    predator_population * predation_function[predation_func](attack_rate=attack_rate,
                                                                             predation_para=predation_para,
@@ -463,20 +463,24 @@ class Local_population:
 
                         # disparity is d_{i,j,k,l}
                         disparity = max(0.0, self.kills["g0"][prey][0] - self.kills["g2"][prey][0])
+                        if disparity > 0:
+                            denominator_1 = self.prey_shortfall
+                            denominator_2 = prey.predator_shortfall
 
-                        denominator_1 = self.prey_shortfall
-                        denominator_2 = prey.predator_shortfall
-
-                        if denominator_1 * denominator_2 == 0.0:
-                            top_up = 0.0
+                            if denominator_1 * denominator_2 == 0.0:
+                                top_up = 0.0
+                            else:
+                                top_up = max(0.0, disparity * (self.g_values["g2"] - self.g_values["g1"])/denominator_1 *
+                                             min(1.0, prey.survivors / denominator_2))
+                                g3_running_total += top_up
+                            total_of_this_prey_killed = self.kills["g2"][prey][0] + top_up
+                            self.kills["g3"][prey] = total_of_this_prey_killed
+                            # Now register the effects on the prey's object directly
+                            prey.killed["g3"][self] = total_of_this_prey_killed
                         else:
-                            top_up = max(0.0, disparity * (self.g_values["g2"] - self.g_values["g1"])/denominator_1 *
-                                         min(1.0, prey.survivors / denominator_2))
-                            g3_running_total += top_up
-                        total_of_this_prey_killed = self.kills["g2"][prey][0] + top_up
-                        self.kills["g3"][prey] = total_of_this_prey_killed
-                        # Now register the effects on the prey's object directly
-                        prey.killed["g3"][self] = total_of_this_prey_killed
+                            # no disparity, so we skip the top-up stage
+                            self.kills["g3"][prey] = self.kills["g2"][prey][0]
+                            prey.killed["g3"][self] = self.kills["g2"][prey][0]
             self.g_values["g3"] = self.g_values["g2"] + g3_running_total
 
     def build_recent_time_averages(self, current_step, back_steps):
