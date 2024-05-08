@@ -34,13 +34,15 @@ class Simulation_obj:
     def __init__(self, parameters, metadata):
         self.parameters = parameters
         self.metadata = metadata
+        self.is_allow_file_creation = parameters["plot_save_para"]["IS_ALLOW_FILE_CREATION"]
         self.is_save = parameters["plot_save_para"]["IS_SAVE"]
         self.is_plot = parameters["plot_save_para"]["IS_PLOT"]
         self.total_steps = self.parameters["main_para"]["NUM_TRANSIENT_STEPS"] + self.parameters[
             "main_para"]["NUM_RECORD_STEPS"]
-        self.sim_number = generate_simulation_number()
+        self.sim_number = generate_simulation_number(save_data=self.is_allow_file_creation)
         self.system_state = self.construction()
-        write_initial_files(parameters=self.parameters, metadata=self.metadata, sim=self.sim_number)
+        if self.is_allow_file_creation:
+            write_initial_files(parameters=self.parameters, metadata=self.metadata, sim=self.sim_number)
         print(f"Beginning simulation number {self.sim_number}.")
 
     def construction(self):
@@ -53,11 +55,12 @@ class Simulation_obj:
             if filepath.endswith('.csv'):
                 with open(filepath) as f:
                     content = f.read().rstrip()
-                if content[-1] == ',':
-                    new_filename = filepath + '.tmp'
-                    with open(new_filename, 'w') as f:
-                        f.write(content[:-1])
-                    os.rename(new_filename, filepath)
+                if self.is_allow_file_creation:
+                    if content[-1] == ',':
+                        new_filename = filepath + '.tmp'
+                        with open(new_filename, 'w') as f:
+                            f.write(content[:-1])
+                        os.rename(new_filename, filepath)
 
         habitat_type_dictionary = self.parameters["main_para"]["HABITAT_TYPES"]
         habitat_species_traversal_array = load_dataset(f'{dir_path}/habitat_species_traversal.csv')
@@ -213,7 +216,7 @@ class Simulation_obj:
             print("Generating new adjacency variables.")
             system_state.build_all_patches_species_paths_and_adjacency(parameters=self.parameters)
             print("Adjacency variables successfully generated.")
-        if self.parameters["main_para"]["IS_SAVE_ADJ_VARIABLES"]:
+        if self.is_allow_file_creation and self.parameters["main_para"]["IS_SAVE_ADJ_VARIABLES"]:
             save_adj_variables(patch_list=patch_list, spatial_set_number=test_set)
             print("Adjacency variables saved.")
 
@@ -224,14 +227,15 @@ class Simulation_obj:
     def full_simulation(self):
         self.simulation()
         self.metadata["simulation_end_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        if self.is_save:
-            print(f"{self.sim_number}: Beginning data saves.")
-            save_all_data(simulation_obj=self)
-            print(f"{self.sim_number}: Completed data saves.")
-        if self.is_plot:
-            print(f"{self.sim_number}: Beginning plot exports.")
-            all_plots(simulation_obj=self)
-            print(f"{self.sim_number}: Completed plot exports.")
+        if self.is_allow_file_creation:
+            if self.is_save:
+                print(f"{self.sim_number}: Beginning data saves.")
+                save_all_data(simulation_obj=self)
+                print(f"{self.sim_number}: Completed data saves.")
+            if self.is_plot:
+                print(f"{self.sim_number}: Beginning plot exports.")
+                all_plots(simulation_obj=self)
+                print(f"{self.sim_number}: Completed plot exports.")
         print(f"Completed simulation number {self.sim_number}.\n")
 
     ######################################################################################################
@@ -264,7 +268,7 @@ class Simulation_obj:
                 self.system_state.patch_list[reserve_patch_num].is_reserve = 1
                 self.system_state.patch_list[reserve_patch_num].latest_perturbation_code = 0.0  # 0.1 otherwise
                 self.system_state.patch_list[reserve_patch_num].reserve_order = [cluster_num, reserve_order]
-        if self.parameters["perturbation_para"]["IS_RESERVE_SAVE"]:
+        if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_RESERVE_SAVE"]:
             save_reserve_list(reserve_list=self.system_state.reserve_list, spatial_set_number=test_set)
 
         # initial populations
@@ -303,13 +307,14 @@ class Simulation_obj:
         self.system_state.initial_patch_adjacency_matrix = initial_patch_adjacency_matrix
 
         # do we require a visualisation of the system after initialisation BEFORE the first (0th) time-step has run?
-        if -1 in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
-            adjacency_path_list = create_adjacency_path_list(
-                patch_list=self.system_state.patch_list,
-                patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
-            plot_network_properties(patch_list=self.system_state.patch_list, sim=self.sim_number, step=-1,
-                                    adjacency_path_list=adjacency_path_list, is_biodiversity=True,
-                                    is_reserves=True, is_retro=False)
+        if self.is_allow_file_creation:
+            if -1 in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
+                adjacency_path_list = create_adjacency_path_list(
+                    patch_list=self.system_state.patch_list,
+                    patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
+                plot_network_properties(patch_list=self.system_state.patch_list, sim=self.sim_number, step=-1,
+                                        adjacency_path_list=adjacency_path_list, is_biodiversity=True,
+                                        is_reserves=True, is_retro=False)
 
         # MAIN LOOP - conduct simulation
         for step in range(self.total_steps):
@@ -321,10 +326,10 @@ class Simulation_obj:
             if step in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
                 pert_archetype = self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"][step]
                 pert_paras = self.parameters["perturbation_para"]["PERT_ARCHETYPE_DICTIONARY"][pert_archetype]
-                if self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
+                if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
                     save_all_data(simulation_obj=self)
-                population_snapshot(system_state=self.system_state, sim=self.sim_number, update_stored=True,
-                                    output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
+                    population_snapshot(system_state=self.system_state, sim=self.sim_number, update_stored=True,
+                                        output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                 # then enact the perturbation and reset the lists
                 perturbation(system_state=self.system_state, parameters=self.parameters, pert_paras=pert_paras)
 
@@ -332,7 +337,7 @@ class Simulation_obj:
             if step - 1 in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
                 population_snapshot(system_state=self.system_state, sim=self.sim_number, update_stored=True,
                                     output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
-                if self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
+                if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
                     save_all_data(simulation_obj=self)
                     # call a function to calculate the resulting change due to the perturbation
                     change_snapshot(system_state=self.system_state, sim=self.sim_number,
@@ -363,7 +368,8 @@ class Simulation_obj:
             # --------------------------------------------------------#
 
             # print the spatial network of the system during the simulation at the END OF STEP if manually specified
-            if step in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
+            if self.is_allow_file_creation and \
+                    step in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
