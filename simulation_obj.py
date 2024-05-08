@@ -1,7 +1,10 @@
+import numpy as np
+
 from data_manager import save_all_data, generate_simulation_number, all_plots, population_snapshot, \
     change_snapshot, write_initial_files, save_adj_variables, load_adj_variables, load_reserve_list, \
     save_reserve_list, print_key_outputs_to_console
 from data_manager_functions import plot_network_properties, create_adjacency_path_list
+from sample_spatial_data import run_sample_spatial_data
 import os
 from patch import Patch
 from local_population import Local_population
@@ -51,26 +54,35 @@ class Simulation_obj:
         test_set = self.parameters["graph_para"]["SPATIAL_TEST_SET"]
         dir_path = f'spatial_data_files/test_{test_set}/'
         # first, check that all .CSV files are present and strip any trailing commas!
-        for filename in os.listdir(dir_path):
-            filepath = dir_path + filename
-            if filepath.endswith('.csv'):
-                with open(filepath) as f:
-                    content = f.read().rstrip()
-                if self.is_allow_file_creation:
-                    if content[-1] == ',':
-                        new_filename = filepath + '.tmp'
-                        with open(new_filename, 'w') as f:
-                            f.write(content[:-1])
-                        os.rename(new_filename, filepath)
-
         habitat_type_dictionary = self.parameters["main_para"]["HABITAT_TYPES"]
-        habitat_species_traversal_array = load_dataset(f'{dir_path}/habitat_species_traversal.csv')
-        habitat_species_feeding_array = load_dataset(f'{dir_path}/habitat_species_feeding.csv')
-        patch_habitat_type_array = load_dataset(f'{dir_path}/patch_habitat_type.csv')
-        patch_quality_array = load_dataset(f'{dir_path}/patch_quality.csv')
-        patch_size_array = load_dataset(f'{dir_path}/patch_size.csv')
-        patch_position_array = load_dataset(f'{dir_path}/patch_position.csv')
-        patch_adjacency_array = load_dataset(f'{dir_path}/patch_adjacency.csv')
+        try:
+            for filename in os.listdir(dir_path):
+                filepath = dir_path + filename
+                if filepath.endswith('.csv'):
+                    with open(filepath) as f:
+                        content = f.read().rstrip()
+                    if self.is_allow_file_creation:
+                        if content[-1] == ',':
+                            new_filename = filepath + '.tmp'
+                            with open(new_filename, 'w') as f:
+                                f.write(content[:-1])
+                            os.rename(new_filename, filepath)
+            habitat_species_traversal_array = load_dataset(f'{dir_path}/habitat_species_traversal.csv')
+            habitat_species_feeding_array = load_dataset(f'{dir_path}/habitat_species_feeding.csv')
+            patch_habitat_type_array = load_dataset(f'{dir_path}/patch_habitat_type.csv')
+            patch_quality_array = load_dataset(f'{dir_path}/patch_quality.csv')
+            patch_size_array = load_dataset(f'{dir_path}/patch_size.csv')
+            patch_position_array = load_dataset(f'{dir_path}/patch_position.csv')
+            patch_adjacency_array = load_dataset(f'{dir_path}/patch_adjacency.csv')
+        except FileNotFoundError:
+            # if (any) of the spatial network files do not exist, we MUST now create them here
+            patch_position_array, patch_adjacency_array, patch_size_array, patch_quality_array, \
+                patch_habitat_type_array, habitat_species_feeding_array, habitat_species_traversal_array = \
+                run_sample_spatial_data(is_output_files=self.is_allow_file_creation)
+            # flatten the Nx1 arrays to N vectors
+            patch_quality_array = np.ndarray.flatten(patch_quality_array)
+            patch_size_array = np.ndarray.flatten(patch_size_array)
+            patch_habitat_type_array = np.ndarray.flatten(patch_habitat_type_array)
 
         # If there is only one patch and/or habitat, extend the arrays so they can be correctly sliced in the call
         if np.ndim(patch_position_array) == 1:

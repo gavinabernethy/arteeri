@@ -40,7 +40,7 @@ def create_description_file(desc):
 # ----------------------------- CONSTRUCTING THE SPATIAL NETWORK ----------------------- #
 
 # THIS HAPPENS FIRST, AS SOME OTHER PROPERTIES MAY DEPEND ON POSITION AND ADJACENCY
-def generate_patch_position_and_adjacency(num_patches, graph_para):
+def generate_patch_position_adjacency(num_patches, graph_para):
     # Automatically place them in a rectangular grid
     num_rows = np.ceil(np.sqrt(num_patches))
     num_columns = np.ceil(num_patches / num_rows)
@@ -50,9 +50,8 @@ def generate_patch_position_and_adjacency(num_patches, graph_para):
         y = np.floor(patch / num_columns)
         position_array[patch, 0] = x
         position_array[patch, 1] = y
-    save_array(f'{DIR_PATH}/patch_position.csv', position_array)
 
-    # Now adjacency
+        # Now adjacency
     graph_type = graph_para["GRAPH_TYPE"]
     adjacency_array = np.zeros([num_patches, num_patches])
     adjacency_spec = graph_para["ADJACENCY_MANUAL_SPEC"]
@@ -87,7 +86,8 @@ def generate_patch_position_and_adjacency(num_patches, graph_para):
             for x in range(num_patches):
                 for y in range(num_patches):
                     if np.linalg.norm(np.array([position_array[x, 0] - position_array[y, 0],
-                                                position_array[x, 1] - position_array[y, 1]])) < 1.999:  # include diagonals
+                                                position_array[x, 1] - position_array[
+                                                    y, 1]])) < 1.999:  # include diagonals
                         draw = np.random.binomial(n=1, p=graph_para["LATTICE_GRAPH_CONNECTIVITY"])
                         adjacency_array[x, y] = draw
                         adjacency_array[y, x] = draw
@@ -138,7 +138,6 @@ def generate_patch_position_and_adjacency(num_patches, graph_para):
             if adjacency_array[x, y] == 1:
                 adjacency_array[y, x] = 1
 
-    save_array(f'{DIR_PATH}/patch_adjacency.csv', adjacency_array)
     return adjacency_array, position_array
 
 
@@ -214,7 +213,7 @@ def generate_patch_quality(num_patches, adjacency_array, position_array, graph_p
                                                        fluctuation * np.random.rand()))
     else:
         raise Exception("Which type of scheme is used for patch quality in the spatial network?")
-    save_array(f'{DIR_PATH}/patch_quality.csv', quality_array)
+    return quality_array
 
 
 def generate_patch_size(num_patches, min_patch_size, max_patch_size, graph_para):
@@ -235,7 +234,7 @@ def generate_patch_size(num_patches, min_patch_size, max_patch_size, graph_para)
     else:
         raise Exception("The graph_para option 'PATCH_SIZE_MANUAL_SPEC' should be either None or a list of length"
                         " equal to the number of patches.")
-    save_array(f'{DIR_PATH}/patch_size.csv', patch_size_array)
+    return patch_size_array
 
 
 def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_probabilities,
@@ -302,7 +301,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
     else:
         raise Exception("The graph_para option 'HABITAT_TYPE_MANUAL_SPEC' should be either None or a list of length"
                         " equal to the number of patches.")
-    save_array(f'{DIR_PATH}/patch_habitat_type.csv', habitat_array)
+    return habitat_array
 
 
 def generate_habitat_species_scores(num_species, num_habitats, generated_spec, score_type):
@@ -318,30 +317,45 @@ def generate_habitat_species_scores(num_species, num_habitats, generated_spec, s
                 array[habitat, :] = data[habitat]
     else:
         array = np.random.rand(num_habitats, num_species)
-    save_array(f'{DIR_PATH}/habitat_species_' + score_type.lower() + '.csv', array)
+    return array
 
 
-def generate_all_spatial_files(desc, num_species, num_patches, num_habitats, graph_para,
-                               generated_habitat_set, generated_habitat_probabilities, generated_spec):
-    check_and_create_directory()
-    create_description_file(desc)
-    adjacency_array, position_array = generate_patch_position_and_adjacency(num_patches=num_patches,
-                                                                            graph_para=graph_para)
-    generate_patch_size(num_patches=num_patches, min_patch_size=graph_para["MIN_SIZE"],
-                        max_patch_size=graph_para["MAX_SIZE"], graph_para=graph_para)
-    generate_patch_quality(num_patches=num_patches, adjacency_array=adjacency_array,
-                           position_array=position_array, graph_para=graph_para)
-    generate_habitat_type(generated_habitat_set=generated_habitat_set, num_patches=num_patches,
-                          generated_habitat_probabilities=generated_habitat_probabilities,
-                          adjacency_array=adjacency_array, graph_para=graph_para)
+def generate_all_spatial_settings(is_output_files, desc, num_species, num_patches, num_habitats, graph_para,
+                                  generated_habitat_set, generated_habitat_probabilities, generated_spec):
+    if is_output_files:
+        check_and_create_directory()
+        create_description_file(desc)
+    adjacency_array, position_array = generate_patch_position_adjacency(num_patches=num_patches, graph_para=graph_para)
+    patch_size_array = generate_patch_size(num_patches=num_patches, min_patch_size=graph_para["MIN_SIZE"],
+                                           max_patch_size=graph_para["MAX_SIZE"], graph_para=graph_para)
+    patch_quality_array = generate_patch_quality(num_patches=num_patches, adjacency_array=adjacency_array,
+                                                 position_array=position_array, graph_para=graph_para)
+    patch_habitat_array = generate_habitat_type(generated_habitat_set=generated_habitat_set, num_patches=num_patches,
+                                                generated_habitat_probabilities=generated_habitat_probabilities,
+                                                adjacency_array=adjacency_array, graph_para=graph_para)
+    scores_dict = {}
     for score_type in ["FEEDING", "TRAVERSAL"]:
-        generate_habitat_species_scores(num_species=num_species, num_habitats=num_habitats,
-                                        generated_spec=generated_spec, score_type=score_type)
+        scores_dict[score_type.lower()] = generate_habitat_species_scores(num_species=num_species,
+                                                                          num_habitats=num_habitats,
+                                                                          generated_spec=generated_spec,
+                                                                          score_type=score_type)
+
+    if is_output_files:
+        save_array(f'{DIR_PATH}/patch_position.csv', position_array)
+        save_array(f'{DIR_PATH}/patch_adjacency.csv', adjacency_array)
+        save_array(f'{DIR_PATH}/patch_size.csv', patch_size_array)
+        save_array(f'{DIR_PATH}/patch_quality.csv', patch_quality_array)
+        save_array(f'{DIR_PATH}/patch_habitat_type.csv', patch_habitat_array)
+        save_array(f'{DIR_PATH}/habitat_species_feeding.csv', scores_dict["feeding"])
+        save_array(f'{DIR_PATH}/habitat_species_traversal.csv', scores_dict["traversal"])
+
+    return position_array, adjacency_array, patch_size_array, patch_quality_array, \
+        patch_habitat_array, scores_dict["feeding"], scores_dict["traversal"]
 
 
 # ---------------------- EXECUTE ---------------------- #
 
-def run_sample_spatial_data():
+def run_sample_spatial_data(is_output_files=False):
     print(f"Beginning generation of spatial network {TEST_SET}.")
     # check the habitats
     master_habitat_types_set = master_para["main_para"]["HABITAT_TYPES"]
@@ -355,19 +369,24 @@ def run_sample_spatial_data():
         if check_num not in master_habitat_types_set:
             raise Exception(f'{check_num} is missing from the global set of habitat types.')
 
-    generate_all_spatial_files(
-        desc=DESCRIPTION,
-        num_species=len(master_para["main_para"]["SPECIES_TYPES"]),
-        num_patches=master_para["main_para"]["NUM_PATCHES"],
-        num_habitats=len(master_habitat_types_set),
-        graph_para=master_para["graph_para"],
-        generated_habitat_set=master_para["main_para"]["INITIAL_HABITAT_SET"],
-        generated_habitat_probabilities=master_para["main_para"]["INITIAL_HABITAT_BASE_PROBABILITIES"],
-        generated_spec=master_para["main_para"]["GENERATED_SPEC"],
-    )
+    position_array, adjacency_array, patch_size_array, patch_quality_array, patch_habitat_array, \
+        habitat_feeding_scores, habitat_traversal_scores \
+        = generate_all_spatial_settings(
+            is_output_files=is_output_files,
+            desc=DESCRIPTION,
+            num_species=len(master_para["main_para"]["SPECIES_TYPES"]),
+            num_patches=master_para["main_para"]["NUM_PATCHES"],
+            num_habitats=len(master_habitat_types_set),
+            graph_para=master_para["graph_para"],
+            generated_habitat_set=master_para["main_para"]["INITIAL_HABITAT_SET"],
+            generated_habitat_probabilities=master_para["main_para"]["INITIAL_HABITAT_BASE_PROBABILITIES"],
+            generated_spec=master_para["main_para"]["GENERATED_SPEC"],
+        )
     print(f"Test set {TEST_SET} generation complete.")
+    return position_array, adjacency_array, patch_size_array, patch_quality_array, \
+        patch_habitat_array, habitat_feeding_scores, habitat_traversal_scores
 
 
 # # so that this method is called when the script is executed
 if __name__ == '__main__':
-    run_sample_spatial_data()
+    run_sample_spatial_data(is_output_files=True)

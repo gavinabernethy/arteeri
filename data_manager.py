@@ -75,7 +75,7 @@ def print_key_outputs_to_console(simulation_obj):
     # prints the final and averaged-final
     #   - presence/absence
     #   - local population size
-    #   - source and sink value
+    #   - enter/leave and source and sink value
     # for each local population of each species in each patch
     #
     # update present net_enter, occupancy etc.

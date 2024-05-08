@@ -40,9 +40,11 @@ def repeat_program(sim: int):
     simulation_obj.full_simulation()
 
 
+#
 # --------------------------------- EXECUTE --------------------------------- #
+#
 if meta_para["IS_RUN_SAMPLE_SPATIAL_DATA_FIRST"]:
-    run_sample_spatial_data()
+    run_sample_spatial_data(is_output_files=True)
 num_repeats = meta_para["NUM_REPEATS"]
 for simulation in range(num_repeats):
     if meta_para["IS_NEW_PROGRAM"]:
