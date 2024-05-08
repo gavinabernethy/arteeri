@@ -1,5 +1,3 @@
-import numpy as np
-
 from data_manager import save_all_data, generate_simulation_number, all_plots, population_snapshot, \
     change_snapshot, write_initial_files, save_adj_variables, load_adj_variables, load_reserve_list, \
     save_reserve_list, print_key_outputs_to_console
@@ -14,14 +12,6 @@ from population_dynamics import *
 from system_state import System_state
 from perturbation import *
 import json.decoder
-import hurst
-import warnings
-
-warnings.filterwarnings(action='error', category=RuntimeWarning)  # this is used because of Hurst Exp throwing warnings
-
-
-# even for parts of the code not being executed because of the failure (constant time-series not suitable for Hurst).
-# warnings.resetwarnings()  - you will need to run this if Warnings break the program!
 
 
 def load_dataset(filename):
@@ -407,13 +397,21 @@ class Simulation_obj:
                 local_population.build_recent_time_averages(current_step=self.total_steps,
                                                             back_steps=self.parameters["main_para"]["NUM_RECORD_STEPS"])
 
-                # Calculate Hurst Exponent of each local population history time-series:
-                try:
-                    local_population.population_history_hurst_exponent = hurst.compute_Hc(
-                        series=local_population.population_history,
-                        kind="random_walk", simplified=True)
-                except (RuntimeWarning, ValueError):
-                    local_population.population_history_hurst_exponent = None
+                if self.parameters["main_para"]["IS_CALCULATE_HURST"]:
+                    import hurst
+                    import warnings
+                    warnings.filterwarnings(action='error',
+                                            category=RuntimeWarning)
+                    # this is used because of Hurst Exp throwing warnings, even for parts of the code not being
+                    # executed because of the failure (constant time-series not suitable for Hurst).
+                    # warnings.resetwarnings()  - you will need to run this if Warnings break the program!
+                    # Calculate Hurst Exponent of each local population history time-series:
+                    try:
+                        local_population.population_history_hurst_exponent = hurst.compute_Hc(
+                            series=local_population.population_history,
+                            kind="random_walk", simplified=True)
+                    except (RuntimeWarning, ValueError):
+                        local_population.population_history_hurst_exponent = None
 
                 # ??? Correlation dimension here ???
 

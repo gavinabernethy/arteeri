@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from simulation_obj import Simulation_obj
 from parameters import master_para, meta_para
 import random

@@ -14,7 +14,7 @@ master_para = {
         {
             # This set of parameters is accessed during the execution of sample_spatial_data.py for generating
             # the spatial network files that are then used in the simulation.
-            "SPATIAL_TEST_SET": 3,
+            "SPATIAL_TEST_SET": 1,
             "SPATIAL_DESCRIPTION": "artemis_01_lattice_fc_one_species",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
             "GRAPH_TYPE": "lattice",
@@ -60,7 +60,7 @@ master_para = {
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
 
-            "ECO_PRIORITIES": {0: {'foraging', 'direct_impact', 'growth'}, 1: {}, 2: {}, 3: {'dispersal'}},
+            "ECO_PRIORITIES": {0: {'foraging', 'direct_impact', 'growth', 'dispersal'}, 1: {}, 2: {}, 3: {}},
             # What is the order or concurrence in which foraging (predation), growth (reproduction and mortality),
             # direct impact, and dispersal should be resolved?
 
@@ -70,8 +70,8 @@ master_para = {
             # and IF YOU CHANGE THIS then "IS_LOAD_ADJ_VARIABLES" BELOW MUST BE "FALSE" AS WE NEED TO REBUILD THEM!!!
             #
             # Note that saving the adjacency variables does seem to be extremely slow in DEBUG mode.
-            "IS_SAVE_ADJ_VARIABLES": True,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
-            "IS_LOAD_ADJ_VARIABLES": True,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_SAVE_ADJ_VARIABLES": False,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_LOAD_ADJ_VARIABLES": False,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
 
             # ------------- Generation data - needs to be set before spatial habitat generation ------------- #
             "SPECIES_TYPES": {
@@ -122,6 +122,9 @@ master_para = {
             "INITIAL_HABITAT_SET": {0, 1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
+
+            # do we load the hurst module and attempt to calculate Hurst exponents?
+            "IS_CALCULATE_HURST": False,
         },
     "plot_save_para":
         {
@@ -134,7 +137,7 @@ master_para = {
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.
             #
             # Data control options (requires IS_SAVE to be true):
-            "IS_SAVE_LOCAL_POP_HISTORY_CSV": True,  # produce individual .csv file with only the core time series
+            "IS_SAVE_LOCAL_POP_HISTORY_CSV": False,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
             "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object.
             "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
@@ -180,10 +183,10 @@ master_para = {
         {
             # a list of integers from [0 : num_patches - 1] of patches designated reserves and cannot be perturbed:
             "IS_RESERVE_LOAD": False,  # Want to load a previously-drawn reserve set for this spatial network?
-            "IS_RESERVE_SAVE": True,  # Want to save this reserve set for the spatial network (overwrites previous)?
+            "IS_RESERVE_SAVE": False,  # Want to save this reserve set for the spatial network (overwrites previous)?
             "RESERVE_PATCH_CLUSTERS": [[]],  # default is empty list of lists (per cluster)
             "IS_RESERVE_GENERATION": False,
-            "CLUSTERS_MUST_BE_SEPARATED": True,
+            "CLUSTERS_MUST_BE_SEPARATED": False,
             "RESERVE_CLUSTERS": None,
             "IS_PLOTS": False,
             "IS_OUTPUT_DATAFILES": False,
@@ -191,53 +194,7 @@ master_para = {
             # SIMULTANEOUS AND AS SYSTEM_STATE.PERTURBATION_HISTORY IS A DICTIONARY AND ONLY HOLDS ONE VALUE PER STEP!
             "PERT_STEP_DICTIONARY": {},  # {100 * x + 50: 'b' for x in range(100)}
             # e.g. {x: 'a' for x in range(2000)} so that pert type 'a' occurs at step x
-            "PERT_ARCHETYPE_DICTIONARY": {
-                "a": {
-                    "perturbation_type": "patch_perturbation",
-                    "perturbation_subtype": "change_quality",
-                    # "change_habitat" or "change_quality" or "remove_patch" or ""change_adjacency"
-                    "patch_list_overwrite": None,  # list if desired
-                    "patches_affected": [{"num_patches": 2,
-                                          "habitat_nums_permitted": None,  # if None then all by default
-                                          "initial": ["random"],
-                                          "arch_type": "box",
-                                          }],
-                    "is_pairs": False,
-                    "habitat_nums_to_change_to": None,
-                    "quality_change": 0.5,
-                    "is_absolute": False,
-                    "is_relative_multiply": True,
-                    "is_relative_add": False,
-                    "adjacency_change": None,
-                    "is_reserves_overwrite": False,
-                    "clusters_must_be_separated": True,
-                    "proximity_to_previous": 0,  # 0, 1, 2, 3 - will not apply to removal perturbations
-                    # [relative_weight, alpha, beta, gamma] or None - preference of total distance from last pert.
-                    "prev_weighting": [1, 1, 5, 0],
-                    # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
-                    "all_weighting": None,
-                    "rebuild_all_patches": False,
-                },
-
-                "b": {
-                    "perturbation_type": "population_perturbation",
-                    "perturbation_subtype": "extinction",  # 'dispersal' or 'extinction' or 'displacement'
-                    "probability": 1.0,
-                    "fraction_of_population": 0.2,
-                    "patch_list_overwrite": None,
-                    "is_reserves_overwrite": False,
-                    "species_affected": None,  # if None (list of names of species) then default is all
-                    "all_patches_habitats_affected": None,  # if None (list of numbers of habitat types) then default
-                    # is all - but note that this option is only in the case that all patches are being selected from.
-                    "patches_affected": None,  # if None (list of patch numbers) default is all except reserves
-                    "clusters_must_be_separated": False,
-                    "proximity_to_previous": 0,
-                    # [relative_weight, alpha, beta, gamma] or None - preference of total distance from last pert.
-                    "prev_weighting": None,
-                    # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
-                    "all_weighting": [1, 1, 3, 0],
-                },
-            },
+            "PERT_ARCHETYPE_DICTIONARY": {},  # see comment examples at base of script
         },
     # ------------------------------------- COPY FROM SPECIES REPOSITORY ------------------------------------- #
     # convert these to attributes of the species class, rather than storing them in the parameters
@@ -249,8 +206,52 @@ master_para = {
         {
             x: ARTEMIS_01_MASTER[x] for x in ARTEMIS_01_MASTER
         },
-    # "species_para":
-    #     {
-    #         x: PREDATOR_MULTIPLE_PREY_MASTER[x] for x in PREDATOR_MULTIPLE_PREY_MASTER
-    #     },
 }
+
+
+# "PERT_ARCHETYPE_DICTIONARY": {
+#     "a": {
+#         "perturbation_type": "patch_perturbation",
+#         "perturbation_subtype": "change_quality",
+#         # "change_habitat" or "change_quality" or "remove_patch" or ""change_adjacency"
+#         "patch_list_overwrite": None,  # list if desired
+#         "patches_affected": [{"num_patches": 2,
+#                               "habitat_nums_permitted": None,  # if None then all by default
+#                               "initial": ["random"],
+#                               "arch_type": "box",
+#                               }],
+#         "is_pairs": False,
+#         "habitat_nums_to_change_to": None,
+#         "quality_change": 0.5,
+#         "is_absolute": False,
+#         "is_relative_multiply": True,
+#         "is_relative_add": False,
+#         "adjacency_change": None,
+#         "is_reserves_overwrite": False,
+#         "clusters_must_be_separated": True,
+#         "proximity_to_previous": 0,  # 0, 1, 2, 3 - will not apply to removal perturbations
+#         # [relative_weight, alpha, beta, gamma] or None - preference of total distance from last pert.
+#         "prev_weighting": [1, 1, 5, 0],
+#         # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
+#         "all_weighting": None,
+#         "rebuild_all_patches": False,
+#     },
+#
+#     "b": {
+#         "perturbation_type": "population_perturbation",
+#         "perturbation_subtype": "extinction",  # 'dispersal' or 'extinction' or 'displacement'
+#         "probability": 1.0,
+#         "fraction_of_population": 0.2,
+#         "patch_list_overwrite": None,
+#         "is_reserves_overwrite": False,
+#         "species_affected": None,  # if None (list of names of species) then default is all
+#         "all_patches_habitats_affected": None,  # if None (list of numbers of habitat types) then default
+#         # is all - but note that this option is only in the case that all patches are being selected from.
+#         "patches_affected": None,  # if None (list of patch numbers) default is all except reserves
+#         "clusters_must_be_separated": False,
+#         "proximity_to_previous": 0,
+#         # [relative_weight, alpha, beta, gamma] or None - preference of total distance from last pert.
+#         "prev_weighting": None,
+#         # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
+#         "all_weighting": [1, 1, 3, 0],
+#     },
