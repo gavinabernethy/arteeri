@@ -457,7 +457,7 @@ ARTEMIS_01_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
-                "BINOMIAL_EXTRA_INDIVIDUAL": 0.5,
+                "BINOMIAL_EXTRA_INDIVIDUAL": 0.0,
                 "COEFFICIENTS_LISTS": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": {

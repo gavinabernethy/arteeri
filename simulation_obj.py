@@ -1,6 +1,6 @@
 from data_manager import save_all_data, generate_simulation_number, all_plots, population_snapshot, \
     change_snapshot, write_initial_files, save_adj_variables, load_adj_variables, load_reserve_list, \
-    save_reserve_list
+    save_reserve_list, print_key_outputs_to_console
 from data_manager_functions import plot_network_properties, create_adjacency_path_list
 import os
 from patch import Patch
@@ -37,6 +37,7 @@ class Simulation_obj:
         self.is_allow_file_creation = parameters["plot_save_para"]["IS_ALLOW_FILE_CREATION"]
         self.is_save = parameters["plot_save_para"]["IS_SAVE"]
         self.is_plot = parameters["plot_save_para"]["IS_PLOT"]
+        self.is_print_key_outputs_to_console = parameters["plot_save_para"]["IS_PRINT_KEY_OUTPUTS_TO_CONSOLE"]
         self.total_steps = self.parameters["main_para"]["NUM_TRANSIENT_STEPS"] + self.parameters[
             "main_para"]["NUM_RECORD_STEPS"]
         self.sim_number = generate_simulation_number(save_data=self.is_allow_file_creation)
@@ -236,6 +237,8 @@ class Simulation_obj:
                 print(f"{self.sim_number}: Beginning plot exports.")
                 all_plots(simulation_obj=self)
                 print(f"{self.sim_number}: Completed plot exports.")
+        if self.is_print_key_outputs_to_console:
+            print_key_outputs_to_console(simulation_obj=self)
         print(f"Completed simulation number {self.sim_number}.\n")
 
     ######################################################################################################

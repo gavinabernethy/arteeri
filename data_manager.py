@@ -71,6 +71,40 @@ def load_reserve_list(spatial_set_number):
 
 # ----------------------------- SAVING DATA AT THE END OF THE SIMULATION ----------------------- #
 
+def print_key_outputs_to_console(simulation_obj):
+    # prints the final and averaged-final
+    #   - presence/absence
+    #   - local population size
+    #   - source and sink value
+    # for each local population of each species in each patch
+    #
+    # update present net_enter, occupancy etc.
+    update_local_population_nets(system_state=simulation_obj.system_state)
+
+    print("\n******************** SIMULATION OUTPUTS: BEGIN ********************\n")
+    print("\n********** SPATIAL NETWORK DESCRIPTION **********\n")
+    print(f"{len(simulation_obj.system_state.patch_list)}, "
+          f"{len(simulation_obj.system_state.habitat_type_dictionary)}")
+    print("Habitat species traversal:")
+    print(simulation_obj.system_state.habitat_species_traversal)
+    print("Habitat species feeding:")
+    print(simulation_obj.system_state.habitat_species_feeding)
+    print("Patch adjacency matrix (final):")
+    print(simulation_obj.system_state.patch_adjacency_matrix)
+    print("\n********** LOCAL POPULATION OUTPUTS **********\n")
+    for patch in simulation_obj.system_state.patch_list:
+        for local_population in patch.local_populations.values():
+            output_str = f"{simulation_obj.sim_number}, {patch.number}, {patch.habitat_type_num}, " \
+                         f"{local_population.name}, {local_population.occupancy}, {local_population.population}, " \
+                         f"{local_population.internal_change}, {local_population.population_enter}, " \
+                         f"{local_population.population_leave}, {local_population.source}, {local_population.sink}, " \
+                         f"{local_population.average_population}, {local_population.average_internal_change}, " \
+                         f"{local_population.average_population_enter}, {local_population.average_population_leave}, " \
+                         f"{local_population.average_source}, {local_population.average_sink};"
+            print(output_str)
+    print("\n******************** SIMULATION OUTPUTS: END ********************\n")
+
+
 def save_all_data(simulation_obj):
     # Access required properties:
     metadata = simulation_obj.metadata

@@ -4,7 +4,7 @@ meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
-    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
+    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": False,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
 }
@@ -126,7 +126,8 @@ master_para = {
     "plot_save_para":
         {
             "IS_ALLOW_FILE_CREATION": False,  # prevents creation of any files for running on remote clusters
-            "IS_SAVE": True,  # do you save ANY data files?
+            "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
+            "IS_SAVE": False,  # do you save ANY data files?
             "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
