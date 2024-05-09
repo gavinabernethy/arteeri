@@ -4,7 +4,7 @@ meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
-    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": False,  # should we execute sample_spatial_data() before running the batch set?
+    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
 }
@@ -30,7 +30,7 @@ master_para = {
             "CLUSTER_PROBABILITY": 0.9,
             # Habitat type:
             "HABITAT_TYPE_MANUAL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.0,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.7,  # in range [-1, 1]
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,
@@ -56,8 +56,8 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 10000,
-            "NUM_RECORD_STEPS": 1000,
+            "NUM_TRANSIENT_STEPS": 100,
+            "NUM_RECORD_STEPS": 100,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
@@ -130,10 +130,10 @@ master_para = {
         },
     "plot_save_para":
         {
-            "IS_ALLOW_FILE_CREATION": False,  # prevents creation of any files for running on remote clusters
+            "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_SAVE": False,  # do you save ANY data files?
-            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.

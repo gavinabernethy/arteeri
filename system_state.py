@@ -120,19 +120,23 @@ class System_state:
                         if self.patch_list[patch_num_1].habitat_type_num == \
                                 self.patch_list[patch_num_2].habitat_type_num:
                             auto_cor_sum += 1.0
-            # now determine the probabilities and thus the expected and SD of same-habitat links
-            prob_square_sum = 0.0
-            for habitat_type_num in self.habitat_type_dictionary:
-                prob_square_sum += (temp_habitat_counts[habitat_type_num] / len(self.current_patch_list)) ** 2.0
-            expectation = prob_square_sum
-            st_dev = np.sqrt(prob_square_sum - prob_square_sum ** 2.0)
-            # now the habitat-probability-normalised spatial auto-correlation of habitats
-            if norm_sum == 0.0 or st_dev == 0.0:
-                # if norm_sum is zero (i.e. the graph is fully disconnected) or st_dev is zero (because all
-                # the patches actually have the same habitat type despite there being multiple possibilities)
+
+            if norm_sum == 0.0:
+                # if norm_sum is zero (i.e.the graph is fully disconnected)
                 spatial_auto_correlation = 0.0
             else:
-                spatial_auto_correlation = (auto_cor_sum / norm_sum - expectation) / st_dev
+                # now determine the probabilities and thus the expected and SD of same-habitat links
+                prob_square_sum = 0.0
+                for habitat_type_num in self.habitat_type_dictionary:
+                    prob_square_sum += (temp_habitat_counts[habitat_type_num] / len(self.current_patch_list)) ** 2.0
+                expectation = prob_square_sum
+                st_dev = np.sqrt(prob_square_sum - prob_square_sum ** 2.0)
+                # now the habitat-probability-normalised spatial auto-correlation of habitats
+                if st_dev == 0.0:
+                    # all patches have the same habitat type despite there being multiple possibilities
+                    spatial_auto_correlation = 1.0
+                else:
+                    spatial_auto_correlation = (auto_cor_sum / norm_sum - expectation) / st_dev
         self.habitat_auto_correlation_history[self.step] = spatial_auto_correlation
         for habitat_type_num in self.habitat_type_dictionary:
             self.habitat_amounts_history[habitat_type_num][self.step] = temp_habitat_counts[habitat_type_num]
