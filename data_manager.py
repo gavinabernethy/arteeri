@@ -80,6 +80,8 @@ def print_key_outputs_to_console(simulation_obj):
     #
     # update present net_enter, occupancy etc.
     update_local_population_nets(system_state=simulation_obj.system_state)
+    # Increase the limit to print full large arrays (necessary for adjacency matrices).
+    np.set_printoptions(threshold=sys.maxsize)
 
     print("\n******************** SIMULATION OUTPUTS: BEGIN ********************\n")
     print("\n********** SPATIAL NETWORK DESCRIPTION **********\n")
@@ -105,6 +107,8 @@ def print_key_outputs_to_console(simulation_obj):
                          f"{local_population.population_period};"
             print(output_str)
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
+    # Restore default configuration.
+    np.set_printoptions(threshold=1000)
 
 
 def save_all_data(simulation_obj):

@@ -281,7 +281,7 @@ ARTEMIS_01_MASTER = {
 
     "prey": {
         "MINIMUM_POPULATION_SIZE": 0.000001,
-        "LIFESPAN": 1000000,
+        "LIFESPAN": 100,
         "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "random_binomial",
@@ -403,7 +403,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": False,
+                "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "step_poly",
@@ -513,7 +513,7 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "constant",
+            "INITIAL_POPULATION_MECHANISM": "random_binomial",
             "VALUE": 0.01,
             "MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.2,
@@ -634,7 +634,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": False,
+                "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "diffusion",
