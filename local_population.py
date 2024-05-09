@@ -86,6 +86,9 @@ class Local_population:
         self.record_population_history()  # need this so that the initial population is recorded
         self.population_history_hurst_exponent = 0.0
         self.average_population = 0.0
+        self.population_period = 0.0
+        self.st_dev_population = 0.0
+        self.max_abs_population = 0.0
         self.average_population_leave = 0.0
         self.average_population_enter = 0.0
         self.average_net_enter = 0.0
@@ -336,7 +339,7 @@ class Local_population:
         direct_impact = 0.0
         for population in self.interacting_populations:
             if (self.parameters["pop_dyn_para"]["IS_DIRECT_IMPACT_NONLOCAL"] or self.patch_num == population[
-                    "object"].patch_num) and population["object"].species.name in self.species.direct_impact_on_me:
+                "object"].patch_num) and population["object"].species.name in self.species.direct_impact_on_me:
                 direct_impact += self.species.direct_impact_on_me[population["object"].species.name] * \
                                  self.holding_population * population["object"].holding_population
         return direct_impact
@@ -470,7 +473,8 @@ class Local_population:
                             if denominator_1 * denominator_2 == 0.0:
                                 top_up = 0.0
                             else:
-                                top_up = max(0.0, disparity * (self.g_values["g2"] - self.g_values["g1"])/denominator_1 *
+                                top_up = max(0.0,
+                                             disparity * (self.g_values["g2"] - self.g_values["g1"]) / denominator_1 *
                                              min(1.0, prey.survivors / denominator_2))
                                 g3_running_total += top_up
                             total_of_this_prey_killed = self.kills["g2"][prey][0] + top_up
@@ -488,8 +492,29 @@ class Local_population:
         # full arrays of the history (but it would be needlessly inefficient to calculate them every time-step, so we
         # only call this in anticipation of upcoming plots - i.e. mainly at the end of the simulation)
         #
-        # Average population
+        # Mean and standard deviation of recent population history
         self.average_population = np.sum(self.population_history[current_step - back_steps: current_step]) / back_steps
+        self.st_dev_population = np.std(self.population_history[current_step - back_steps: current_step])
+
+        # Recent variations in the local population - periodicity and maximum absolute variation:
+        period = 0
+        period_epsilon = max(0.00000000001, self.st_dev_population * 0.0000001)
+        max_abs_var = np.abs(self.population_history[current_step] - self.average_population)
+        for n in range(1, back_steps):
+            # update greatest absolute deviation from the mean
+            max_abs_var = max(max_abs_var, np.abs(self.population_history[current_step - n] - self.average_population))
+            # periodicity check
+            if period == 0:
+                # only check if not already determined
+                if abs(self.population_history[current_step - n] -
+                       self.population_history[current_step]) < period_epsilon:
+                    # if we think we have a period M, only record it if we can confirm against X_{n-2M} ~ X_{n} also
+                    if len(self.population_history) >= 2 * n:
+                        if abs(self.population_history[current_step - 2 * n] - self.population) < period_epsilon:
+                            period = n
+        self.population_period = period
+        self.max_abs_population = max_abs_var
+
         # Average population change due to the internal ODE/Difference Equation (including possibly distant foraging by
         # this species and distant predation upon this species) AND direct impact (i.e. everything except dispersal):
         self.average_internal_change = np.sum(

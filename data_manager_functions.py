@@ -106,11 +106,16 @@ def write_average_population_data(patch_list, sim, step):
         for patch in patch_list:
             this_patch = {}
             for local_pop in patch.local_populations.values():
-                this_patch[local_pop.name] = [local_pop.average_population, local_pop.average_population_enter,
-                                              local_pop.average_population_leave, local_pop.average_internal_change]
+                this_patch[local_pop.name] = [local_pop.average_population, local_pop.average_internal_change,
+                                              local_pop.average_population_enter, local_pop.average_population_leave,
+                                              local_pop.average_source, local_pop.average_sink,
+                                              local_pop.st_dev_population, local_pop.max_abs_population,
+                                              local_pop.population_period]
                 f.write(f"{patch.number}, {local_pop.name}, {local_pop.average_population}, "
-                        f"{local_pop.average_population_enter}, {local_pop.average_population_leave}"
-                        f"{local_pop.average_internal_change}, \n")
+                        f"{local_pop.average_internal_change}, {local_pop.average_population_enter}, "
+                        f"{local_pop.average_population_leave}, {local_pop.average_source}, {local_pop.average_sink}, "
+                        f"{local_pop.st_dev_population}, {local_pop.max_abs_population}, {local_pop.population_period};"
+                        f"\n")
             average_population[patch.number] = this_patch
     # then also write the dictionary to a JSON
     json_file_name = f"results/{sim}/{step}/data/average_populations.json"

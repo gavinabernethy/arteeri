@@ -74,7 +74,7 @@ def load_reserve_list(spatial_set_number):
 def print_key_outputs_to_console(simulation_obj):
     # prints the final and averaged-final
     #   - presence/absence
-    #   - local population size
+    #   - local population size, standard deviation, and periodicity
     #   - enter/leave and source and sink value
     # for each local population of each species in each patch
     #
@@ -100,7 +100,9 @@ def print_key_outputs_to_console(simulation_obj):
                          f"{local_population.population_leave}, {local_population.source}, {local_population.sink}, " \
                          f"{local_population.average_population}, {local_population.average_internal_change}, " \
                          f"{local_population.average_population_enter}, {local_population.average_population_leave}, " \
-                         f"{local_population.average_source}, {local_population.average_sink};"
+                         f"{local_population.average_source}, {local_population.average_sink}, " \
+                         f"{local_population.st_dev_population}, {local_population.max_abs_population}, " \
+                         f"{local_population.population_period};"
             print(output_str)
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
 

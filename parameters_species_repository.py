@@ -281,7 +281,7 @@ ARTEMIS_01_MASTER = {
 
     "prey": {
         "MINIMUM_POPULATION_SIZE": 0.000001,
-        "LIFESPAN": 100,
+        "LIFESPAN": 1000000,
         "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "random_binomial",
@@ -297,7 +297,7 @@ ARTEMIS_01_MASTER = {
                 "GROWTH_FUNCTION": "logistic",
                 "R": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 2.49,
+                    "constant_value": 3.569946659,
                     "period": 0.0,
                     "amplitude": 0.0,
                     "phase_shift": 0.0,
@@ -403,7 +403,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": True,
+                "IS_DISPERSAL": False,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "step_poly",
@@ -518,7 +518,7 @@ ARTEMIS_01_MASTER = {
             "MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.2,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-            "PATCH_VECTOR": [0.01] + [0 for x in range(4)],
+            "PATCH_VECTOR": [0.0] + [0 for x in range(4)],
         },
         "SEASONAL_PERIOD": 0,
         "GROWTH_PARA":

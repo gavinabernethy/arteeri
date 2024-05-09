@@ -127,7 +127,9 @@ class System_state:
             expectation = prob_square_sum
             st_dev = np.sqrt(prob_square_sum - prob_square_sum ** 2.0)
             # now the habitat-probability-normalised spatial auto-correlation of habitats
-            if norm_sum == 0.0:
+            if norm_sum == 0.0 or st_dev == 0.0:
+                # if norm_sum is zero (i.e. the graph is fully disconnected) or st_dev is zero (because all
+                # the patches actually have the same habitat type despite there being multiple possibilities)
                 spatial_auto_correlation = 0.0
             else:
                 spatial_auto_correlation = (auto_cor_sum / norm_sum - expectation) / st_dev
