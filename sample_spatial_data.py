@@ -42,8 +42,8 @@ def create_description_file(desc):
 # THIS HAPPENS FIRST, AS SOME OTHER PROPERTIES MAY DEPEND ON POSITION AND ADJACENCY
 def generate_patch_position_adjacency(num_patches, graph_para):
     # Automatically place them in a rectangular grid
-    num_rows = np.ceil(np.sqrt(num_patches))
-    num_columns = np.ceil(num_patches / num_rows)
+    num_rows = int(np.ceil(np.sqrt(num_patches)))
+    num_columns = int(np.ceil(num_patches / num_rows))
     position_array = np.zeros([num_patches, 2])
     for patch in range(num_patches):
         x = np.mod(patch, num_columns)
@@ -85,9 +85,53 @@ def generate_patch_position_adjacency(num_patches, graph_para):
         if graph_type == "lattice":
             for x in range(num_patches):
                 for y in range(num_patches):
+                    is_suitable = False
+
+                    # include diagonals?
+                    if graph_para["IS_LATTICE_INCLUDE_DIAGONALS"]:
+                        test_distance = 1.999
+                    else:
+                        test_distance = 1.001
+                    # check regular within-grid adjacency
                     if np.linalg.norm(np.array([position_array[x, 0] - position_array[y, 0],
-                                                position_array[x, 1] - position_array[
-                                                    y, 1]])) < 1.999:  # include diagonals
+                                                position_array[x, 1] - position_array[y, 1]])) < test_distance:
+                        is_suitable = True
+
+                    # wrap around?
+                    if graph_para["IS_LATTICE_WRAPPED"]:
+                        # we need to check the minimum distance across all the types of edges of the lattice
+                        # to ensure we catch all cases (esp. when diagonals are possible), we go look at both patches
+                        # and determine if we will need to check their 'modulated/wrapped' x and y values.
+                        if position_array[x, 0] == num_columns - 1:
+                            patch_x_x_possible = [position_array[x, 0], -1]
+                        else:
+                            patch_x_x_possible = [position_array[x, 0]]
+                        if position_array[y, 0] == num_columns - 1:
+                            patch_y_x_possible = [position_array[y, 0], -1]
+                        else:
+                            patch_y_x_possible = [position_array[y, 0]]
+
+                        if position_array[x, 1] == num_rows - 1:
+                            patch_x_y_possible = [position_array[x, 1], -1]
+                        else:
+                            patch_x_y_possible = [position_array[x, 1]]
+                        if position_array[y, 1] == num_rows - 1:
+                            patch_y_y_possible = [position_array[y, 1], -1]
+                        else:
+                            patch_y_y_possible = [position_array[y, 1]]
+                        # then we look at all combinations to determine if there is a shortcut
+                        min_x_dist = num_columns
+                        for patch_x_x in patch_x_x_possible:
+                            for patch_y_x in patch_y_x_possible:
+                                min_x_dist = min(min_x_dist, np.abs(patch_x_x - patch_y_x))
+                        min_y_dist = num_rows
+                        for patch_x_y in patch_x_y_possible:
+                            for patch_y_y in patch_y_y_possible:
+                                min_y_dist = min(min_y_dist, np.abs(patch_x_y - patch_y_y))
+                        if np.linalg.norm(np.array([min_x_dist, min_y_dist])) < test_distance:
+                            is_suitable = True
+
+                    if is_suitable:
                         draw = np.random.binomial(n=1, p=graph_para["LATTICE_GRAPH_CONNECTIVITY"])
                         adjacency_array[x, y] = draw
                         adjacency_array[y, x] = draw

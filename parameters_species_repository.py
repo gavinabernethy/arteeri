@@ -513,12 +513,12 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "patch_vector",
+            "INITIAL_POPULATION_MECHANISM": "constant",
             "VALUE": 0.01,
             "MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.2,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-            "PATCH_VECTOR": [0.0] + [0 for x in range(4)],
+            "PATCH_VECTOR": None,
         },
         "SEASONAL_PERIOD": 0,
         "GROWTH_PARA":
