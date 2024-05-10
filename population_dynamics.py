@@ -121,14 +121,15 @@ def dispersal_scheme_adaptive(species_from, movement_score, parameters):
     # migration is scaled by the fractional decline in the local population as a direct result of
     # ecological_iterate (feeding and reproduction, after the last dispersal was completed), and scaled by
     # the species-and-habitat-specific traversal score and their movement speed and the overall movement parameter
-    previous_pop = species_from.population_history[-1]  # population recorded at the end of the previous time-step
+    non_dispersal_change = species_from.local_growth + species_from.direct_impact_value + \
+                            species_from.prey_gain - species_from.predation_loss
     current_pop = species_from.holding_population  # current population has been saved this step following ODE/growth.
-    if 0.0 < current_pop < previous_pop:
-        # did foraging/reproduction/being predated upon result in a net decline for this local population?
-        leaving_pop = parameters["pop_dyn_para"]["MU_OVERALL"] * \
-                      movement_score * \
-                      (previous_pop - current_pop) / previous_pop * \
-                      species_from.holding_population
+    previous_pop = species_from.holding_population - non_dispersal_change
+    # did foraging/reproduction/being predated upon result in a net decline for this local population?
+    if non_dispersal_change < 0.0 and current_pop > 0.0 and previous_pop != 0.0:
+        # instance of movement being enacted
+        leaving_pop = parameters["pop_dyn_para"]["MU_OVERALL"] * movement_score * (-non_dispersal_change) / \
+                      previous_pop * species_from.holding_population
     else:
         leaving_pop = 0.0
     return leaving_pop
