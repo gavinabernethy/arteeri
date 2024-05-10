@@ -78,10 +78,12 @@ def dispersal_scheme_step_polynomial(species_from, movement_score, parameters):
         coefficients = poly_para["UNDER"]
     else:
         coefficients = poly_para["OVER"]
-    leavers = 0.0
+    leaver_proportion = 0.0
     for power, coefficient in enumerate(coefficients):
-        leavers += coefficient * density ** power
-    leaving_pop = parameters["pop_dyn_para"]["MU_OVERALL"] * movement_score * leavers
+        leaver_proportion += coefficient * density ** power
+    leaving_pop = parameters["pop_dyn_para"][
+                      "MU_OVERALL"] * movement_score * leaver_proportion * species_from.carrying_capacity
+    # note that the final amount is scaled by carrying capacity
     return leaving_pop
 
 
@@ -292,7 +294,7 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
             filtered_cost = cost - heaviside_threshold
         # scale by mobility attribute and return
         score = getattr(local_pop.species, mobility_scaling_attr) * (
-                1.0/home_patch_traversal_score + filtered_cost)**(-1.0)
+                1.0 / home_patch_traversal_score + filtered_cost) ** (-1.0)
     return score
 
 
@@ -710,7 +712,7 @@ def update_populations(patch_list, species_list, time, step, parameters, current
             # Record new populations, set new population from holding_population, and call ODE recording for this step
             # Note that "local_pop.holding_population - local_pop.population" would give the TOTAL change in any case.
             local_pop.internal_change = local_pop.holding_population - local_pop.population - \
-                local_pop.population_enter + local_pop.population_leave
+                                        local_pop.population_enter + local_pop.population_leave
 
             # # CHECK: do the discrepancies here match when excess deaths are overwritten by the min function?
             # expected_change = local_pop.local_growth + local_pop.direct_impact_value + local_pop.population_enter + \
