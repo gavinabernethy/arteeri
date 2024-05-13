@@ -351,6 +351,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
 
 def generate_habitat_species_scores(num_species, num_habitats, generated_spec, score_type):
     if generated_spec[score_type]["IS_SPECIES_SCORES_SPECIFIED"]:
+        # The feeding or traversal scores are manually specified for each (habitat, species) pair.
         array = np.zeros([num_habitats, num_species])
         data = generated_spec[score_type]["HABITAT_SCORES"]
         if list(data.keys()) != [x for x in range(num_habitats)]:
@@ -361,7 +362,14 @@ def generate_habitat_species_scores(num_species, num_habitats, generated_spec, s
             else:
                 array[habitat, :] = data[habitat]
     else:
-        array = np.random.rand(num_habitats, num_species)
+        # Otherwise generate them from the provided interval.
+        min_score = generated_spec[score_type]["MIN_SCORE"]
+        max_score = generated_spec[score_type]["MAX_SCORE"]
+        if 0 <= min_score < max_score <= 1.0:
+            array = min_score + np.random.rand(num_habitats, num_species) * (max_score - min_score)
+        else:
+            raise Exception(f"Maximum and minimum values of {score_type} scores not correctly ordered in [0,1]")
+
     return array
 
 

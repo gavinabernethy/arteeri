@@ -4,7 +4,7 @@ meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
-    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": False,  # should we execute sample_spatial_data() before running the batch set?
+    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
     # Note that if TRUE then any existing data will be overwritten and new adjacency sets will need to be generated
@@ -101,7 +101,10 @@ master_para = {
                 # NOTE THAT IF YOU WISH TO CHANGE THESE YOU MUST RE-RUN SPATIAL HABITAT GENERATION BEFORE MAIN.PY
                 #
                 "FEEDING": {
-                    "IS_SPECIES_SCORES_SPECIFIED": False,  # if false, then randomly generated
+                    "IS_SPECIES_SCORES_SPECIFIED": False,  # if false, then randomly generated from the uniform
+                    # distribution over [MIN_SCORE, MAX_SCORE]
+                    "MIN_SCORE": 0.0,
+                    "MAX_SCORE": 1.0,
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
@@ -111,7 +114,10 @@ master_para = {
                     },
                 },
                 "TRAVERSAL": {
-                    "IS_SPECIES_SCORES_SPECIFIED": False,  # if false, then randomly generated
+                    "IS_SPECIES_SCORES_SPECIFIED": False,  # if false, then randomly generated from the uniform
+                    # distribution over [MIN_SCORE, MAX_SCORE]
+                    "MIN_SCORE": 0.9,
+                    "MAX_SCORE": 1.0,
                     "HABITAT_SCORES": {
                         0: [1.0, 1.0],
                         1: [0.1, 0.1],
