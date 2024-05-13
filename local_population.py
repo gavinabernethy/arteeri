@@ -96,6 +96,7 @@ class Local_population:
         self.average_net_internal = 0.0
         self.average_sink = 0.0
         self.average_source = 0.0
+        self.recent_occupancy_change_frequency = 0  # how many times in averaging period/num_steps did occupancy change?
         self.stored_pop_values = {}  # used for comparisons during perturbation studies
         self.stored_change = {}  # used for comparisons during perturbation studies
         self.growth_function = {
@@ -496,11 +497,18 @@ class Local_population:
         self.average_population = np.sum(self.population_history[current_step - back_steps: current_step]) / back_steps
         self.st_dev_population = np.std(self.population_history[current_step - back_steps: current_step])
 
-        # Recent variations in the local population - periodicity and maximum absolute variation:
+        # Recent variations in the local population - periodicity, maximum absolute variation, occupancy change:
         period = 0
         period_epsilon = max(0.00000000001, self.st_dev_population * 0.0000001)
         max_abs_var = np.abs(self.population_history[current_step] - self.average_population)
+        num_occupancy_changes = 0
+        min_pop = self.species.minimum_population_size
         for n in range(1, back_steps):
+            # did the occupancy change?
+            new_pop = self.population_history[current_step - n]
+            old_pop = self.population_history[current_step - n + 1]
+            if (new_pop < min_pop <= old_pop) or (new_pop >= min_pop > old_pop):
+                num_occupancy_changes += 1
             # update greatest absolute deviation from the mean
             max_abs_var = max(max_abs_var, np.abs(self.population_history[current_step - n] - self.average_population))
             # periodicity check
@@ -514,6 +522,10 @@ class Local_population:
                             period = n
         self.population_period = period
         self.max_abs_population = max_abs_var
+        if back_steps > 1:
+            self.recent_occupancy_change_frequency = num_occupancy_changes / (back_steps - 1.0)
+        else:
+            self.recent_occupancy_change_frequency = 0.0
 
         # Average population change due to the internal ODE/Difference Equation (including possibly distant foraging by
         # this species and distant predation upon this species) AND direct impact (i.e. everything except dispersal):
@@ -556,7 +568,7 @@ class Local_population:
 
     def update_local_nets(self):
         # occupancy of patch
-        if self.population > self.species.minimum_population_size:
+        if self.population >= self.species.minimum_population_size:
             self.occupancy = 1
         else:
             self.occupancy = 0

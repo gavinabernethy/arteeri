@@ -114,8 +114,8 @@ def write_average_population_data(patch_list, sim, step):
                 f.write(f"{patch.number}, {local_pop.name}, {local_pop.average_population}, "
                         f"{local_pop.average_internal_change}, {local_pop.average_population_enter}, "
                         f"{local_pop.average_population_leave}, {local_pop.average_source}, {local_pop.average_sink}, "
-                        f"{local_pop.st_dev_population}, {local_pop.max_abs_population}, {local_pop.population_period};"
-                        f"\n")
+                        f"{local_pop.st_dev_population}, {local_pop.max_abs_population}, "
+                        f"{local_pop.population_period}, {local_pop.recent_occupancy_change_frequency};\n")
             average_population[patch.number] = this_patch
     # then also write the dictionary to a JSON
     json_file_name = f"results/{sim}/{step}/data/average_populations.json"
@@ -438,18 +438,19 @@ def global_species_time_series_properties(
                         species_dispersal_in[_] += float(local_pop.population_enter_history[_])
                         sink = 0.0
                         source = 0.0
-                        if float(local_pop.population_history[_]) > 0.0:
+                        if float(local_pop.population_history[_]) >= local_pop.species.minimum_population_size:
                             species_global_patches_occupied[_] += 1
                             sink = local_pop.population_enter_history[_] / local_pop.population_history[_]
-                            if _ > 0 and float(local_pop.population_history[_ - 1]) == 0.0:
+                            if _ > 0 and float(local_pop.population_history[_ - 1]) <\
+                                    local_pop.species.minimum_population_size:
                                 species_patches_colonised[_] += 1
                                 species_global_patches_occupied_change[_] += 1
-                        elif _ > 0 and float(local_pop.population_history[_ - 1]) > 0.0:
+                        elif _ > 0 and float(local_pop.population_history[_ - 1]) >=\
+                                local_pop.species.minimum_population_size:
                             species_patches_extinct[_] += 1
                             species_global_patches_occupied_change[_] += 1
-                        if _ > 0 and local_pop.population_history[_ - 1] + local_pop.internal_change_history[_] > 0.0:
-                            source = local_pop.population_leave_history[_] / (
-                                    local_pop.population_history[_ - 1] + local_pop.internal_change_history[_])
+                        if _ > 0 and local_pop.population_history[_ - 1] > 0.0:
+                            source = local_pop.population_leave_history[_] / local_pop.population_history[_ - 1]
 
                         # update running totals for global source and sink calculations at that step
                         species_sink_average[_] += sink
@@ -510,7 +511,7 @@ def global_species_time_series_properties(
             },
             "patches_occupied_status_change": {
                 "data": species_global_patches_occupied_change,
-                "y_label": "Number of patches whose status changed (colonisation or extinction)",
+                "y_label": "Number of patches whose status changed \n (colonisation or extinction)",
                 "legend_list": None,
             },
             "patches_colonised": {

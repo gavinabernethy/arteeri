@@ -403,8 +403,10 @@ class Simulation_obj:
         for patch in self.system_state.patch_list:
             for local_population in patch.local_populations.values():
 
-                # build averages from recent histories
-                local_population.build_recent_time_averages(current_step=self.total_steps,
+                # build averages from recent histories - note that if there are M = M1 + M2 total steps, then the
+                # population history indexes are from 0 to M-1, thus the "final step" (in terms of
+                # history list indices) should be M-1:
+                local_population.build_recent_time_averages(current_step=self.total_steps - 1,
                                                             back_steps=self.parameters["main_para"]["NUM_RECORD_STEPS"])
 
                 if self.parameters["main_para"]["IS_CALCULATE_HURST"]:
