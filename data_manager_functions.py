@@ -304,36 +304,75 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
 
     # draw paths (showing traversable links) if required:
     if path_list is not None and len(path_list) > 0:
+
+        min_x = min([element.position[0] for element in patch_list])
+        max_x = max([element.position[0] for element in patch_list])
+        min_y = min([element.position[1] for element in patch_list])
+        max_y = max([element.position[1] for element in patch_list])
+
         for path_tuple in path_list:
-            start_x = patch_list[path_tuple[0]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
-            end_x = patch_list[path_tuple[1]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
-            start_y = patch_list[path_tuple[0]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
-            end_y = patch_list[path_tuple[1]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
-            mid_x = (start_x + end_x) / 2
-            mid_y = (start_y + end_y) / 2
 
-            if type(path_tuple[3]) is list and len(path_tuple[3]) == 3:
-                # is color specified for this path?
-                line = ax.plot([start_x, end_x], [start_y, end_y], color=path_tuple[3])
-            else:
-                # otherwise the general coloring schemes
-                if path_color is None:
-                    line = ax.plot([start_x, end_x], [start_y, end_y])
-                else:
-                    line = ax.plot([start_x, end_x], [start_y, end_y], color=path_color)
+            # check for wrap
+            is_wrap = False
+            if min_x != max_x and min_y != max_y:
+                if patch_list[path_tuple[0]].position[0] == patch_list[path_tuple[1]].position[0]:
+                    if {min_y, max_y} <= {patch_list[path_tuple[0]].position[1], patch_list[path_tuple[1]].position[1]}:
+                        is_wrap = True
+                if patch_list[path_tuple[0]].position[1] == patch_list[path_tuple[1]].position[1]:
+                    if {min_x, max_x} <= {patch_list[path_tuple[0]].position[0], patch_list[path_tuple[1]].position[0]}:
+                        is_wrap = True
 
-            if label_paths:
-                # annotate with link strength
-                line_color = line[-1].get_color()
-                if path_tuple[2] is not None:
-                    if type(path_tuple[2]) == str:
-                        data_str = path_tuple[2]
-                    elif type(path_tuple[2]) in [float, int, np.float64]:
-                        data_str = "{0:.3g}".format(path_tuple[2])
+            if is_wrap:
+                patch_one = [patch_list[path_tuple[0]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size),
+                             patch_list[path_tuple[0]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)]
+                patch_two = [patch_list[path_tuple[1]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size),
+                             patch_list[path_tuple[1]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)]
+                both_patches = [patch_one, patch_two]
+                for line_num in range(2):
+                    x_start = both_patches[line_num][0]
+                    x_end = both_patches[line_num][0] - (both_patches[line_num-1][0] - both_patches[line_num][0]) / (
+                            np.sqrt(len(patch_list)))
+                    y_start = both_patches[line_num][1]
+                    y_end = both_patches[line_num][1] - (both_patches[line_num - 1][1] - both_patches[line_num][1]) / (
+                            np.sqrt(len(patch_list)))
+                    if type(path_tuple[3]) is list and len(path_tuple[3]) == 3:
+                        ax.plot([x_start, x_end], [y_start, y_end], color=path_tuple[3])
+                    elif path_color is None:
+                        ax.plot([x_start, x_end], [y_start, y_end])
                     else:
-                        raise "Don't recognise TYPE of path label."
-                    ax.annotate(data_str, (mid_x, mid_y), color=line_color, fontsize=6, ha='center', va='center',
-                                path_effects=[pe.withStroke(linewidth=1, foreground="black")])
+                        ax.plot([x_start, x_end], [y_start, y_end], color=path_color)
+
+            else:
+                # not a wrp - just a direct path
+                start_x = patch_list[path_tuple[0]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
+                end_x = patch_list[path_tuple[1]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
+                start_y = patch_list[path_tuple[0]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
+                end_y = patch_list[path_tuple[1]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
+                mid_x = (start_x + end_x) / 2
+                mid_y = (start_y + end_y) / 2
+
+                if type(path_tuple[3]) is list and len(path_tuple[3]) == 3:
+                    # is color specified for this path?
+                    line = ax.plot([start_x, end_x], [start_y, end_y], color=path_tuple[3])
+                else:
+                    # otherwise the general coloring schemes
+                    if path_color is None:
+                        line = ax.plot([start_x, end_x], [start_y, end_y])
+                    else:
+                        line = ax.plot([start_x, end_x], [start_y, end_y], color=path_color)
+
+                if label_paths:
+                    # annotate with link strength
+                    line_color = line[-1].get_color()
+                    if path_tuple[2] is not None:
+                        if type(path_tuple[2]) == str:
+                            data_str = path_tuple[2]
+                        elif type(path_tuple[2]) in [float, int, np.float64]:
+                            data_str = "{0:.3g}".format(path_tuple[2])
+                        else:
+                            raise Exception("Don't recognise TYPE of path label.")
+                        ax.annotate(data_str, (mid_x, mid_y), color=line_color, fontsize=6, ha='center', va='center',
+                                    path_effects=[pe.withStroke(linewidth=1, foreground="black")])
     plt.xlim([min_val[0], max_val[0]])
     plt.ylim([min_val[1], max_val[1]])
     if use_color_bar:
@@ -969,7 +1008,7 @@ def create_adjacency_path_list(patch_list, patch_adjacency_matrix):
     path_list = []
     for patch_1 in range(len(patch_list)):
         for patch_2 in range(len(patch_list)):
-            if patch_adjacency_matrix[patch_1, patch_2] != 0.0:
+            if patch_1 != patch_2 and patch_adjacency_matrix[patch_1, patch_2] != 0.0:
                 path_list.append((patch_1, patch_2, None, []))
     return path_list
 

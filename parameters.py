@@ -4,9 +4,11 @@ meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
-    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
+    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": False,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
+    # Note that if TRUE then any existing data will be overwritten and new adjacency sets will need to be generated
+    # regardless of the save/load variables parameters.
 }
 
 master_para = {
@@ -20,7 +22,7 @@ master_para = {
             "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate
             # patch adjacency matrix by other means
-            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
+            "LATTICE_GRAPH_CONNECTIVITY": 0.7,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": 0.05,
@@ -30,7 +32,7 @@ master_para = {
             "CLUSTER_PROBABILITY": 0.9,
             # Habitat type:
             "HABITAT_TYPE_MANUAL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.7,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.65,  # in range [-1, 1]
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,
@@ -56,8 +58,8 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 10000,
-            "NUM_RECORD_STEPS": 1000,
+            "NUM_TRANSIENT_STEPS": 100,
+            "NUM_RECORD_STEPS": 100,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
@@ -72,8 +74,8 @@ master_para = {
             # and IF YOU CHANGE THIS then "IS_LOAD_ADJ_VARIABLES" BELOW MUST BE "FALSE" AS WE NEED TO REBUILD THEM!!!
             #
             # Note that saving the adjacency variables does seem to be extremely slow in DEBUG mode.
-            "IS_SAVE_ADJ_VARIABLES": False,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
-            "IS_LOAD_ADJ_VARIABLES": False,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_SAVE_ADJ_VARIABLES": True,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_LOAD_ADJ_VARIABLES": True,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
 
             # ------------- Generation data - needs to be set before spatial habitat generation ------------- #
             "SPECIES_TYPES": {
@@ -85,18 +87,21 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 16,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
                 1: 'habitat_type_1',
+                2: 'habitat_type_2',
+                3: 'habitat_type_3',
+                4: 'habitat_type_4',
             },
             "GENERATED_SPEC": {
                 #
                 # NOTE THAT IF YOU WISH TO CHANGE THESE YOU MUST RE-RUN SPATIAL HABITAT GENERATION BEFORE MAIN.PY
                 #
                 "FEEDING": {
-                    "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated
+                    "IS_SPECIES_SCORES_SPECIFIED": False,  # if false, then randomly generated
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
@@ -106,7 +111,7 @@ master_para = {
                     },
                 },
                 "TRAVERSAL": {
-                    "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated
+                    "IS_SPECIES_SCORES_SPECIFIED": False,  # if false, then randomly generated
                     "HABITAT_SCORES": {
                         0: [1.0, 1.0],
                         1: [0.1, 0.1],
@@ -121,7 +126,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1},
+            "INITIAL_HABITAT_SET": {0, 1, 2, 3, 4},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -132,7 +137,7 @@ master_para = {
         {
             "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
-            "IS_SAVE": True,  # do you save ANY data files?
+            "IS_SAVE": False,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;

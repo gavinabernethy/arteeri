@@ -26,6 +26,7 @@ def check_and_create_directory():
             raise Exception("This spatial dataset already exists.")
         else:
             # overwrite: delete the existing directory then re-create a fresh empty directory
+            print(f"Test set {TEST_SET} already existed - deleting previous files and clearing directory.")
             shutil.rmtree(DIR_PATH)
             os.makedirs(DIR_PATH)
     else:

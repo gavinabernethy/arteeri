@@ -208,7 +208,7 @@ class Local_population:
             local_vector = self.species.direct_vector_offset_local
             local_is = self.species.is_direct_offset_local
         else:
-            raise "Unknown."
+            raise Exception("Unknown.")
         # main
         max_seasons = len(species_vector)  # if we only specify a few seasons' offsets, repeat the seasons afterwards
         offset_species = species_vector[np.mod(int(time / self.species.seasonal_period), max_seasons)]
@@ -223,7 +223,7 @@ class Local_population:
         elif vector_statement == "DIRECT":
             self.current_direct_vector_offset = offset_species + offset_local
         else:
-            raise "Unknown."
+            raise Exception("Unknown.")
 
     def foraging(self):
         # -------------------------- PREDATION -------------------------- #
@@ -266,7 +266,7 @@ class Local_population:
                     direct_impact += self.species.pure_direct_impact_para["DIRECT_VECTOR"][year_time]
 
                 else:
-                    raise "Error - (pure) direct impact type is not yet coded."
+                    raise Exception("Error - (pure) direct impact type is not yet coded.")
         self.direct_impact_value = direct_impact
         self.current_temp_change += direct_impact
 
@@ -300,7 +300,7 @@ class Local_population:
         elif parameters["main_para"]["MODEL_TIME_TYPE"] == "continuous":
             local_growth_change = local_growth
         else:
-            raise "Model type not recognised in 'main_para[MODEL_TIME_TYPE]' - discrete or continuous?"
+            raise Exception("Model type not recognised in 'main_para[MODEL_TIME_TYPE]' - discrete or continuous?")
         self.local_growth = local_growth_change
         self.current_temp_change += local_growth_change
         self.r_value = r_value

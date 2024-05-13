@@ -56,7 +56,7 @@ def temporal_function(parameter, time):
         # pass this back to the dictionary of values
         value = parameter["vector_imp"][key]
     else:
-        raise "Type not recognised."  # Note that we accept 'None' as valid!
+        raise Exception("Type not recognised.")  # Note that we accept 'None' as valid!
     return value
 
 
@@ -516,10 +516,10 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
         # check predation efficiency and focus are suitable only when set (instead of for every predation loop)
         if species.current_predation_efficiency is not None and (
                 species.current_predation_efficiency < 0.0 or species.current_predation_efficiency > 1.0):
-            raise "ERROR: species predation_efficiency should be in the interval [0, 1] or None"
+            raise Exception("ERROR: species predation_efficiency should be in the interval [0, 1] or None")
 
         if species.current_predation_focus is not None and species.current_predation_focus < 0.0:
-            raise "ERROR: species predation_focus should be non-negative or None"
+            raise Exception("ERROR: species predation_focus should be non-negative or None")
 
     if is_change or step == 0:
         # something changed (or we are at the start of the simulation) - need to rebuild the lists!
@@ -669,7 +669,8 @@ def update_populations(patch_list, species_list, time, step, parameters, current
                         new_population = local_pop.holding_population + parameters[
                             "main_para"]["EULER_STEP"] * local_pop.current_temp_change
                     else:
-                        raise "Model type not recognised in 'main_para[MODEL_TIME_TYPE]' - discrete or continuous?"
+                        raise Exception("Model type not recognised in 'main_para[MODEL_TIME_TYPE]' -"
+                                        " discrete or continuous?")
 
                     # only at the end of a priority sub-step do we NOW check that the net result has not made this
                     # population go negative

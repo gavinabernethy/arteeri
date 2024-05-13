@@ -287,7 +287,7 @@ ARTEMIS_01_MASTER = {
             "INITIAL_POPULATION_MECHANISM": "random_binomial",
             "VALUE": 0.1,
             "MAXIMUM_MULTIPLIER": 1.0,
-            "BINOMIAL_PROBABILITY": 0.2,
+            "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
@@ -297,7 +297,7 @@ ARTEMIS_01_MASTER = {
                 "GROWTH_FUNCTION": "logistic",
                 "R": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 3.7,
+                    "constant_value": 3.8,
                     "period": 0.0,
                     "amplitude": 0.0,
                     "phase_shift": 0.0,
@@ -427,7 +427,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.5,
+                    "constant_value": 0.1,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -516,7 +516,7 @@ ARTEMIS_01_MASTER = {
             "INITIAL_POPULATION_MECHANISM": "random_binomial",
             "VALUE": 0.01,
             "MAXIMUM_MULTIPLIER": 1.0,
-            "BINOMIAL_PROBABILITY": 0.2,
+            "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
@@ -637,7 +637,7 @@ ARTEMIS_01_MASTER = {
                 "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-                    "constant_value": "adaptive",
+                    "constant_value": "diffusion",
                     "period": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }

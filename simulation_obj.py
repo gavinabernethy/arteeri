@@ -64,6 +64,16 @@ class Simulation_obj:
             patch_size_array = load_dataset(f'{dir_path}/patch_size.csv')
             patch_position_array = load_dataset(f'{dir_path}/patch_position.csv')
             patch_adjacency_array = load_dataset(f'{dir_path}/patch_adjacency.csv')
+
+            # A test set has been successfully loaded - but we must check that it is suitable for this parameter setup.
+            # Otherwise - halt. It will not work and the user probably forgot to check their spatial test setting.
+            if patch_quality_array.shape[0] != self.parameters["main_para"][
+                "NUM_PATCHES"] or habitat_species_traversal_array.shape[0] != len(
+                habitat_type_dictionary) or habitat_species_traversal_array.shape[1] != len(
+                    self.parameters["main_para"]["SPECIES_TYPES"]):
+                raise Exception(f"Existing spatial test set {test_set} not commensurate with specified number"
+                                f" of patches, habitats and/or species. Change these parameters or allow creation of"
+                                f" a replacement spatial test set.")
         except FileNotFoundError:
             # if (any) of the spatial network files do not exist, we MUST now create them here
             patch_position_array, patch_adjacency_array, patch_size_array, patch_quality_array, \
@@ -99,13 +109,13 @@ class Simulation_obj:
         # check the species inputs
         for spec_num in self.parameters["main_para"]["INITIAL_SPECIES_SET"]:
             if spec_num not in self.parameters["main_para"]["SPECIES_TYPES"]:
-                raise f'Species type {spec_num} to be used in sim initiation but is not part of the global set.'
+                raise Exception(f'Species type {spec_num} to be used in sim initiation but not part of the global set.')
         for spec_num in self.parameters["main_para"]["SPECIES_TYPES"]:
             if spec_num > len(self.parameters["main_para"]["SPECIES_TYPES"]) or type(spec_num) is not int:
-                raise f'Species type {spec_num} is not a suitable number.'
+                raise Exception(f'Species type {spec_num} is not a suitable number.')
         for check_num in range(len(self.parameters["main_para"]["SPECIES_TYPES"])):
             if check_num not in self.parameters["main_para"]["SPECIES_TYPES"]:
-                raise f'{check_num} is missing from the global set of species types.'
+                raise Exception(f'{check_num} is missing from the global set of species types.')
 
         # generate ordered list of the species from names list in the parameters
         species_list = []
