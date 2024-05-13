@@ -546,13 +546,12 @@ class Local_population:
                 sum_sink_change += self.population_enter_history[current_step - n] / \
                                    self.population_history[current_step - n]
         self.average_sink = (1.0 / back_steps) * sum_sink_change
-        # Average source detection (i.e. fraction of previous population (after reproduction) that left by emigration)
+        # Average source detection (i.e. fraction of previous population that left by emigration)
         sum_source_change = 0.0
         for n in range(back_steps):
-            if (self.population_history[current_step - n - 1] + self.internal_change_history[current_step - n]) != 0.0:
+            if self.population_history[current_step - n - 1] != 0.0:
                 sum_source_change += self.population_leave_history[current_step - n] / \
-                                     (self.population_history[current_step - n - 1] +
-                                      self.internal_change_history[current_step - n])
+                                     self.population_history[current_step - n - 1]
         self.average_source = (1.0 / back_steps) * sum_source_change
 
     def update_local_nets(self):
@@ -574,28 +573,30 @@ class Local_population:
             self.net_internal = 0.0
         else:
             self.net_internal = np.abs(self.internal_change) / total_change
-        # Sink detection - (net non-native of CURRENT population):
+        # Sink detection - (non-native entered compared to net CURRENT population):
         # Fraction of the current population that entered via immigration at the most recently completed step
+        # Note that this can be greater than 1.0, if sufficient population died, left, or was predated simultaneously.
         if self.population == 0.0:
             self.sink = 0.0
         else:
-            self.sink = self.population_enter / self.population
-        # Source detection - (net emigration of PREVIOUS population):
-        # Fraction of the (previous population + non-dispersal change) that emigrated in most recently completed step
-        if self.population_history[-2] + self.internal_change == 0.0:
+            self.sink = self.population_enter_history[-1] / self.population_history[-1]
+        # Source detection - (emigration compared to PREVIOUS population):
+        # Fraction of the previous population that emigrated in most recently completed step
+        if self.population_history[-2] == 0.0:
             self.source = 0.0
         else:
-            self.source = self.population_leave / (self.population_history[-2] + self.internal_change)
+            self.source = self.population_leave_history[-1] / self.population_history[-2]
         # Source notes:
-        # This function is called after (not 'within') a time-step. At the end of the step histories are updated so
+        # This is called after (not 'within') a time-step. At the end of the step histories are updated so
         # self.population_leave is amount that left in the step, and self.population & self.population_history[-1]
         # will BOTH be the current population at the end of this same step. Thus use [-2] to access the previous
-        # population recorded before this most recent time step, and self.internal_change to give the change that
-        # occurred within this recent time-step APART FROM DISPERSAL.
+        # population recorded before this most recent time step. Because of the different possible sub-stage
+        # configurations, the most consistent across them is just to record the proportion leaving in this
+        # step (whether before, during, or after reproduction) compared to population present at the end of the
+        # previous full time-step.
         # Timeline:
         # - record population_history[-2] etc.
         # - complete one entire time-step of reproduction, foraging, direct impact, dispersal
         # - update internal_change, population_leave, population_enter and FROM ALL OF THESE population and
         # population_history[-1], internal_change_history[-1], population_leave[-1], population_enter[-1].
-        # So we do not actually record the population state after reproduction but before dispersal (or direct impact)
-        # and this needs to be rebuilt from the combination of previous history plus current internal change.
+        # So we do not actually record the population state between ecological sub-stages.
