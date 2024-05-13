@@ -443,8 +443,10 @@ def global_species_time_series_properties(
                             sink = local_pop.population_enter_history[_] / local_pop.population_history[_]
                             if _ > 0 and float(local_pop.population_history[_ - 1]) == 0.0:
                                 species_patches_colonised[_] += 1
+                                species_global_patches_occupied_change[_] += 1
                         elif _ > 0 and float(local_pop.population_history[_ - 1]) > 0.0:
                             species_patches_extinct[_] += 1
+                            species_global_patches_occupied_change[_] += 1
                         if _ > 0 and local_pop.population_history[_ - 1] + local_pop.internal_change_history[_] > 0.0:
                             source = local_pop.population_leave_history[_] / (
                                     local_pop.population_history[_ - 1] + local_pop.internal_change_history[_])
@@ -474,8 +476,6 @@ def global_species_time_series_properties(
             species_source_index[_, :] /= current_num_patches_history[_]
             if _ > 0:
                 species_global_population_change[_] = species_global_population[_] - species_global_population[_ - 1]
-                species_global_patches_occupied_change[_] = \
-                    species_global_patches_occupied[_] - species_global_patches_occupied[_ - 1]
 
         global_property_dict = {
             "population": {
@@ -508,9 +508,9 @@ def global_species_time_series_properties(
                 "y_label": "Number of patches occupied",
                 "legend_list": None,
             },
-            "patches_occupied_change": {
+            "patches_occupied_status_change": {
                 "data": species_global_patches_occupied_change,
-                "y_label": "Change in number of patches occupied",
+                "y_label": "Number of patches whose status changed (colonisation or extinction)",
                 "legend_list": None,
             },
             "patches_colonised": {

@@ -58,8 +58,8 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 1000,
-            "NUM_RECORD_STEPS": 100,
+            "NUM_TRANSIENT_STEPS": 10,
+            "NUM_RECORD_STEPS": 10,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
