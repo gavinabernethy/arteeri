@@ -236,26 +236,29 @@ def generate_patch_quality(num_patches, adjacency_array, position_array, graph_p
             # check against max and min
             quality_array[patch, 0] = min(max(min_quality, temp_value), max_quality)
     elif quality_type == "gradient":
-        fluctuation = graph_para["QUALITY_FLUCTUATION"]
-        axis = graph_para["QUALITY_AXIS"]  # x, y, x+y
-        if axis == "x":
-            value_vector = position_array[:, 0]
-        elif axis == "y":
-            value_vector = position_array[:, 1]
-        elif axis == "x+y":
-            value_vector = position_array[:, 0] + position_array[:, 1]
+        if num_patches == 1:
+            quality_array = min_quality + np.random.rand(1, 1) * (max_quality - min_quality)
         else:
-            raise Exception("Axis not chosen correctly.")
-        min_pos = np.amin(value_vector)
-        max_pos = np.amax(value_vector)
-        if max_pos == min_pos:
-            raise Exception("No variation along the axis specified.")
-        else:
-            quality_array = np.zeros(shape=(num_patches, 1))
-            for patch in range(0, num_patches):
-                quality_array[patch, 0] = min(1.0, max(0.0, min_quality + (value_vector[patch] - min_pos) *
-                                                       (max_quality - min_quality) / (max_pos - min_pos) +
-                                                       fluctuation * np.random.rand()))
+            fluctuation = graph_para["QUALITY_FLUCTUATION"]
+            axis = graph_para["QUALITY_AXIS"]  # x, y, x+y
+            if axis == "x":
+                value_vector = position_array[:, 0]
+            elif axis == "y":
+                value_vector = position_array[:, 1]
+            elif axis == "x+y":
+                value_vector = position_array[:, 0] + position_array[:, 1]
+            else:
+                raise Exception("Axis not chosen correctly.")
+            min_pos = np.amin(value_vector)
+            max_pos = np.amax(value_vector)
+            if max_pos == min_pos:
+                raise Exception("No variation along the axis specified.")
+            else:
+                quality_array = np.zeros(shape=(num_patches, 1))
+                for patch in range(0, num_patches):
+                    quality_array[patch, 0] = min(1.0, max(0.0, min_quality + (value_vector[patch] - min_pos) *
+                                                           (max_quality - min_quality) / (max_pos - min_pos) +
+                                                           fluctuation * np.random.rand()))
     else:
         raise Exception("Which type of scheme is used for patch quality in the spatial network?")
     return quality_array

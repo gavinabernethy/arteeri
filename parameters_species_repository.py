@@ -297,7 +297,7 @@ ARTEMIS_01_MASTER = {
                 "GROWTH_FUNCTION": "logistic",
                 "R": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 6.0,
+                    "constant_value": 4.0,
                     "period": 0.0,
                     "amplitude": 0.0,
                     "phase_shift": 0.0,
@@ -427,7 +427,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.1,
+                    "constant_value": 0.5,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -658,7 +658,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.5,
+                    "constant_value": 0.05,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,

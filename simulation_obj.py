@@ -1,3 +1,5 @@
+import numpy as np
+
 from data_manager import save_all_data, generate_simulation_number, all_plots, population_snapshot, \
     change_snapshot, write_initial_files, save_adj_variables, load_adj_variables, load_reserve_list, \
     save_reserve_list, print_key_outputs_to_console
@@ -14,9 +16,12 @@ from perturbation import *
 import json.decoder
 
 
-def load_dataset(filename):
+def load_dataset(filename, force_dimension=None):
     # import an array from file
-    data_array = np.genfromtxt(filename, dtype='float', delimiter=',', autostrip=True)
+    if force_dimension is not None:
+        data_array = np.loadtxt(filename, dtype='float', delimiter=',', ndmin=force_dimension)
+    else:
+        data_array = np.genfromtxt(filename, dtype='float', delimiter=',', autostrip=True)
     return data_array
 
 
@@ -57,11 +62,12 @@ class Simulation_obj:
                             with open(new_filename, 'w') as f:
                                 f.write(content[:-1])
                             os.rename(new_filename, filepath)
-            habitat_species_traversal_array = load_dataset(f'{dir_path}/habitat_species_traversal.csv')
-            habitat_species_feeding_array = load_dataset(f'{dir_path}/habitat_species_feeding.csv')
-            patch_habitat_type_array = load_dataset(f'{dir_path}/patch_habitat_type.csv')
-            patch_quality_array = load_dataset(f'{dir_path}/patch_quality.csv')
-            patch_size_array = load_dataset(f'{dir_path}/patch_size.csv')
+            habitat_species_traversal_array = load_dataset(
+                f'{dir_path}/habitat_species_traversal.csv', force_dimension=2)
+            habitat_species_feeding_array = load_dataset(f'{dir_path}/habitat_species_feeding.csv', force_dimension=2)
+            patch_habitat_type_array = load_dataset(f'{dir_path}/patch_habitat_type.csv', force_dimension=1)
+            patch_quality_array = load_dataset(f'{dir_path}/patch_quality.csv', force_dimension=1)
+            patch_size_array = load_dataset(f'{dir_path}/patch_size.csv', force_dimension=1)
             patch_position_array = load_dataset(f'{dir_path}/patch_position.csv')
             patch_adjacency_array = load_dataset(f'{dir_path}/patch_adjacency.csv')
 

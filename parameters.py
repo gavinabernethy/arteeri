@@ -4,7 +4,7 @@ meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
-    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": False,  # should we execute sample_spatial_data() before running the batch set?
+    "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
     # Note that if TRUE then any existing data will be overwritten and new adjacency sets will need to be generated
@@ -84,15 +84,13 @@ master_para = {
                 # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
                 # name loaded (below) from the parameters_species_repository.py:
                 0: "prey",
-                1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 1,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
-                0: 'habitat_type_0', 1: 'habitat_type_1', 2: 'habitat_type_2', 3: 'habitat_type_3',
-                4: 'habitat_type_4', 5: 'habitat_type_5',
-                6: 'habitat_type_6', 7: 'habitat_type_7', 8: 'habitat_type_8', 9: 'habitat_type_9'},
+                0: 'habitat_type_0',
+            },
             "GENERATED_SPEC": {
                 #
                 # NOTE THAT IF YOU WISH TO CHANGE THESE YOU MUST RE-RUN SPATIAL HABITAT GENERATION BEFORE MAIN.PY
@@ -105,27 +103,25 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.25, 1.0], 1: [0.5, 1.0], 2: [0.75, 1.0], 3: [1.0, 1.0], 4: [0.5, 0.75],
-                                       5: [0.75, 0.75], 6: [1.0, 0.75], 7: [0.75, 0.5], 8: [1.0, 0.5], 9: [1.0, 0.25]},
+                    "HABITAT_SCORES": {0: [0.75]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": 0.9,
                     "MAX_SCORE": 1.0,
-                    "HABITAT_SCORES": {0: [0.25, 1.0], 1: [0.5, 1.0], 2: [0.75, 1.0], 3: [1.0, 1.0], 4: [0.5, 0.75],
-                                       5: [0.75, 0.75], 6: [1.0, 0.75], 7: [0.75, 0.5], 8: [1.0, 0.5], 9: [1.0, 0.25]},
+                    "HABITAT_SCORES": {0: [0.75]},
                 },
             },
 
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+            "INITIAL_HABITAT_SET": {0},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -136,7 +132,7 @@ master_para = {
         {
             "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
-            "IS_SAVE": True,  # do you save ANY data files?
+            "IS_SAVE": False,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
