@@ -18,7 +18,7 @@ def generate_simulation_number(minimum=99, save_data=True):
     return sim_number
 
 
-def write_initial_files(parameters, metadata, sim):
+def write_initial_files(parameters, metadata, sim, parameters_filename):
     parameters_file = f"results/{sim}/parameters.json"
     dump_json(data=parameters, filename=parameters_file)
     metadata_file = f"results/{sim}/metadata.json"
@@ -26,7 +26,7 @@ def write_initial_files(parameters, metadata, sim):
     dump_json(data=metadata, filename=metadata_file)
     # now copy the entire parameter scripts to ensure that we really have everything for reproducibility
     output_directory = f"results/{sim}"
-    shutil.copy("parameters.py", output_directory)
+    shutil.copy(parameters_filename, output_directory)
     shutil.copy("parameters_species_repository.py", output_directory)
 
 

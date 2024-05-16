@@ -1,5 +1,3 @@
-import numpy as np
-
 from data_manager import save_all_data, generate_simulation_number, all_plots, population_snapshot, \
     change_snapshot, write_initial_files, save_adj_variables, load_adj_variables, load_reserve_list, \
     save_reserve_list, print_key_outputs_to_console
@@ -27,9 +25,8 @@ def load_dataset(filename, force_dimension=None):
 
 ######################################################################################################
 
-
 class Simulation_obj:
-    def __init__(self, parameters, metadata):
+    def __init__(self, parameters, metadata, parameters_filename):
         self.parameters = parameters
         self.metadata = metadata
         self.is_allow_file_creation = parameters["plot_save_para"]["IS_ALLOW_FILE_CREATION"]
@@ -40,8 +37,10 @@ class Simulation_obj:
             "main_para"]["NUM_RECORD_STEPS"]
         self.sim_number = generate_simulation_number(save_data=self.is_allow_file_creation)
         self.system_state = self.construction()
+        self.parameters_filename = parameters_filename
         if self.is_allow_file_creation:
-            write_initial_files(parameters=self.parameters, metadata=self.metadata, sim=self.sim_number)
+            write_initial_files(parameters=self.parameters, metadata=self.metadata, sim=self.sim_number,
+                                parameters_filename=self.parameters_filename)
         print(f"Beginning simulation number {self.sim_number}.")
 
     def construction(self):
@@ -84,7 +83,8 @@ class Simulation_obj:
             # if (any) of the spatial network files do not exist, we MUST now create them here
             patch_position_array, patch_adjacency_array, patch_size_array, patch_quality_array, \
                 patch_habitat_type_array, habitat_species_feeding_array, habitat_species_traversal_array = \
-                run_sample_spatial_data(is_output_files=self.is_allow_file_creation)
+                run_sample_spatial_data(parameters=self.parameters,
+                                        is_output_files=self.is_allow_file_creation)
             # flatten the Nx1 arrays to N vectors
             patch_quality_array = np.ndarray.flatten(patch_quality_array)
             patch_size_array = np.ndarray.flatten(patch_size_array)

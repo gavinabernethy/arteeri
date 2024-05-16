@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 
 from simulation_obj import Simulation_obj
-from parameters import master_para, meta_para
 import random
 from datetime import datetime
 from data_manager import load_json
 import numpy as np
 from sample_spatial_data import run_sample_spatial_data
+import importlib
+import sys
+
+if len(sys.argv) > 1:
+    # optionally pass in an argument specifying the particular parameters_???.py file to use
+    parameters_filename_base = sys.argv[1]
+else:
+    # otherwise use "parameters.py" as the default
+    parameters_filename_base = "parameters"
+parameters_file = importlib.import_module(parameters_filename_base)
+master_para = getattr(parameters_file, "master_para")
+meta_para = getattr(parameters_file, "meta_para")
 
 
 # --------------------------------- MAIN PROGRAMS --------------------------------- #
@@ -22,7 +33,8 @@ def new_program():
         "random_seed": random_seed,
         "program_start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
     }
-    simulation_obj = Simulation_obj(parameters=master_para, metadata=metadata)
+    simulation_obj = Simulation_obj(parameters=master_para, metadata=metadata,
+                                    parameters_filename=parameters_filename_base+".py")
     simulation_obj.full_simulation()
 
 
@@ -38,7 +50,8 @@ def repeat_program(sim: int):
     np.random.seed(loaded_metadata["numpy_seed"])
     random.seed(loaded_metadata["random_seed"])
     loaded_metadata["Copy of simulation"] = sim
-    simulation_obj = Simulation_obj(parameters=loaded_parameters, metadata=loaded_metadata)
+    simulation_obj = Simulation_obj(parameters=loaded_parameters, metadata=loaded_metadata,
+                                    parameters_filename=parameters_filename_base+".py")
     simulation_obj.full_simulation()
 
 
@@ -46,7 +59,7 @@ def repeat_program(sim: int):
 # --------------------------------- EXECUTE --------------------------------- #
 #
 if meta_para["IS_RUN_SAMPLE_SPATIAL_DATA_FIRST"]:
-    run_sample_spatial_data(is_output_files=True)
+    run_sample_spatial_data(parameters=master_para, is_output_files=True)
 num_repeats = meta_para["NUM_REPEATS"]
 for simulation in range(num_repeats):
     if meta_para["IS_NEW_PROGRAM"]:

@@ -1,16 +1,9 @@
 # generates sample spatial networks and habitat data in .CSV files for testing
 import random
 import shutil
-
 import numpy as np
 import os
-from parameters import master_para
 import networkx  # https://networkx.org/documentation/stable/reference/generators.html
-
-TEST_SET = master_para["graph_para"]["SPATIAL_TEST_SET"]
-DESCRIPTION = master_para["graph_para"]["SPATIAL_DESCRIPTION"]
-CAN_OVERWRITE_EXISTING_DATASET = True
-DIR_PATH = f'spatial_data_files/test_{TEST_SET}'
 
 
 # ----------------------------- FOLDER PREPARATION ----------------------- #
@@ -20,21 +13,21 @@ def save_array(file, print_array):
         np.savetxt(f, print_array, delimiter=', ', newline='\n', fmt='%f')
 
 
-def check_and_create_directory():
-    if os.path.exists(DIR_PATH):
-        if not CAN_OVERWRITE_EXISTING_DATASET:
+def check_and_create_directory(test_set, dir_path, can_overwrite_existing_dataset):
+    if os.path.exists(dir_path):
+        if not can_overwrite_existing_dataset:
             raise Exception("This spatial dataset already exists.")
         else:
             # overwrite: delete the existing directory then re-create a fresh empty directory
-            print(f"Test set {TEST_SET} already existed - deleting previous files and clearing directory.")
-            shutil.rmtree(DIR_PATH)
-            os.makedirs(DIR_PATH)
+            print(f"Test set {test_set} already existed - deleting previous files and clearing directory.")
+            shutil.rmtree(dir_path)
+            os.makedirs(dir_path)
     else:
-        os.makedirs(DIR_PATH)
+        os.makedirs(dir_path)
 
 
-def create_description_file(desc):
-    with open(file=f'{DIR_PATH}/description.txt', mode='w') as f:
+def create_description_file(desc, dir_path):
+    with open(file=f'{dir_path}/description.txt', mode='w') as f:
         f.write(desc)
 
 
@@ -376,11 +369,13 @@ def generate_habitat_species_scores(num_species, num_habitats, generated_spec, s
     return array
 
 
-def generate_all_spatial_settings(is_output_files, desc, num_species, num_patches, num_habitats, graph_para,
-                                  generated_habitat_set, generated_habitat_probabilities, generated_spec):
+def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can_overwrite_existing_dataset,
+                                  num_species, num_patches, num_habitats, graph_para, generated_habitat_set,
+                                  generated_habitat_probabilities, generated_spec):
     if is_output_files:
-        check_and_create_directory()
-        create_description_file(desc)
+        check_and_create_directory(test_set=test_set, dir_path=dir_path,
+                                   can_overwrite_existing_dataset=can_overwrite_existing_dataset)
+        create_description_file(desc, dir_path=dir_path)
     adjacency_array, position_array = generate_patch_position_adjacency(num_patches=num_patches, graph_para=graph_para)
     patch_size_array = generate_patch_size(num_patches=num_patches, min_patch_size=graph_para["MIN_SIZE"],
                                            max_patch_size=graph_para["MAX_SIZE"], graph_para=graph_para)
@@ -397,13 +392,13 @@ def generate_all_spatial_settings(is_output_files, desc, num_species, num_patche
                                                                           score_type=score_type)
 
     if is_output_files:
-        save_array(f'{DIR_PATH}/patch_position.csv', position_array)
-        save_array(f'{DIR_PATH}/patch_adjacency.csv', adjacency_array)
-        save_array(f'{DIR_PATH}/patch_size.csv', patch_size_array)
-        save_array(f'{DIR_PATH}/patch_quality.csv', patch_quality_array)
-        save_array(f'{DIR_PATH}/patch_habitat_type.csv', patch_habitat_array)
-        save_array(f'{DIR_PATH}/habitat_species_feeding.csv', scores_dict["feeding"])
-        save_array(f'{DIR_PATH}/habitat_species_traversal.csv', scores_dict["traversal"])
+        save_array(f'{dir_path}/patch_position.csv', position_array)
+        save_array(f'{dir_path}/patch_adjacency.csv', adjacency_array)
+        save_array(f'{dir_path}/patch_size.csv', patch_size_array)
+        save_array(f'{dir_path}/patch_quality.csv', patch_quality_array)
+        save_array(f'{dir_path}/patch_habitat_type.csv', patch_habitat_array)
+        save_array(f'{dir_path}/habitat_species_feeding.csv', scores_dict["feeding"])
+        save_array(f'{dir_path}/habitat_species_traversal.csv', scores_dict["traversal"])
 
     return position_array, adjacency_array, patch_size_array, patch_quality_array, \
         patch_habitat_array, scores_dict["feeding"], scores_dict["traversal"]
@@ -411,11 +406,16 @@ def generate_all_spatial_settings(is_output_files, desc, num_species, num_patche
 
 # ---------------------- EXECUTE ---------------------- #
 
-def run_sample_spatial_data(is_output_files=False):
-    print(f"Beginning generation of spatial network {TEST_SET}.")
+def run_sample_spatial_data(parameters, is_output_files=False):
+    test_set = parameters["graph_para"]["SPATIAL_TEST_SET"]
+    description = parameters["graph_para"]["SPATIAL_DESCRIPTION"]
+    can_overwrite_existing_dataset = True
+    dir_path = f'spatial_data_files/test_{test_set}'
+
+    print(f"Beginning generation of spatial network {test_set}.")
     # check the habitats
-    master_habitat_types_set = master_para["main_para"]["HABITAT_TYPES"]
-    for habitat_num in master_para["main_para"]["INITIAL_HABITAT_SET"]:
+    master_habitat_types_set = parameters["main_para"]["HABITAT_TYPES"]
+    for habitat_num in parameters["main_para"]["INITIAL_HABITAT_SET"]:
         if habitat_num not in master_habitat_types_set:
             raise Exception(f'Habitat type {habitat_num} to be used in generation but is not part of the global set.')
     for habitat_num in master_habitat_types_set:
@@ -429,20 +429,32 @@ def run_sample_spatial_data(is_output_files=False):
         habitat_feeding_scores, habitat_traversal_scores \
         = generate_all_spatial_settings(
             is_output_files=is_output_files,
-            desc=DESCRIPTION,
-            num_species=len(master_para["main_para"]["SPECIES_TYPES"]),
-            num_patches=master_para["main_para"]["NUM_PATCHES"],
+            desc=description,
+            dir_path=dir_path,
+            test_set=test_set,
+            can_overwrite_existing_dataset=can_overwrite_existing_dataset,
+            num_species=len(parameters["main_para"]["SPECIES_TYPES"]),
+            num_patches=parameters["main_para"]["NUM_PATCHES"],
             num_habitats=len(master_habitat_types_set),
-            graph_para=master_para["graph_para"],
-            generated_habitat_set=master_para["main_para"]["INITIAL_HABITAT_SET"],
-            generated_habitat_probabilities=master_para["main_para"]["INITIAL_HABITAT_BASE_PROBABILITIES"],
-            generated_spec=master_para["main_para"]["GENERATED_SPEC"],
+            graph_para=parameters["graph_para"],
+            generated_habitat_set=parameters["main_para"]["INITIAL_HABITAT_SET"],
+            generated_habitat_probabilities=parameters["main_para"]["INITIAL_HABITAT_BASE_PROBABILITIES"],
+            generated_spec=parameters["main_para"]["GENERATED_SPEC"],
         )
-    print(f"Test set {TEST_SET} generation complete.")
+    print(f"Test set {test_set} generation complete.")
     return position_array, adjacency_array, patch_size_array, patch_quality_array, \
         patch_habitat_array, habitat_feeding_scores, habitat_traversal_scores
 
 
 # # so that this method is called when the script is executed
 if __name__ == '__main__':
-    run_sample_spatial_data(is_output_files=True)
+    import sys
+    import importlib
+    if len(sys.argv) > 1:
+        # optionally pass in an argument specifying the particular parameters_???.py file to use
+        parameters_file = importlib.import_module(sys.argv[1])
+    else:
+        # otherwise use "parameters.py" as the default
+        parameters_file = importlib.import_module("parameters")
+    master_para = getattr(parameters_file, "master_para")
+    run_sample_spatial_data(parameters=master_para, is_output_files=True)
