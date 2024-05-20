@@ -9,20 +9,10 @@ from sample_spatial_data import run_sample_spatial_data
 import importlib
 import sys
 
-if len(sys.argv) > 1:
-    # optionally pass in an argument specifying the particular parameters_???.py file to use
-    parameters_filename_base = sys.argv[1]
-else:
-    # otherwise use "parameters.py" as the default
-    parameters_filename_base = "parameters"
-parameters_file = importlib.import_module(parameters_filename_base)
-master_para = getattr(parameters_file, "master_para")
-meta_para = getattr(parameters_file, "meta_para")
-
 
 # --------------------------------- MAIN PROGRAMS --------------------------------- #
 
-def new_program():
+def new_program(master_para, parameters_filename_base):
     print(f"\nBeginning a fresh simulation.")
     np_seed = np.random.randint(4294967296)
     random_seed = np.random.randint(4294967296)
@@ -34,11 +24,11 @@ def new_program():
         "program_start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
     }
     simulation_obj = Simulation_obj(parameters=master_para, metadata=metadata,
-                                    parameters_filename=parameters_filename_base+".py")
+                                    parameters_filename=parameters_filename_base + ".py")
     simulation_obj.full_simulation()
 
 
-def repeat_program(sim: int):
+def repeat_program(master_para, parameters_filename_base, sim: int):
     print(f"\nRepeating simulation: {sim}.")
     loaded_parameters = load_json(f"results/{sim}/parameters.json")
     # NOTE: should this be replaced with loading the actual parameter.py and species para scripts? Would need to
@@ -51,18 +41,35 @@ def repeat_program(sim: int):
     random.seed(loaded_metadata["random_seed"])
     loaded_metadata["Copy of simulation"] = sim
     simulation_obj = Simulation_obj(parameters=loaded_parameters, metadata=loaded_metadata,
-                                    parameters_filename=parameters_filename_base+".py")
+                                    parameters_filename=parameters_filename_base + ".py")
     simulation_obj.full_simulation()
 
 
 #
 # --------------------------------- EXECUTE --------------------------------- #
 #
-if meta_para["IS_RUN_SAMPLE_SPATIAL_DATA_FIRST"]:
-    run_sample_spatial_data(parameters=master_para, is_output_files=True)
-num_repeats = meta_para["NUM_REPEATS"]
-for simulation in range(num_repeats):
-    if meta_para["IS_NEW_PROGRAM"]:
-        new_program()
+
+def execution():
+    if len(sys.argv) > 1:
+        # optionally pass in an argument specifying the particular parameters_???.py file to use
+        parameters_filename_base = sys.argv[1]
     else:
-        repeat_program(sim=meta_para["REPEAT_PROGRAM_CODE"])
+        # otherwise use "parameters.py" as the default
+        parameters_filename_base = "parameters"
+    parameters_file = importlib.import_module(parameters_filename_base)
+    master_para = getattr(parameters_file, "master_para")
+    meta_para = getattr(parameters_file, "meta_para")
+    if meta_para["IS_RUN_SAMPLE_SPATIAL_DATA_FIRST"]:
+        run_sample_spatial_data(parameters=master_para, is_output_files=True)
+    num_repeats = meta_para["NUM_REPEATS"]
+
+    for simulation in range(num_repeats):
+        if meta_para["IS_NEW_PROGRAM"]:
+            new_program(master_para=master_para, parameters_filename_base=parameters_filename_base)
+        else:
+            repeat_program(master_para=master_para, parameters_filename_base=parameters_filename_base,
+                           sim=meta_para["REPEAT_PROGRAM_CODE"])
+
+
+if __name__ == '__main__':
+    execution()

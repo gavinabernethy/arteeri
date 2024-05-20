@@ -58,7 +58,7 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 1000,
+            "NUM_TRANSIENT_STEPS": 10000,
             "NUM_RECORD_STEPS": 1000,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
@@ -74,8 +74,8 @@ master_para = {
             # and IF YOU CHANGE THIS then "IS_LOAD_ADJ_VARIABLES" BELOW MUST BE "FALSE" AS WE NEED TO REBUILD THEM!!!
             #
             # Note that saving the adjacency variables does seem to be extremely slow in DEBUG mode.
-            "IS_SAVE_ADJ_VARIABLES": True,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
-            "IS_LOAD_ADJ_VARIABLES": True,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_SAVE_ADJ_VARIABLES": False,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_LOAD_ADJ_VARIABLES": False,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
 
             # ------------- Generation data - needs to be set before spatial habitat generation ------------- #
             "SPECIES_TYPES": {
@@ -84,6 +84,7 @@ master_para = {
                 # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
                 # name loaded (below) from the parameters_species_repository.py:
                 0: "prey",
+                1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
             "NUM_PATCHES": 1,
@@ -103,21 +104,21 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.75]},
+                    "HABITAT_SCORES": {0: [0.75, 0.75]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": 0.9,
                     "MAX_SCORE": 1.0,
-                    "HABITAT_SCORES": {0: [0.75]},
+                    "HABITAT_SCORES": {0: [0.75, 0.75]},
                 },
             },
 
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
@@ -132,7 +133,7 @@ master_para = {
         {
             "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
-            "IS_SAVE": False,  # do you save ANY data files?
+            "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
@@ -141,8 +142,8 @@ master_para = {
             # Data control options (requires IS_SAVE to be true):
             "IS_SAVE_LOCAL_POP_HISTORY_CSV": True,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
-            "IS_SAVE_PATCH_DATA": True,  # produce JSON file of every patch object.
-            "IS_SAVE_PATCH_LOCAL_POP_DATA": True,  # produce a JSON file of every local_population object - however
+            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object.
+            "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
             # note that this requires IS_SAVE_PATCH_DATA to be true first.
             "IS_ODE_RECORDINGS": False,  # do we save the history of each iteration of the ODE details as an attribute
             # of each local population object (it would then be printed as part of IS_SAVE_PATCH_LOCAL_POP_DATA)?
@@ -151,7 +152,7 @@ master_para = {
             "IS_SAVE_CURRENT_MOVE_SCORES": False,  # writes the final movement scores to the simulation-specific folder.
             #
             # Plot control options (requires IS_PLOT to be true):
-            "IS_PLOT_LOCAL_TIME_SERIES": True,  # produce plots of all local time-series of species properties, imposed
+            "IS_PLOT_LOCAL_TIME_SERIES": False,  # produce plots of all local time-series of species properties, imposed
             # on the same figure.
             "LOCAL_PLOTS": False,  # produce separate plot files for each patch showing the time-series.
             "IS_PLOT_ACCESSIBLE_SUB_GRAPHS": False,  # patch plots showing the fully-connected network sub-graphs from
