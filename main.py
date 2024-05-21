@@ -57,6 +57,8 @@ def execution():
         # otherwise use "parameters.py" as the default
         parameters_filename_base = "parameters"
     parameters_file = importlib.import_module(parameters_filename_base)
+    importlib.reload(parameters_file)  # needed if the execution() function is being called again after the parameters
+    # file has been changed.
     master_para = getattr(parameters_file, "master_para")
     meta_para = getattr(parameters_file, "meta_para")
     if meta_para["IS_RUN_SAMPLE_SPATIAL_DATA_FIRST"]:
