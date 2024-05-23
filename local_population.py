@@ -458,7 +458,7 @@ class Local_population:
         self.predator_shortfall = predator_sum_shortfall
 
     def predator_shortfall_distribution(self):
-        if self.holding_population > 0.0:
+        if self.holding_population > 0.0 and self.g_values['g0'] > 0:  # make sure you are hunting something
             g3_running_total = 0.0
             for population in self.interacting_populations:
                 prey = population["object"]
