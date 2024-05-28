@@ -147,18 +147,25 @@ def generate_patch_position_adjacency(num_patches, graph_para):
                     adjacency_array[x, y] = draw
                     adjacency_array[y, x] = draw
         elif graph_type == "small_world":
-            # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.watts_strogatz_graph.html
+            # https://networkx.org/documentation/stable/reference/generated/
+            # networkx.generators.random_graphs.watts_strogatz_graph.html
             graph = networkx.watts_strogatz_graph(n=num_patches,
                                                   k=graph_para["SMALL_WORLD_NUM_NEIGHBOURS"],
                                                   p=graph_para["SMALL_WORLD_SHORTCUT_PROBABILITY"])
             adjacency_array = networkx.to_numpy_array(graph)
+            if len(graph.nodes) == 0:
+                raise Exception("Small World graph failed to generate - probably unsuitable number "
+                                "of neighbours for this number of patches.")
+
         elif graph_type == "scale_free":
-            # https://networkx.org/documentation/stable/reference/generated/networkx.generators.directed.scale_free_graph.html
+            # https://networkx.org/documentation/stable/reference/generated/
+            # networkx.generators.directed.scale_free_graph.html
             graph = networkx.scale_free_graph(n=num_patches)  # directed
             adjacency_array = networkx.to_numpy_array(networkx.to_undirected(graph))
             adjacency_array[adjacency_array > 1] = 1
         elif graph_type == "cluster":
-            # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.powerlaw_cluster_graph.html
+            # https://networkx.org/documentation/stable/reference/generated/
+            # networkx.generators.random_graphs.powerlaw_cluster_graph.html
             graph = networkx.powerlaw_cluster_graph(n=num_patches,
                                                     m=graph_para["CLUSTER_NUM_NEIGHBOURS"],
                                                     p=graph_para["CLUSTER_PROBABILITY"], )
@@ -166,15 +173,20 @@ def generate_patch_position_adjacency(num_patches, graph_para):
         else:
             raise Exception("Which type of graph is the spatial network?")
 
-    # ensure every patch is always considered adjacent to itself
-    for x in range(num_patches):
-        adjacency_array[x, x] = 1
+    # check that adjacency array has correctly generated:
+    if adjacency_array.shape[0] != num_patches or adjacency_array.shape[1] != num_patches:
+        raise Exception("Graph generation process has failed to produce adjacency array of size NxN "
+                        "where N is the number of patches specified.")
+    else:
+        # ensure every patch is always considered adjacent to itself
+        for x in range(num_patches):
+            adjacency_array[x, x] = 1
 
-    # ensure that the adjacency graphs are always symmetric
-    for x in range(num_patches):
-        for y in range(num_patches):
-            if adjacency_array[x, y] == 1:
-                adjacency_array[y, x] = 1
+        # ensure that the adjacency graphs are always symmetric
+        for x in range(num_patches):
+            for y in range(num_patches):
+                if adjacency_array[x, y] == 1:
+                    adjacency_array[y, x] = 1
 
     return adjacency_array, position_array
 
