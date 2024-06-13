@@ -10,7 +10,7 @@ import networkx  # https://networkx.org/documentation/stable/reference/generator
 
 def save_array(file, print_array):
     with open(file, mode='w') as f:
-        np.savetxt(f, print_array, delimiter=', ', newline='\n', fmt='%f')
+        np.savetxt(f, print_array, delimiter=', ', newline='\n', fmt='%.20f')
 
 
 def check_and_create_directory(test_set, dir_path, can_overwrite_existing_dataset):
@@ -402,7 +402,7 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
                                                                           num_habitats=num_habitats,
                                                                           generated_spec=generated_spec,
                                                                           score_type=score_type)
-
+    x = 1
     if is_output_files:
         save_array(f'{dir_path}/patch_position.csv', position_array)
         save_array(f'{dir_path}/patch_adjacency.csv', adjacency_array)

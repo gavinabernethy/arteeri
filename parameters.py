@@ -22,17 +22,17 @@ master_para = {
             "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate
             # patch adjacency matrix by other means
-            "LATTICE_GRAPH_CONNECTIVITY": 0.7,
+            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": 0.05,
-            "SMALL_WORLD_NUM_NEIGHBOURS": 6,
+            "SMALL_WORLD_NUM_NEIGHBOURS": 2,  # if num_patches > 2, this need to be at least 2 or graph fails
             "SMALL_WORLD_SHORTCUT_PROBABILITY": 0.1,
             "CLUSTER_NUM_NEIGHBOURS": 3,
             "CLUSTER_PROBABILITY": 0.9,
             # Habitat type:
             "HABITAT_TYPE_MANUAL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.65,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.8,  # in range [-1, 1]
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,
@@ -40,7 +40,7 @@ master_para = {
             # Patch quality (scales the reproductive rate (r-parameter) for all local populations):
             "QUALITY_TYPE": "gradient",  # quality types are: 'manual', 'random', 'auto_correlation', 'gradient'
             "QUALITY_MANUAL_SPEC": None,  # should be None if we want to generate quality by other means
-            "QUALITY_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "QUALITY_SPATIAL_AUTO_CORRELATION": 0.5,  # in range [-1, 1]
             "MIN_QUALITY": 1.0,
             "MAX_QUALITY": 1.0,
             "QUALITY_FLUCTUATION": 0.0,
@@ -58,8 +58,8 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 10000,
-            "NUM_RECORD_STEPS": 1000,
+            "NUM_TRANSIENT_STEPS": 1000,
+            "NUM_RECORD_STEPS": 100,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
@@ -87,10 +87,11 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 1,
+            "NUM_PATCHES": 400,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
+                1: 'habitat_type_1',
             },
             "GENERATED_SPEC": {
                 #
@@ -104,14 +105,16 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.75, 0.75]},
+                    "HABITAT_SCORES": {0: [0.0, 1.0],
+                                       1: [1.0, 0.0]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": 0.9,
                     "MAX_SCORE": 1.0,
-                    "HABITAT_SCORES": {0: [0.75, 0.75]},
+                    "HABITAT_SCORES": {0: [1.0, 1.0],
+                                       1: [1.0, 1.0]},
                 },
             },
 
@@ -122,7 +125,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0},
+            "INITIAL_HABITAT_SET": {0, 1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -172,6 +175,7 @@ master_para = {
             # and is overwritten ONLY if the species-specific cost is HIGHER.
             "COMPETITION_ALPHA_SCALING": 0.5,  # Sets relative strength [0 - 1] of inter-specific competition
             # to intra-specific competition for natural abiotic resources.
+            "IS_LOCAL_FORAGING_ENSURED": False,  # if true, all feeding scores within-patch set to 1 (NOT m_i * h_i,k)
             #
             # These act like safety valves - overriding species-specific options if set to False to turn off such acts.
             "IS_NONLOCAL_FORAGING_PERMITTED": True,

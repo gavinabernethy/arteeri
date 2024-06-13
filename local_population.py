@@ -487,6 +487,7 @@ class Local_population:
                             self.kills["g3"][prey] = self.kills["g2"][prey][0]
                             prey.killed["g3"][self] = self.kills["g2"][prey][0]
             self.g_values["g3"] = self.g_values["g2"] + g3_running_total
+            # TODO: in subsequent model versions this final feeding will be scaled by in-patch habitat feeding score.
 
     def build_recent_time_averages(self, current_step, back_steps):
         # Can be called at any step to calculate the recent averages of population changes that are being stored in

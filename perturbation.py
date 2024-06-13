@@ -488,10 +488,12 @@ def patch_perturbation(
                                                                    specified_patch_list=likely_affected_patches)
 
     is_nonlocal_foraging = parameters["pop_dyn_para"]["IS_NONLOCAL_FORAGING_PERMITTED"]
+    is_local_foraging_ensured = parameters["pop_dyn_para"]["IS_LOCAL_FORAGING_ENSURED"]
     build_interacting_populations_list(
         patch_list=system_state.patch_list,
         species_list=system_state.species_set["list"],
         is_nonlocal_foraging=is_nonlocal_foraging,
+        is_local_foraging_ensured=is_local_foraging_ensured,
         time=system_state.time,
     )
     is_dispersal = parameters["pop_dyn_para"]["IS_DISPERSAL_PERMITTED"]

@@ -354,7 +354,7 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                 local_pop.actual_dispersal_targets = temp_dict
 
 
-def build_interacting_populations_list(patch_list, species_list, is_nonlocal_foraging, time):
+def build_interacting_populations_list(patch_list, species_list, is_nonlocal_foraging, is_local_foraging_ensured, time):
     # this function should NOT be only looking at non-zero population sizes, as the list will not be rebuilt
     # if they are populated at a later time. It also involves the within-patch predator-prey interactions, so
     # do NOT skip this method if is_nonlocal_foraging is false
@@ -386,6 +386,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
     for patch in patch_list:
         for local_pop in patch.local_populations.values():
             this_patch_species_traversal = patch.this_habitat_species_traversal[local_pop.species.name]
+            this_patch_species_feeding = patch.this_habitat_species_feeding[local_pop.species.name]
 
             for patch_to_num in patch.adjacency_lists[local_pop.name]:
                 patch_to = patch_list[patch_to_num]
@@ -402,11 +403,21 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                         local_pop_score = 0.0
                         local_pop_to_score = 0.0
                         patch_to_species_traversal = patch_to.this_habitat_species_traversal[local_pop_to.species.name]
+                        patch_to_species_feeding = patch_to.this_habitat_species_feeding[local_pop_to.species.name]
 
                         if patch_to_num == patch.number:
-                            # score is NOT SCALED BY FORAGING MOBILITY FOR WITHIN-PATCH FEEDING!
-                            local_pop_score = 1.0
-                            local_pop_to_score = 1.0
+                            # for WITHIN-PATCH FEEDING:
+                            if is_local_foraging_ensured:
+                                # with this global option set to true, within-patch feeding is always set to
+                                # precisely 1.0 for any species, as in earlier versions of Artemis
+                                local_pop_score = 1.0
+                                local_pop_to_score = 1.0
+                            else:
+                                # normally, within-patch score is now master_mu * species_mu * this_habitat_traversal
+                                local_pop_score = \
+                                    local_pop.species.current_foraging_mobility * this_patch_species_traversal
+                                local_pop_to_score = \
+                                    local_pop_to.species.current_foraging_mobility * patch_to_species_traversal
                         else:
                             if local_pop.species.is_nonlocal_foraging:
                                 # score dictionary for THIS species' local population to THAT patch
@@ -440,8 +451,10 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                 if local_pop_to_score < local_pop_to.species.current_minimum_link_strength_foraging:
                                     local_pop_to_score = 0.0
 
-                        # Only actual interactions (at least one-way) get added to the list
-                        if local_pop_score != 0.0 or local_pop_to_score != 0.0:
+                        # Only actual interactions (at least one-way) get added to the list, and only if the in-patch
+                        # feeding score of that species was non-zero
+                        if (local_pop_score != 0.0 and this_patch_species_feeding > 0.0) or \
+                                (local_pop_to_score != 0.0 and patch_to_species_feeding > 0.0):
                             local_pop.interacting_populations.append({"object": local_pop_to,
                                                                       "score_to": local_pop_score,
                                                                       "score_from": local_pop_to_score,
@@ -471,7 +484,7 @@ def checker(output_attribute, input_temporal, is_change):
     return input_temporal, is_change
 
 
-def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonlocal_foraging):
+def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonlocal_foraging, is_local_foraging_ensured):
     # this function deals with the temporal variation of species parameters.
     #
     # update temporary values of species properties and check if anything has changed
@@ -535,8 +548,13 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
         # are specified to change daily by sine function will only update every 10 steps if main_para:steps_to_days=10.
         # This gives us some modulo control over how often to expend computational time updating.
         print(f" ...Step {step}: species behaviour change identified.")
-        build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
-        build_interacting_populations_list(patch_list, species_list, is_nonlocal_foraging, time)
+        build_actual_dispersal_targets(
+            patch_list=patch_list, species_list=species_list,
+            is_dispersal=is_dispersal, time=time)
+        build_interacting_populations_list(
+            patch_list=patch_list, species_list=species_list,
+            is_nonlocal_foraging=is_nonlocal_foraging, is_local_foraging_ensured=is_local_foraging_ensured,
+            time=time)
 
 
 def foraging_calculator(patch_list, time, current_patch_list):
@@ -544,8 +562,10 @@ def foraging_calculator(patch_list, time, current_patch_list):
 
     # calculate idealised feeding (g0 -> g1)
     for patch_num in current_patch_list:
+        habitat_reproduction_scores = patch_list[patch_num].this_habitat_species_feeding
         for local_pop in patch_list[patch_num].local_populations.values():
-            if local_pop.holding_population > 0.0:
+            if local_pop.holding_population > 0.0 and habitat_reproduction_scores[local_pop.species.name] > 0.0:
+                # no predation gain if habitat-feeding score is 0.0
                 if local_pop.species.current_prey_dict is not None and len(local_pop.species.current_prey_dict) != 0:
                     local_pop.calculate_predation(time=time)
                 # g0 is the total prey available for that local population
@@ -560,8 +580,9 @@ def foraging_calculator(patch_list, time, current_patch_list):
 
     # calculate top-up feeding (g2 -> g3)
     for patch_num in current_patch_list:
+        habitat_reproduction_scores = patch_list[patch_num].this_habitat_species_feeding
         for local_pop in patch_list[patch_num].local_populations.values():
-            if local_pop.holding_population > 0.0:
+            if local_pop.holding_population > 0.0 and habitat_reproduction_scores[local_pop.species.name] > 0.0:
                 if local_pop.species.current_prey_dict is not None and len(local_pop.species.current_prey_dict) != 0:
                     local_pop.predator_shortfall_distribution()
                     # g3 is the actual number of kills that will be implemented
@@ -629,6 +650,7 @@ def update_populations(patch_list, species_list, time, step, parameters, current
     # the main_para.
     alpha = parameters["pop_dyn_para"]["COMPETITION_ALPHA_SCALING"]
     is_nonlocal_foraging = parameters["pop_dyn_para"]["IS_NONLOCAL_FORAGING_PERMITTED"]
+    is_local_foraging_ensured = parameters["pop_dyn_para"]["IS_LOCAL_FORAGING_ENSURED"]
     is_dispersal = parameters["pop_dyn_para"]["IS_DISPERSAL_PERMITTED"]
 
     function_priority_dictionary = parameters["main_para"]["ECO_PRIORITIES"]
@@ -644,7 +666,8 @@ def update_populations(patch_list, species_list, time, step, parameters, current
 
     # did any species parameters change?
     change_checker(species_list=species_list, patch_list=patch_list, time=time, step=step,
-                   is_dispersal=is_dispersal, is_nonlocal_foraging=is_nonlocal_foraging)
+                   is_dispersal=is_dispersal, is_nonlocal_foraging=is_nonlocal_foraging,
+                   is_local_foraging_ensured=is_local_foraging_ensured)
 
     # iterate over the 4 possible priorities (if all four sub-stages have their own separate timing within a step)
     for priority in range(4):

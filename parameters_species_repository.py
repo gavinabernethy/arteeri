@@ -283,10 +283,10 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "random_binomial",
+            "INITIAL_POPULATION_MECHANISM": "constant",
             "VALUE": 0.1,
             "MAXIMUM_MULTIPLIER": 1.0,
-            "BINOMIAL_PROBABILITY": 1.0,
+            "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
@@ -427,10 +427,10 @@ ARTEMIS_01_MASTER = {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.5,
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
+                    "period": 300,
+                    "amplitude": 0.1,
+                    "phase_shift": 0.0,
+                    "vertical_shift": 0.2,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
@@ -491,7 +491,7 @@ ARTEMIS_01_MASTER = {
             "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
                 # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
                 # dependent upon the density, that is x = local population / carrying_capacity
-                "SAME": [0.05, 0, 0, 0],
+                "SAME": [0, 0, 0, 0],
                 "ADJACENT": [0, 0, 0, 0],
                 "XY_ADJACENT": [0, 0, 0, 0],
             },
@@ -501,7 +501,7 @@ ARTEMIS_01_MASTER = {
                 "HABITAT_TYPE_NUM_TO_CHANGE_TO": None,  # integer habitat type number
                 "IS_QUALITY_CHANGE": False,
                 "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
-                "IS_ADJACENCY_CHANGE": True,
+                "IS_ADJACENCY_CHANGE": False,
                 "ABSOLUTE_ADJACENCY_CHANGE": None,  # 1 or 0
             },
         },
@@ -512,10 +512,10 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "random_binomial",
+            "INITIAL_POPULATION_MECHANISM": "constant",
             "VALUE": 0.01,
             "MAXIMUM_MULTIPLIER": 1.0,
-            "BINOMIAL_PROBABILITY": 1.0,
+            "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
@@ -553,7 +553,7 @@ ARTEMIS_01_MASTER = {
                     "constant_value": {'prey': 1.0},  # dictionary with name and preference weighting
                     "period": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "vector_imp": {},  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "IS_NONLOCAL_FORAGING": True,
                 "MINIMUM_LINK_STRENGTH_FORAGING": {
@@ -569,7 +569,7 @@ ARTEMIS_01_MASTER = {
                 "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": True,
                 "MAX_FORAGING_PATH_LENGTH": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 2,
+                    "constant_value": 1,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -620,7 +620,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "PREDATION_FOCUS": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 1.0,  # should be non-negative
+                    "constant_value": 2.7,  # should be non-negative
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -715,22 +715,22 @@ ARTEMIS_01_MASTER = {
         "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
         "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
         "PERTURBATION_PARA": {
-            "TO_IMPACT": ['same'],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
+            "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
             "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
                 # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
                 # dependent upon the density, that is x = local population / carrying_capacity
-                "SAME": [0.05, 0, 0, 0],
+                "SAME": [0, 0, 0, 0],
                 "ADJACENT": [0, 0, 0, 0],
                 "XY_ADJACENT": [0, 0, 0, 0],
             },
             "PERTURBATION": {
                 "IS_REMOVAL": False,
-                "IS_HABITAT_TYPE_CHANGE": True,
+                "IS_HABITAT_TYPE_CHANGE": False,
                 "HABITAT_TYPE_NUM_TO_CHANGE_TO": 0,  # integer habitat type number
                 "IS_QUALITY_CHANGE": False,
                 "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
-                "IS_ADJACENCY_CHANGE": True,
-                "ABSOLUTE_ADJACENCY_CHANGE": 0.5,  # 1 or 0
+                "IS_ADJACENCY_CHANGE": False,
+                "ABSOLUTE_ADJACENCY_CHANGE": 0.0,  # 1 or 0
             },
         },
     },

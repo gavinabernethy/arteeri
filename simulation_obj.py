@@ -305,10 +305,12 @@ class Simulation_obj:
                                        current_patch_list=self.system_state.current_patch_list,
                                        )
         is_nonlocal_foraging = self.parameters["pop_dyn_para"]["IS_NONLOCAL_FORAGING_PERMITTED"]
+        is_local_foraging_ensured = self.parameters["pop_dyn_para"]["IS_LOCAL_FORAGING_ENSURED"]
         build_interacting_populations_list(
             patch_list=self.system_state.patch_list,
             species_list=self.system_state.species_set["list"],
             is_nonlocal_foraging=is_nonlocal_foraging,
+            is_local_foraging_ensured=is_local_foraging_ensured,
             time=0,
         )
         is_dispersal = self.parameters["pop_dyn_para"]["IS_DISPERSAL_PERMITTED"]
