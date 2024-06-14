@@ -51,6 +51,7 @@ class System_state:
         self.num_perturbations_history = {0: 0}
         self.patch_centrality_history = {}
         self.patch_degree_history = {}
+        self.patch_lcc_history = {}
         self.total_connections_history = {}  # how many undirected links between different patches?
         self.patch_quality_history = {}
         self.update_habitat_distributions_history()
@@ -80,8 +81,10 @@ class System_state:
         self.patch_quality_history[self.step] = tuple_builder(current_quality_list)
 
     def update_degree_history(self):
-        current_degree_list = self.calculate_all_patches_degree()
+        # record history of network-level averages and SDs of patch degree, patch clustering, and total number of edges
+        current_degree_list, current_lcc_list = self.calculate_all_patches_degree()
         self.patch_degree_history[self.step] = tuple_builder(current_degree_list)
+        self.patch_lcc_history[self.step] = tuple_builder(current_lcc_list)
         self.total_connections_history[self.step] = int(
             (np.sum(current_degree_list) - len(self.current_patch_list)) / 2)
 
@@ -149,12 +152,22 @@ class System_state:
         self.current_num_patches_history.append(len(self.current_patch_list))
 
     def calculate_all_patches_degree(self):
+        # calculate the degree of each patch and update the set of adjacent patches, and THEN SUBSEQUENTLY we use that
+        # to determine the local clustering coefficient
         degree_list = []
         for patch in self.patch_list:
             degree = self.calculate_patch_degree(patch=patch)
             if patch.number in self.current_patch_list:
                 degree_list.append(degree)
-        return degree_list
+        # This must be AFTER updating all calculate_patch_degree() because of reliance of patch.set_of_adjacent_patches
+        lcc_list = []
+        if len(self.current_patch_list) > 0:
+            for patch in self.patch_list:
+                lcc = self.calculate_lcc(patch=patch)
+                if patch.number in self.current_patch_list:
+                    lcc_list.append(lcc)
+        print(lcc_list)
+        return degree_list, lcc_list
 
     def calculate_all_patches_centrality(self, parameters):
         # calculate the harmonic centrality of the patch
@@ -200,6 +213,28 @@ class System_state:
                 # By default, rebuild scores and paths for ALL patches
                 self.build_species_paths_and_adjacency(patch=patch, parameters=parameters)
 
+    def calculate_lcc(self, patch):
+        # determine the lcc of the given patch. This should only be called after all patches have had
+        # their .set_of_adjacent_patches updated by calling calculate_patch_degree() for EACH OF THEM
+        num_triangles = 0
+        num_closed_triangles = 0
+        list_of_neighbours = list(patch.set_of_adjacent_patches)
+        lcc = 0.0
+        if len(list_of_neighbours) > 1:
+            for n_1_index, neighbour_1 in enumerate(list_of_neighbours):
+                if neighbour_1 in self.current_patch_list and neighbour_1 != patch.number:
+                    for neighbour_2 in list_of_neighbours[n_1_index+1:]:  # necessarily n_1 not same as n_2
+                        if neighbour_2 in self.current_patch_list and neighbour_2 != patch.number:
+                            num_triangles += 1
+                            if neighbour_2 in self.patch_list[neighbour_1].set_of_adjacent_patches:
+                                num_closed_triangles += 1
+            if num_triangles > 0:
+                lcc = float(num_closed_triangles)/float(num_triangles)
+        # update patch records
+        patch.local_clustering = lcc
+        patch.local_clustering_history[self.step] = lcc
+        return lcc
+
     def calculate_patch_degree(self, patch):
         # calculate the degree centrality of the patch
         degree = 0
@@ -207,8 +242,9 @@ class System_state:
         for patch_number in range(np.size(self.patch_adjacency_matrix, 0)):
             if self.patch_adjacency_matrix[patch.number, patch_number] != 0.0 \
                     or self.patch_adjacency_matrix[patch_number, patch.number] != 0.0:
-                degree += 1
-                set_of_adjacent_patches.add(patch_number)
+                if patch_number in self.current_patch_list:
+                    degree += 1
+                    set_of_adjacent_patches.add(patch_number)
         patch.degree = degree
         patch.degree_history[self.step] = degree
         patch.set_of_adjacent_patches = set_of_adjacent_patches

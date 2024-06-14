@@ -235,6 +235,10 @@ def all_plots(simulation_obj):
                          "data": data_extractor(simulation_obj.system_state.patch_degree_history),
                          "legend": None,
                          "shading": True},
+        "patch_lcc": {"y_label": "Patch LCC",
+                      "data": data_extractor(simulation_obj.system_state.patch_lcc_history),
+                      "legend": None,
+                      "shading": True},
         "patch_quality": {"y_label": "Patch quality",
                           "data": data_extractor(simulation_obj.system_state.patch_quality_history),
                           "legend": None,
@@ -279,7 +283,7 @@ def all_plots(simulation_obj):
         attribute_to_plot = ["occupancy", "internal_change", "net_internal", "population_enter", "population_leave",
                              "net_enter", "source", "sink", "average_population", "average_internal_change",
                              "average_net_internal", "average_population_enter", "average_population_leave",
-                             "average_net_enter", "average_source", "average_sink",  "population_period",
+                             "average_net_enter", "average_source", "average_sink", "population_period",
                              "recent_occupancy_change_frequency"]
         for attr in attribute_to_plot:
             plot_current_local_population_attribute(species=species, patch_list=patch_list, sim=sim,

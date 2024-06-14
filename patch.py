@@ -20,6 +20,7 @@ class Patch:
         self.size = patch_size
         self.degree = 0  # can change
         self.centrality = 0.0  # can change
+        self.local_clustering = 0.0  # can change
         self.position = position  # cannot change
         self.adjacency_lists = {}  # to reduce computational waste
         self.sum_competing_for_resources = 0.0
@@ -45,6 +46,7 @@ class Patch:
         self.degree_history = {}
         self.set_of_adjacent_patches_history = {}
         self.centrality_history = {}
+        self.local_clustering_history = {}
         self.adjacency_history_list = []  # this should be a list as it can record multiple changes per step
         self.perturbation_history_list = []  # this should be a list as it can record multiple changes per step
         self.latest_perturbation_code_history = {}
