@@ -402,7 +402,6 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
                                                                           num_habitats=num_habitats,
                                                                           generated_spec=generated_spec,
                                                                           score_type=score_type)
-    x = 1
     if is_output_files:
         save_array(f'{dir_path}/patch_position.csv', position_array)
         save_array(f'{dir_path}/patch_adjacency.csv', adjacency_array)

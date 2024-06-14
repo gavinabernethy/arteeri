@@ -1,5 +1,7 @@
 import numpy as np
 from copy import deepcopy
+from collections import Counter
+from degree_distribution import power_law_curve_fit
 
 
 def tuple_builder(property_list):
@@ -52,6 +54,8 @@ class System_state:
         self.patch_centrality_history = {}
         self.patch_degree_history = {}
         self.patch_lcc_history = {}
+        self.degree_distribution_history = {}
+        self.degree_dist_power_law_fit = {}
         self.total_connections_history = {}  # how many undirected links between different patches?
         self.patch_quality_history = {}
         self.update_habitat_distributions_history()
@@ -87,6 +91,15 @@ class System_state:
         self.patch_lcc_history[self.step] = tuple_builder(current_lcc_list)
         self.total_connections_history[self.step] = int(
             (np.sum(current_degree_list) - len(self.current_patch_list)) / 2)
+        # determine degree distribution and store
+        degree_distribution = Counter(current_degree_list)
+        max_degree = np.max(current_degree_list)
+        degree_distribution_list = []
+        for degree in range(max_degree+1):
+            degree_distribution_list.append(degree_distribution[degree])
+        self.degree_distribution_history[self.step] = degree_distribution_list
+        self.degree_dist_power_law_fit[self.step] = power_law_curve_fit(
+            degree_distribution_list=degree_distribution_list)
 
     def update_centrality_history(self, parameters):
         # update the history of tuples of the average centrality of CURRENT patches (but for all patches in their
@@ -166,7 +179,6 @@ class System_state:
                 lcc = self.calculate_lcc(patch=patch)
                 if patch.number in self.current_patch_list:
                     lcc_list.append(lcc)
-        print(lcc_list)
         return degree_list, lcc_list
 
     def calculate_all_patches_centrality(self, parameters):
