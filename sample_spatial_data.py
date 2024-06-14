@@ -72,7 +72,7 @@ def generate_patch_position_adjacency(num_patches, graph_para):
         else:
             raise Exception("Error in graph_para['ADJACENCY_MANUAL_SPEC']. Incorrect number of rows.")
     else:
-        # check that user was not attempting to manually specify adjacency
+        # check that user was not attempting to manually specify adjacency and forgot to set the graph type
         if adjacency_spec is not None and type(adjacency_spec) == list and len(adjacency_spec) != 0:
             raise Exception("Check that graph type is `manual' or clear the manual adjacency specification.")
 

@@ -185,6 +185,10 @@ class Local_population:
         # This is based on RP's model, noting that the maximum function is required to prevent a low r-value
         # allowing one of the "death" terms to flip sign and cause infinite growth.
         if self.resource_usage_conversion == 0.0:
+            # if u_i = 0, should still compete with self - otherwise if you want no competition at all, then simply
+            # choose a Malthusian model for this species instead! This feature is the only way that we can have
+            # individual species that do not experience interspecific competition without impacting global options
+            # or other species
             competitors = self.holding_population
         else:
             # account for all local populations in patch who may need natural resources and/or nesting sites
@@ -226,13 +230,15 @@ class Local_population:
         else:
             raise Exception("Unknown.")
 
-    def foraging(self):
+    def foraging(self, this_patch_species_feeding):
         # -------------------------- PREDATION -------------------------- #
         # Predation by this population
         if self.species.current_prey_dict is not None and len(self.species.current_prey_dict) == 0:
             prey_gain = 0.0
         else:
-            prey_gain = self.species.predation_para["ECOLOGICAL_EFFICIENCY"] * \
+            # In the latest model iteration, prey gain (from both local and non-local foraging) is scaled by the
+            # habitat feeding score for the species in its home patch
+            prey_gain = this_patch_species_feeding * self.species.predation_para["ECOLOGICAL_EFFICIENCY"] * \
                         sum([x for x in self.kills["g3"].values()])
 
         # Predation upon this population
@@ -487,7 +493,6 @@ class Local_population:
                             self.kills["g3"][prey] = self.kills["g2"][prey][0]
                             prey.killed["g3"][self] = self.kills["g2"][prey][0]
             self.g_values["g3"] = self.g_values["g2"] + g3_running_total
-            # TODO: in subsequent model versions this final feeding will be scaled by in-patch habitat feeding score.
 
     def build_recent_time_averages(self, current_step, back_steps):
         # Can be called at any step to calculate the recent averages of population changes that are being stored in

@@ -178,10 +178,10 @@ class System_state:
 
                 path_matrix = np.matmul(path_matrix, path_matrix)
 
-            # sum reciprocal of non-zero elements
+            # sum reciprocal of non-zero elements (excluding self)
             for patch_x in range(num_patches):
                 for patch_y in range(num_patches):
-                    if minimum_distance_matrix[patch_x, patch_y] != 0.0:
+                    if patch_x != patch_y and minimum_distance_matrix[patch_x, patch_y] != 0.0:
                         patch_centrality_vector[patch_x] += 1.0 / minimum_distance_matrix[patch_x, patch_y]
             patch_centrality_vector *= (1.0 / (len(self.current_patch_list) - 1.0))
 

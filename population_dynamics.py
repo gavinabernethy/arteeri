@@ -615,7 +615,8 @@ def foraging_caller(parameters, patch_list, time, alpha, is_dispersal, current_p
     # then enact the feeding result - adding the resulting changes to the .current_temp_change's
     for patch in patch_list:
         for local_population in patch.local_populations.values():
-            local_population.foraging()
+            this_patch_species_feeding = patch.this_habitat_species_feeding[local_population.species.name]
+            local_population.foraging(this_patch_species_feeding=this_patch_species_feeding)
 
 
 def direct_impact_caller(parameters, patch_list, time, alpha, is_dispersal, current_patch_list):

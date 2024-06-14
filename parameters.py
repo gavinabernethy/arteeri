@@ -19,9 +19,15 @@ master_para = {
             "SPATIAL_TEST_SET": 1,
             "SPATIAL_DESCRIPTION": "artemis_01",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
-            "GRAPH_TYPE": "lattice",
-            "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate
-            # patch adjacency matrix by other means
+            "GRAPH_TYPE": "manual",
+            "ADJACENCY_MANUAL_SPEC": [[1,1,1,1,0,0,0],
+                                      [1,1,1,1,0,0,0],
+                                      [1,1,1,1,0,0,0],
+                                      [1,1,1,1,1,1,1],
+                                      [0,0,0,1,1,1,1],
+                                      [0,0,0,1,1,1,1],
+                                      [0,0,0,1,1,1,1]],  # should be None if we want to generate the patch adjacency matrix by
+            # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
@@ -87,7 +93,7 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 7,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
@@ -173,7 +179,7 @@ master_para = {
             "MU_OVERALL": 1.0,  # scales dispersal for all species and movements
             "GENERAL_DISPERSAL_PENALTY": 0.1,  # in [0, 1], this sets a baseline fractional LOSS for all movement,
             # and is overwritten ONLY if the species-specific cost is HIGHER.
-            "COMPETITION_ALPHA_SCALING": 0.5,  # Sets relative strength [0 - 1] of inter-specific competition
+            "COMPETITION_ALPHA_SCALING": 0.25,  # Sets relative strength [0 - 1] of inter-specific competition
             # to intra-specific competition for natural abiotic resources.
             "IS_LOCAL_FORAGING_ENSURED": False,  # if true, all feeding scores within-patch set to 1 (NOT m_i * h_i,k)
             #
