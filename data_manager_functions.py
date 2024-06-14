@@ -244,7 +244,8 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     # Now the primary iteration of each patch to determine its position, value and color
     for patch_num, patch in enumerate(patch_list):
         length = np.sqrt(patch.size)
-        position = (patch.position[0], patch.position[1])
+        # space them out slightly so that size=1 patches can still be distinguished
+        position = (patch.position[0]*1.1, patch.position[1]*1.1)
         min_val = np.asarray([min(min_val[0], position[0] - length), min(min_val[1], position[1] - length)])
         max_val = np.asarray([max(max_val[0], position[0] + 2 * length), max(max_val[1], position[1] + 2 * length)])
 
