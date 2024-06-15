@@ -698,6 +698,16 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              'use_colors': True,  # easier to see differences in perturbation clusters and reserves.
              'patch_label_color': 'white',
              },
+        'lcc':
+            {'attribute_id': 'local_clustering',
+             'use_color_bar': True,
+             'label_patches': False,
+             'patch_label_attr': None,
+             'path_list': adjacency_path_list,
+             'path_color': [0.7, 0.7, 0.8],
+             'use_colors': False,
+             'patch_label_color': None,
+             },
     }
 
     if is_biodiversity:
