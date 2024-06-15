@@ -27,21 +27,21 @@ def power_law_curve_fit(degree_distribution_list):
     if found_non_zero:
         # slice y-axis vector to just the relevant part
         non_zero_distribution = degree_distribution_list[start_x:]
-        x0 = np.linspace(start_x, start_x + len(non_zero_distribution) - 1, len(non_zero_distribution))
-        x1 = x0 + 0.00001  # shift right to address log(degree=0) possibly being counted and having non-zero value
+        x0 = np.linspace(0, len(non_zero_distribution) - 1, len(non_zero_distribution))
+        x1 = x0 + 0.1  # shift right to address log(degree=0) possibly being counted and having non-zero value
         x2 = np.log(x1)
         # shift the y-values up from zero to be all strictly positive
         y0 = np.array(non_zero_distribution)
         min_y = np.min(y0)
-        y1 = y0 + np.abs(min_y) + 0.00001
+        y1 = y0 + np.abs(min_y) + 0.1
         y2 = np.log(y1)
         # attempt the linear curve fit of the transformed function
         try:
-            optimal_parameters, opt_para_covariance = curve_fit(linear_func_to_fit, x2, y2)
+            optimal_parameters, opt_para_covariance = curve_fit(linear_func_to_fit, x2, y2, p0=[5, -2.5])
             a, b = [np.exp(optimal_parameters[0]), optimal_parameters[1]]
             fit_success = 1
         except RuntimeError:
             # optimal parameters are not found
             pass
 
-    return fit_success, a, b, opt_para_covariance
+    return [fit_success, a, b, start_x, opt_para_covariance]

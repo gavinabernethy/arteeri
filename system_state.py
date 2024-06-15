@@ -55,7 +55,7 @@ class System_state:
         self.patch_degree_history = {}
         self.patch_lcc_history = {}
         self.degree_distribution_history = {}
-        self.degree_dist_power_law_fit = {}
+        self.degree_dist_power_law_fit_history = {}
         self.total_connections_history = {}  # how many undirected links between different patches?
         self.patch_quality_history = {}
         self.update_habitat_distributions_history()
@@ -98,7 +98,7 @@ class System_state:
         for degree in range(max_degree+1):
             degree_distribution_list.append(degree_distribution[degree])
         self.degree_distribution_history[self.step] = degree_distribution_list
-        self.degree_dist_power_law_fit[self.step] = power_law_curve_fit(
+        self.degree_dist_power_law_fit_history[self.step] = power_law_curve_fit(
             degree_distribution_list=degree_distribution_list)
 
     def update_centrality_history(self, parameters):

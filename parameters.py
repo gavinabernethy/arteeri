@@ -169,6 +169,7 @@ master_para = {
             "IS_PLOT_ADJACENCY_SUB_GRAPHS": False,  # plots the undirected adjacency-based sub-graphs, regardless of any
             # species actual ability to traverse them.
             "IS_PLOT_INTERACTIONS": False,  # this draws at least num_species * num_patches plots
+            "IS_PLOT_DEGREE_DISTRIBUTION": True,
             "IS_PLOT_UNRESTRICTED_PATHS": False,  # # plots all reachable foraging/direct dispersal paths per species
             # WITHOUT threshold and path-length restriction (crowded plot if species able to traverse most habitats).
             "IS_BIODIVERSITY_ANALYSIS": False,  # produce a species-area curve

@@ -171,14 +171,14 @@ def all_plots(simulation_obj):
     # update present net_enter, occupancy etc.
     update_local_population_nets(system_state=simulation_obj.system_state)
 
-    # ---- TYPE I: patch plot (heat maps) of non-species-specific properties of the spatial network ---- #
+    # ---- TYPE I: Patch plot (heat maps) of non-species-specific properties of the spatial network ---- #
     adjacency_path_list = create_adjacency_path_list(
         patch_list=patch_list,
         patch_adjacency_matrix=simulation_obj.system_state.patch_adjacency_matrix)
     plot_network_properties(patch_list=patch_list, sim=sim, step=step, adjacency_path_list=adjacency_path_list,
                             is_biodiversity=True, is_reserves=True, is_retro=False)
 
-    # ---- TYPE II: time-series of non-species-specific properties of the spatial network ---- #
+    # ---- TYPE II: Time-series of non-species-specific properties of the spatial network ---- #
     #
     # (note that most patch properties should be relative to the currently-present patches only)
     # - every TS: global biodiversity
@@ -277,7 +277,7 @@ def all_plots(simulation_obj):
     #     initial_patch_adjacency_matrix=simulation_obj.system_state.initial_patch_adjacency_matrix,
     #     sim=sim, step=28)
 
-    # ---- Type III: patch plots (heat maps) of different species-specific properties ---- #
+    # ---- Type III: Patch plots (heat maps) of different species-specific properties ---- #
     for species in species_set["list"]:
         # can iterate through list of any local_population attributes that you wish to create patch plots of:
         attribute_to_plot = ["occupancy", "internal_change", "net_internal", "population_enter", "population_leave",
@@ -293,7 +293,7 @@ def all_plots(simulation_obj):
             plot_accessible_sub_graphs(patch_list=patch_list, parameters=parameters,
                                        species=species, sim=sim, step=step)
 
-    # ---- Type IV: species-specific time-series ---- #
+    # ---- Type IV: Species-specific time-series ---- #
     global_species_time_series_properties(patch_list=patch_list, species_set=species_set, parameters=parameters,
                                           sim=sim, step=step, current_num_patches_history=current_num_patches_history,
                                           is_save_plots=True, is_save_data=False)
@@ -301,6 +301,8 @@ def all_plots(simulation_obj):
     if parameters["plot_save_para"]["IS_PLOT_LOCAL_TIME_SERIES"]:
         plot_local_time_series(patch_list=patch_list, species_set=species_set, parameters=parameters,
                                sim=sim, step=step, is_local_plots=is_local_plots)
+
+    # ---- Type V: Optional extras ---- #
     if parameters["plot_save_para"]["IS_PLOT_UNRESTRICTED_PATHS"]:
         # plots all reachable foraging/direct dispersal paths per species WITHOUT threshold and path-length restriction
         plot_unrestricted_shortest_paths(patch_list=patch_list, species_set=species_set, sim=sim, step=step)
@@ -312,6 +314,11 @@ def all_plots(simulation_obj):
         plot_adjacency_sub_graphs(system_state=simulation_obj.system_state, sim=sim)
     if parameters["plot_save_para"]["IS_PLOT_INTERACTIONS"]:
         plot_interactions(patch_list=patch_list, adjacency_path_list=adjacency_path_list, sim=sim, step=step)
+    if parameters["plot_save_para"]["IS_PLOT_DEGREE_DISTRIBUTION"]:
+        plot_degree_distribution(
+            degree_distribution_history=simulation_obj.system_state.degree_distribution_history,
+            degree_dist_power_law_fit_history=simulation_obj.system_state.degree_dist_power_law_fit_history,
+            sim=sim, step=step)
     print("Completed all_plots().")
 
 

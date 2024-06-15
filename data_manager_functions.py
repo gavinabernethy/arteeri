@@ -1056,6 +1056,61 @@ def find_connected_sets(patch_list, starting_node, scale, list_of_lists):
     return list_of_lists
 
 
+# --------------------------------------- PRODUCING DEGREE DISTRIBUTION --------------------------------------- #
+
+def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_fit_history, sim, step):
+    # scatter the most recent degree distribution and plot the overlaid power law fit at the present step
+    #
+    # default to the initial system
+    this_distribution = degree_distribution_history[0]
+    this_power_law = degree_dist_power_law_fit_history[0]
+    # sort the times and find the lowest after the given time step
+    possible_steps = list(degree_distribution_history.keys())
+    possible_steps.sort()
+    for test_step in possible_steps:
+        if test_step > step:
+            this_distribution = degree_distribution_history[test_step]  # list of frequencies starting at k=0
+            this_power_law = degree_dist_power_law_fit_history[test_step]  # [fit_success, a, b, start_x, covariance]
+            break
+    x_dist_data = np.linspace(0, len(this_distribution)-1, len(this_distribution))
+    y_dist_data = np.asarray(this_distribution)
+    # scatter plot
+    fig = plt.figure()
+    plt.scatter(x_dist_data, y_dist_data)
+    # do we plot the fitted power law?
+    if this_power_law[0] == 1:  # was success
+        a = this_power_law[1]
+        b = this_power_law[2]
+        start_x = this_power_law[3]
+        min_y = np.min(this_distribution)
+        non_zero_distribution = this_distribution[start_x:]
+        x_plot_data = np.linspace(start_x, start_x + len(non_zero_distribution) - 1, 100000)
+        y_plot_data = a * (x_plot_data - start_x + 0.1) ** b - np.abs(min_y) - 0.1
+        plt.plot(x_plot_data, y_plot_data, c='r')
+        # determine r-squared
+        ss_res = 0.0
+        ss_tot = 0.0
+        y_actual_mean = np.mean(non_zero_distribution)
+        for y_index, y_val in enumerate(non_zero_distribution):
+            x_val = x_dist_data[start_x + y_index]  # what x_value does this true y_val correspond to?
+            x_plot_index = np.where(x_plot_data == x_val)[0][0]  # what is the index of this x_val in the plot vector?
+            y_plot_val = y_plot_data[x_plot_index]  # then what is the fitted y_val for this?
+            ss_res += (y_val - y_plot_val) ** 2.0
+            ss_tot += (y_val - y_actual_mean) ** 2.0
+        if ss_tot == 0.0:
+            r_str = "0.0"
+        else:
+            r_squared = 1.0 - ss_res / ss_tot
+            r_str = "{0:.3g}".format(r_squared)
+        plt.legend(('Actual values', f'Fit: $R^{2}$ = {r_str}'))
+    plt.xlabel('Degree')
+    plt.ylabel('Frequency')
+    file_path = f"results/{sim}/{step}/figures/network_degree_distribution.png"
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    plt.savefig(file_path, dpi=400)
+    plt.close(fig)
+
+
 # --------------------------------------- PRODUCING SPECIES-AREA CURVES (SAR) --------------------------------------- #
 
 def biodiversity_analysis(patch_list, species_set, parameters, sim, step):
