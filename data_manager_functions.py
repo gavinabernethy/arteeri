@@ -110,12 +110,15 @@ def write_average_population_data(patch_list, sim, step):
                                               local_pop.average_population_enter, local_pop.average_population_leave,
                                               local_pop.average_source, local_pop.average_sink,
                                               local_pop.st_dev_population, local_pop.max_abs_population,
-                                              local_pop.population_period]
+                                              local_pop.population_period_weak, local_pop.population_period_med,
+                                              local_pop.population_period_strong]
                 f.write(f"{patch.number}, {local_pop.name}, {local_pop.average_population}, "
                         f"{local_pop.average_internal_change}, {local_pop.average_population_enter}, "
                         f"{local_pop.average_population_leave}, {local_pop.average_source}, {local_pop.average_sink}, "
                         f"{local_pop.st_dev_population}, {local_pop.max_abs_population}, "
-                        f"{local_pop.population_period}, {local_pop.recent_occupancy_change_frequency};\n")
+                        f"{local_pop.population_period_weak}, {local_pop.population_period_med}, "
+                        f"{local_pop.population_period_strong}, "
+                        f"{local_pop.recent_occupancy_change_frequency};\n")
             average_population[patch.number] = this_patch
     # then also write the dictionary to a JSON
     json_file_name = f"results/{sim}/{step}/data/average_populations.json"
@@ -135,7 +138,7 @@ def write_population_history_data(patch_list, sim, step):
                 combined_array = np.transpose(np.vstack([pop_history_array, pop_enter_array,
                                                          pop_leave_array, internal_change_array]))
                 # noinspection PyTypeChecker
-                np.savetxt(f, combined_array, newline='\n', fmt='%f')
+                np.savetxt(f, combined_array, newline='\n', fmt='%.20f')
 
 
 def write_patch_list_local_populations(patch_list, sim, step, is_save_local_populations):
@@ -559,7 +562,7 @@ def global_species_time_series_properties(
                 file_path = f"results/{sim}/{step}/data/species_global_ts_{species.name}_" + _ + ".csv"
                 with safe_open_w(file_path) as f:
                     # noinspection PyTypeChecker
-                    np.savetxt(f, global_property_dict[_]["data"], delimiter=', ', newline='\n', fmt='%f')
+                    np.savetxt(f, global_property_dict[_]["data"], delimiter=', ', newline='\n', fmt='%.20f')
 
 
 def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_local_plots):
@@ -1093,8 +1096,8 @@ def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_
         y_actual_mean = np.mean(non_zero_distribution)
         for y_index, y_val in enumerate(non_zero_distribution):
             x_val = x_dist_data[start_x + y_index]  # what x_value does this true y_val correspond to?
-            x_plot_index = np.where(x_plot_data == x_val)[0][0]  # what is the index of this x_val in the plot vector?
-            y_plot_val = y_plot_data[x_plot_index]  # then what is the fitted y_val for this?
+            # then what is the fitted y_val for this?
+            y_plot_val = a * (x_val - start_x + 0.1) ** b - np.abs(min_y) - 0.1
             ss_res += (y_val - y_plot_val) ** 2.0
             ss_tot += (y_val - y_actual_mean) ** 2.0
         if ss_tot == 0.0:

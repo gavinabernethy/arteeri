@@ -104,7 +104,9 @@ def print_key_outputs_to_console(simulation_obj):
                          f"{local_population.average_population_enter}, {local_population.average_population_leave}, " \
                          f"{local_population.average_source}, {local_population.average_sink}, " \
                          f"{local_population.st_dev_population}, {local_population.max_abs_population}, " \
-                         f"{local_population.population_period}, {local_population.recent_occupancy_change_frequency};"
+                         f"{local_population.population_period_weak}, {local_population.population_period_med}, " \
+                         f"{local_population.population_period_strong}, " \
+                         f"{local_population.recent_occupancy_change_frequency};"
             print(output_str)
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
     # Restore default configuration.
@@ -283,8 +285,8 @@ def all_plots(simulation_obj):
         attribute_to_plot = ["occupancy", "internal_change", "net_internal", "population_enter", "population_leave",
                              "net_enter", "source", "sink", "average_population", "average_internal_change",
                              "average_net_internal", "average_population_enter", "average_population_leave",
-                             "average_net_enter", "average_source", "average_sink", "population_period",
-                             "recent_occupancy_change_frequency"]
+                             "average_net_enter", "average_source", "average_sink", "population_period_weak",
+                             "population_period_med", "population_period_strong", "recent_occupancy_change_frequency"]
         for attr in attribute_to_plot:
             plot_current_local_population_attribute(species=species, patch_list=patch_list, sim=sim,
                                                     attribute_name=attr, step=step)

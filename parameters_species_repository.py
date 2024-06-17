@@ -296,7 +296,7 @@ ARTEMIS_01_MASTER = {
                 "GROWTH_FUNCTION": "logistic",
                 "R": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 4.0,
+                    "constant_value": 3.8,
                     "period": 0.0,
                     "amplitude": 0.0,
                     "phase_shift": 0.0,

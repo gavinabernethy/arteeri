@@ -86,7 +86,9 @@ class Local_population:
         self.record_population_history()  # need this so that the initial population is recorded
         self.population_history_hurst_exponent = 0.0
         self.average_population = 0.0
-        self.population_period = 0.0
+        self.population_period_strong = 0.0
+        self.population_period_med = 0.0
+        self.population_period_weak = 0.0
         self.st_dev_population = 0.0
         self.max_abs_population = 0.0
         self.average_population_leave = 0.0
@@ -504,8 +506,12 @@ class Local_population:
         self.st_dev_population = np.std(self.population_history[current_step - back_steps: current_step])
 
         # Recent variations in the local population - periodicity, maximum absolute variation, occupancy change:
-        period = 0
-        period_epsilon = max(0.00000000001, self.st_dev_population * 0.0000001)
+        period_strong = 0
+        period_med = 0
+        period_weak = 0
+        period_epsilon_strong = max(0.000000000001, self.st_dev_population * 0.0001)
+        period_epsilon_med = max(0.00000001, self.st_dev_population * 0.001)
+        period_epsilon_weak = max(0.0001, self.st_dev_population * 0.01)
         max_abs_var = np.abs(self.population_history[current_step] - self.average_population)
         num_occupancy_changes = 0
         min_pop = self.species.minimum_population_size
@@ -518,15 +524,32 @@ class Local_population:
             # update greatest absolute deviation from the mean
             max_abs_var = max(max_abs_var, np.abs(self.population_history[current_step - n] - self.average_population))
             # periodicity check
-            if period == 0:
-                # only check if not already determined
+            # n is possible period
+            if (period_strong == 0 or period_weak == 0 or period_med == 0) and len(
+                    self.population_history) >= 3 * n + 10:
+                # only check if vector sufficiently long for 3N check
                 if abs(self.population_history[current_step - n] -
-                       self.population_history[current_step]) < period_epsilon:
-                    # if we think we have a period M, only record it if we can confirm against X_{n-2M} ~ X_{n} also
-                    if len(self.population_history) >= 2 * n:
-                        if abs(self.population_history[current_step - 2 * n] - self.population) < period_epsilon:
-                            period = n
-        self.population_period = period
+                       self.population_history[current_step]) < period_epsilon_weak:
+                    # if we think we have a period M (that is X_{n-M} ~ X_{n}), only record it if we can confirm:
+                    # X_{n-3M} and X_{n-2M} ~ X_{n}
+                    # X_{n-3M-1} and X_{n-2M-1} ~ X_{n-1}
+                    # X_{n-3M-2} and X_{n-2M-2} ~ X_{n-2}
+                    # X_{n-3M-3} and X_{n-2M-3} ~ X_{n-3}
+                    max_divergence = 0.0
+                    for reverse_period in range(3):  # -M, -2M, -3M
+                        for reverse_step in range(10):  # -0, -1, -2, -3, ..., -9
+                            max_divergence = max(max_divergence, abs(
+                                self.population_history[current_step - reverse_period * n - reverse_step] -
+                                self.population_history[current_step - reverse_step]))
+                    if period_weak == 0 and max_divergence < period_epsilon_weak:
+                        period_weak = n
+                    if period_med == 0 and max_divergence < period_epsilon_med:
+                        period_med = n
+                    if period_strong == 0 and max_divergence < period_epsilon_strong:
+                        period_strong = n
+        self.population_period_strong = period_strong
+        self.population_period_med = period_med
+        self.population_period_weak = period_weak
         self.max_abs_population = max_abs_var
         if back_steps > 1:
             self.recent_occupancy_change_frequency = num_occupancy_changes / (back_steps - 1.0)

@@ -20,13 +20,14 @@ master_para = {
             "SPATIAL_DESCRIPTION": "artemis_01",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
             "GRAPH_TYPE": "manual",
-            "ADJACENCY_MANUAL_SPEC": [[1,1,1,1,0,0,0],
-                                      [1,1,1,1,0,0,0],
-                                      [1,1,1,1,0,0,0],
-                                      [1,1,1,1,1,1,1],
-                                      [0,0,0,1,1,1,1],
-                                      [0,0,0,1,1,1,1],
-                                      [0,0,0,1,1,1,1]],  # should be None if we want to generate the patch adjacency matrix by
+            "ADJACENCY_MANUAL_SPEC": [[1,0,0,0,0,0,0,0],
+                                      [0,1,1,1,0,0,0,1],
+                                      [0,1,1,1,0,0,0,1],
+                                      [0,1,1,1,1,1,1,1],
+                                      [0,0,0,1,1,1,1,0],
+                                      [0,0,0,1,1,1,1,0],
+                                      [0,0,0,1,1,1,1,0],
+                                      [0,1,1,1,0,0,0,1]],  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
@@ -64,7 +65,7 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 1000,
+            "NUM_TRANSIENT_STEPS": 100,
             "NUM_RECORD_STEPS": 100,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
@@ -93,7 +94,7 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 7,
+            "NUM_PATCHES": 8,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
@@ -111,8 +112,8 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.0, 1.0],
-                                       1: [1.0, 0.0]},
+                    "HABITAT_SCORES": {0: [1.0, 1.0],
+                                       1: [1.0, 1.0]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
