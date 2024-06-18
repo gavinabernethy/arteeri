@@ -237,6 +237,10 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     max_val = np.zeros([2])
     min_color_value = np.min(color_property)
     max_color_value = np.max(color_property)
+
+    # space them out slightly so that size=1 patches can still be distinguished
+    patch_scaling_factor = 1.1
+
     # Some set up for the colorings
     color_offset = 0.0
     is_one_color = False
@@ -247,8 +251,8 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     # Now the primary iteration of each patch to determine its position, value and color
     for patch_num, patch in enumerate(patch_list):
         length = np.sqrt(patch.size)
-        # space them out slightly so that size=1 patches can still be distinguished
-        position = (patch.position[0]*1.1, patch.position[1]*1.1)
+
+        position = (patch.position[0]*patch_scaling_factor, patch.position[1]*patch_scaling_factor)
         min_val = np.asarray([min(min_val[0], position[0] - length), min(min_val[1], position[1] - length)])
         max_val = np.asarray([max(max_val[0], position[0] + 2 * length), max(max_val[1], position[1] + 2 * length)])
 
@@ -326,11 +330,13 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                     if {min_x, max_x} <= {patch_list[path_tuple[0]].position[0], patch_list[path_tuple[1]].position[0]}:
                         is_wrap = True
 
+            start_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
+            end_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
             if is_wrap:
-                patch_one = [patch_list[path_tuple[0]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size),
-                             patch_list[path_tuple[0]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)]
-                patch_two = [patch_list[path_tuple[1]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size),
-                             patch_list[path_tuple[1]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)]
+                patch_one = [patch_list[path_tuple[0]].position[0]*patch_scaling_factor + start_patch_radius,
+                             patch_list[path_tuple[0]].position[1]*patch_scaling_factor + end_patch_radius]
+                patch_two = [patch_list[path_tuple[1]].position[0]*patch_scaling_factor + start_patch_radius,
+                             patch_list[path_tuple[1]].position[1]*patch_scaling_factor + end_patch_radius]
                 both_patches = [patch_one, patch_two]
                 for line_num in range(2):
                     x_start = both_patches[line_num][0]
@@ -348,10 +354,10 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
 
             else:
                 # not a wrp - just a direct path
-                start_x = patch_list[path_tuple[0]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
-                end_x = patch_list[path_tuple[1]].position[0] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
-                start_y = patch_list[path_tuple[0]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
-                end_y = patch_list[path_tuple[1]].position[1] + 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
+                start_x = patch_list[path_tuple[0]].position[0] * patch_scaling_factor + start_patch_radius
+                end_x = patch_list[path_tuple[1]].position[0] * patch_scaling_factor + end_patch_radius
+                start_y = patch_list[path_tuple[0]].position[1] * patch_scaling_factor + start_patch_radius
+                end_y = patch_list[path_tuple[1]].position[1] * patch_scaling_factor + end_patch_radius
                 mid_x = (start_x + end_x) / 2
                 mid_y = (start_y + end_y) / 2
 
@@ -656,8 +662,8 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              'use_color_bar': True,
              'label_patches': True,
              'patch_label_attr': None,
-             'path_list': None,
-             'path_color': None,
+             'path_list': adjacency_path_list,
+             'path_color': [0.7, 0.7, 0.7],
              'use_colors': False,
              'patch_label_color': None,
              },
@@ -666,8 +672,8 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              'use_color_bar': True,
              'label_patches': False,
              'patch_label_attr': None,
-             'path_list': None,
-             'path_color': None,
+             'path_list': adjacency_path_list,
+             'path_color': [0.7, 0.7, 0.7],
              'use_colors': False,
              'patch_label_color': None,
              },
@@ -723,8 +729,8 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
             'use_color_bar': True,
             'label_patches': False,
             'patch_label_attr': None,
-            'path_list': None,
-            'path_color': None,
+            'path_list': adjacency_path_list,
+            'path_color': [0.7, 0.7, 0.7],
             'use_colors': False,
             'patch_label_color': None,
         }
