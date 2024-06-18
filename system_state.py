@@ -5,9 +5,12 @@ from degree_distribution import power_law_curve_fit
 
 
 def tuple_builder(property_list):
-    mean_property = np.mean(property_list)
-    st_dev_property = np.std(property_list)
-    sd_tuple = (mean_property - st_dev_property, mean_property, mean_property + st_dev_property)
+    if len(property_list) == 0:
+        sd_tuple = (0.0, 0.0, 0.0)
+    else:
+        mean_property = np.mean(property_list)
+        st_dev_property = np.std(property_list)
+        sd_tuple = (mean_property - st_dev_property, mean_property, mean_property + st_dev_property)
     return sd_tuple
 
 
@@ -53,7 +56,7 @@ class System_state:
         self.num_perturbations_history = {0: 0}
         self.patch_centrality_history = {}
         self.patch_degree_history = {}
-        self.patch_lcc_history = {}
+        self.patch_lcc_history = {_: {} for _ in ['all', 'same', 'different'] + list(habitat_type_dictionary.keys())}
         self.degree_distribution_history = {}
         self.degree_dist_power_law_fit_history = {}
         self.total_connections_history = {}  # how many undirected links between different patches?
@@ -88,14 +91,31 @@ class System_state:
         # record history of network-level averages and SDs of patch degree, patch clustering, and total number of edges
         current_degree_list, current_lcc_list = self.calculate_all_patches_degree()
         self.patch_degree_history[self.step] = tuple_builder(current_degree_list)
-        self.patch_lcc_history[self.step] = tuple_builder(current_lcc_list)
+        # for average LCC, we need the average over ALL patches, over patches of the SAME habitat type (in general, and
+        # separately for EACH habitat type), and over patches of DIFFERENT habitat types (i.e. at least two habitat
+        # types represented in the triple).
+        habitat_type_lcc_list = {}
+        for key in ["all", "same", "different"]:
+            habitat_type_lcc_list[key] = [x[key] for x in current_lcc_list]
+        # build the lists for each habitat type
+        for habitat_type_num in list(self.habitat_type_dictionary.keys()):
+            habitat_type_lcc_list[habitat_type_num] = []
+        for patch_index, patch_num in enumerate(self.current_patch_list):
+            habitat_type_lcc_list[self.patch_list[patch_num].habitat_type_num].append(
+                current_lcc_list[patch_index]["same"])
+        # take all means and standard deviations and report
+        key_list = ["all", "same", "different"] + list(self.habitat_type_dictionary.keys())
+        for key in key_list:
+            self.patch_lcc_history[key][self.step] = tuple_builder(habitat_type_lcc_list[key])
+
+        # remaining measures:
         self.total_connections_history[self.step] = int(
             (np.sum(current_degree_list) - len(self.current_patch_list)) / 2)
         # determine degree distribution and store
         degree_distribution = Counter(current_degree_list)
         max_degree = np.max(current_degree_list)
         degree_distribution_list = []
-        for degree in range(max_degree+1):
+        for degree in range(max_degree + 1):
             degree_distribution_list.append(degree_distribution[degree])
         self.degree_distribution_history[self.step] = degree_distribution_list
         self.degree_dist_power_law_fit_history[self.step] = power_law_curve_fit(
@@ -178,7 +198,7 @@ class System_state:
             for patch in self.patch_list:
                 lcc = self.calculate_lcc(patch=patch)
                 if patch.number in self.current_patch_list:
-                    lcc_list.append(lcc)
+                    lcc_list.append(lcc)  # this is a (patch-length) list of the [all, same, different] LCC's
         return degree_list, lcc_list
 
     def calculate_all_patches_centrality(self, parameters):
@@ -225,24 +245,115 @@ class System_state:
                 # By default, rebuild scores and paths for ALL patches
                 self.build_species_paths_and_adjacency(patch=patch, parameters=parameters)
 
+    def network_analysis(self, weighting_list):
+        # TODO: construct function that will prepare weighted lists of patch values for species, and community,
+        #  and pass them to this function. It should also prepare the community state different distributions, and the
+        #  community probability distributions and Shannon index, and the species-species occurrence and population-
+        #  weighted probability predictors.
+        #
+        # weighting list should match length of current_patch_list
+        #
+        # need weight, habitat type, and neighbours of each patch for presence, auto_correlation, clustering analysis
+        num_patches = len(self.current_patch_list)
+        patch_habitat = []
+        patch_neighbours = []
+        if len(weighting_list) == num_patches:
+            patch_value = weighting_list
+        else:
+            raise Exception("Incorrect length of weighting list.")
+        for patch_num in self.current_patch_list:
+            patch_habitat.append(self.patch_list[patch_num].habitat_type_num)
+            patch_neighbours.append(self.patch_list[patch_num].set_of_adjacent_patchs)
+
+        # set up the nested dictionary to hold results
+        template_presence = {"all": 0.0}
+        template_auto_corr = {"all": 0.0,
+                              "same": 0.0,
+                              "different": 0.0,
+                              }
+        # add keys for each habitat, habitat type pair, and triplet
+        habitat_type_nums = list(self.habitat_type_dictionary.keys())
+        habitat_type_nums.sort()
+        for habitat_type_num_1 in habitat_type_nums:
+            template_presence[habitat_type_num_1] = 0.0
+            for habitat_type_num_2 in habitat_type_nums[habitat_type_num_1:]:
+                template_auto_corr[(habitat_type_num_1, habitat_type_num_2)] = (0.0, 0.0)
+
+        # presence
+        template_presence["all"] = np.mean(patch_value)
+        for habitat_type_num_1 in habitat_type_nums:
+            template_presence[habitat_type_num_1] = np.mean(
+                [patch_value[x] for x in range(num_patches) if patch_habitat[x] == habitat_type_num_1])
+            # TODO: add standard deviation as well as mean?
+
+        # auto-correlation
+        for patch_num in range(num_patches):
+            this_patch_habitat = patch_habitat[patch_num]
+            # note that we do *NOT* also calculate this separately for each community state (0-2^N) or
+            # species state (0-1, i.e. we do not restrict to counting only over patches where the species was present,
+            # but we should be able to easily obtain this average instead if desired since we also store the probability
+            # of species presence, and of each community state).
+            for patch_neighbour in patch_neighbours[patch_num]:
+
+                # avoid double counting
+                if patch_neighbour > patch_num:
+
+                    neighbouring_patch_habitat = self.patch_list[patch_neighbour].habitat_type_num
+                    # assuming max possible difference is 1.0...
+                    difference = 1.0 - np.abs(patch_value[patch_num] - patch_value[patch_neighbour])
+                    # for community state this should be the distance on the vertices of an N-dimensional cube,
+                    # normalised by the maximum such distance
+
+                    # all
+                    template_auto_corr['all'] += (difference, 1.0)
+                    # same
+                    if this_patch_habitat == neighbouring_patch_habitat:
+                        template_auto_corr['same'] += (difference, 1.0)
+                    else:
+                        template_auto_corr['different'] += (difference, 1.0)
+                    # specific habitat combinations
+                    small_habitat = min(this_patch_habitat, neighbouring_patch_habitat)  # order them
+                    large_habitat = max(this_patch_habitat, neighbouring_patch_habitat)
+                    template_auto_corr[(small_habitat, large_habitat)] += (difference, 1.0)
+
+        output_dict = {
+            "presence": template_presence,
+            "auto_correlation": template_auto_corr,
+        }
+        return output_dict
+
     def calculate_lcc(self, patch):
         # determine the lcc of the given patch. This should only be called after all patches have had
         # their .set_of_adjacent_patches updated by calling calculate_patch_degree() for EACH OF THEM
-        num_triangles = 0
-        num_closed_triangles = 0
         list_of_neighbours = list(patch.set_of_adjacent_patches)
-        lcc = 0.0
+        num_triangles = [0, 0, 0]  # all, same, different
+        num_closed_triangles = [0, 0, 0]  # all, same, different
+        lcc = {"all": 0.0, "same": 0.0, "different": 0.0}
         if len(list_of_neighbours) > 1:
             for n_1_index, neighbour_1 in enumerate(list_of_neighbours):
                 if neighbour_1 in self.current_patch_list and neighbour_1 != patch.number:
-                    for neighbour_2 in list_of_neighbours[n_1_index+1:]:  # necessarily n_1 not same as n_2
+                    for neighbour_2 in list_of_neighbours[n_1_index + 1:]:  # necessarily n_1 not same as n_2
                         if neighbour_2 in self.current_patch_list and neighbour_2 != patch.number:
-                            num_triangles += 1
+                            # count this triangle in 'all'
+                            num_triangles[0] += 1
+                            # now check 'same' or different' habitats
+                            is_same_habitats = (patch.habitat_type_num == self.patch_list[neighbour_1].habitat_type_num
+                                                == self.patch_list[neighbour_2].habitat_type_num)
+                            if is_same_habitats:
+                                num_triangles[1] += 1
+                            else:
+                                num_triangles[2] += 1
+                            # now determine if the triangle is closed
                             if neighbour_2 in self.patch_list[neighbour_1].set_of_adjacent_patches:
-                                num_closed_triangles += 1
-            if num_triangles > 0:
-                lcc = float(num_closed_triangles)/float(num_triangles)
-        # update patch records
+                                num_closed_triangles[0] += 1
+                                if is_same_habitats:
+                                    num_closed_triangles[1] += 1
+                                else:
+                                    num_closed_triangles[2] += 1
+            for key_index, key in enumerate(["all", "same", "different"]):
+                if num_triangles[key_index] > 0:
+                    lcc[key] = float(num_closed_triangles[key_index]) / float(num_triangles[key_index])
+        # update patch records with this list
         patch.local_clustering = lcc
         patch.local_clustering_history[self.step] = lcc
         return lcc

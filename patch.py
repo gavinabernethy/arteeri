@@ -20,7 +20,7 @@ class Patch:
         self.size = patch_size
         self.degree = 0  # can change
         self.centrality = 0.0  # can change
-        self.local_clustering = 0.0  # can change
+        self.local_clustering = []  # can change, takes a list of three values - LCC for all/same/different habitats
         self.position = position  # cannot change
         self.adjacency_lists = {}  # to reduce computational waste
         self.sum_competing_for_resources = 0.0

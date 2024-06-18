@@ -39,7 +39,7 @@ master_para = {
             "CLUSTER_PROBABILITY": 0.9,
             # Habitat type:
             "HABITAT_TYPE_MANUAL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.8,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,

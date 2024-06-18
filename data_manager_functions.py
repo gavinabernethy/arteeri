@@ -205,16 +205,32 @@ def save_current_local_population_attribute(patch_list, sim, attribute_name, ste
 # ---------------------------------------- BASE FUNCTIONS FOR CREATING PLOTS ---------------------------------------- #
 
 def create_time_series_plot(data, parameters, file_path, y_label='Population', legend_list=None,
-                            start_time=1, end_time=None, is_shading=False):
+                            start_time=1, end_time=None, is_shading=False, is_triple=False):
     if end_time is None:
         end_time = parameters["main_para"]["NUM_TRANSIENT_STEPS"] + parameters["main_para"]["NUM_RECORD_STEPS"]
     x_data = np.linspace(start_time, end_time, num=1 + end_time - start_time)
     fig = plt.figure()
     for series_number, data_time_series in enumerate(data):
-        plt.plot(x_data, data_time_series)
-        if is_shading and series_number > 0:
-            # shade between this series and the previous one
-            plt.fill_between(x_data, data[series_number - 1], data_time_series, alpha=0.2)
+        if is_triple:
+            # if we are passing lists of triple tuples, then this is [(mean-1SD, mean, mean+1SD), ...] time-series
+            #
+            # plot the mean and ±1SD
+            data_lower = [y[0] for y in data_time_series]
+            data_mid = [y[1] for y in data_time_series]
+            data_upper = [y[2] for y in data_time_series]
+            line, = plt.plot(x_data, data_mid)  # mean
+            current_colour = line.get_color()  # set the surrounding tube to be the same colour
+            plt.plot(x_data, data_lower, label='_nolegend_', c=current_colour, alpha=0.3)  # mean - 1SD
+            plt.plot(x_data, data_upper, label='_nolegend_', c=current_colour, alpha=0.3)  # mean + 1SD
+            if is_shading:
+                plt.fill_between(x_data, data_lower, data_mid, alpha=0.2, label='_nolegend_', color=current_colour)
+                plt.fill_between(x_data, data_mid, data_upper, alpha=0.2, label='_nolegend_', color=current_colour)
+        else:
+            # regular single-series data streams are being passed to the function
+            plt.plot(x_data, data_time_series)
+            if is_shading and series_number > 0:
+                # shade between this series and the previous one
+                plt.fill_between(x_data, data[series_number - 1], data_time_series, alpha=0.2)
     if legend_list is not None:
         if len(legend_list) < 20:
             # avoid trying to draw a legend if too many objects
@@ -409,15 +425,6 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     plt.savefig(file_path, dpi=400)
     plt.close(fig)
-
-
-def data_extractor(dictionary_object):
-    # this is a small helper function that unpacks the patch_{quality/degree/centrality} change-step dictionaries into
-    # a form suitable for the time-series plotting
-    extracted_data = []
-    for _ in range(3):
-        extracted_data.append({x: y[_] for x, y in dictionary_object.items()})
-    return extracted_data
 
 
 # ------------------------------------- MAIN FUNCTIONS FOR PLOTTING TIME-SERIES ------------------------------------- #
@@ -659,6 +666,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
     properties = {
         'habitat_type':
             {'attribute_id': 'habitat_type_num',
+             "sub_attribute_list": [None],  # this should be a list containing None
              'use_color_bar': True,
              'label_patches': True,
              'patch_label_attr': None,
@@ -669,6 +677,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              },
         'patch_quality':
             {'attribute_id': 'quality',
+             "sub_attribute_list": [None],  # this should be a list containing None
              'use_color_bar': True,
              'label_patches': False,
              'patch_label_attr': None,
@@ -679,6 +688,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              },
         'patch_adjacency':
             {'attribute_id': 'degree',
+             "sub_attribute_list": [None],  # this should be a list containing None
              'use_color_bar': True,
              'label_patches': False,
              'patch_label_attr': None,
@@ -689,6 +699,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              },
         'centrality':
             {'attribute_id': 'centrality',
+             "sub_attribute_list": [None],  # this should be a list containing None
              'use_color_bar': True,
              'label_patches': False,
              'patch_label_attr': None,
@@ -699,6 +710,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              },
         'perturbations':
             {'attribute_id': 'latest_perturbation_code',  # 0 = reserve, 0.1 = normal, 0.2 - 1.0 is pert. cluster
+             "sub_attribute_list": [None],  # this should be a list containing None
              'use_color_bar': True,
              'label_patches': True,
              'patch_label_attr': 'num_times_perturbed',
@@ -709,6 +721,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
              },
         'lcc':
             {'attribute_id': 'local_clustering',
+             "sub_attribute_list": ['all', 'same', 'different'],
              'use_color_bar': True,
              'label_patches': False,
              'patch_label_attr': None,
@@ -726,6 +739,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
             patch.update_biodiversity()
         properties['biodiversity'] = {
             'attribute_id': 'biodiversity',
+            'sub_attribute_list': [None],  # this should be a list containing None
             'use_color_bar': True,
             'label_patches': False,
             'patch_label_attr': None,
@@ -741,6 +755,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
         # from the retrospective function
         properties['reserves'] = {
             'attribute_id': 'is_reserve',
+            'sub_attribute_list': [None],  # this should be a list containing None
             'use_color_bar': True,
             'label_patches': True,
             'patch_label_attr': 'reserve_order',
@@ -750,25 +765,37 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
             'patch_label_color': None,
         }
 
+    file_pre_suffix = ""
+    if is_retro:
+        # modify the file name so that retrospective and 'live' plots are distinguishable
+        file_pre_suffix += "_retro"
+
     # then iterate over list of patch properties to plot according to their options
     for prop in properties:
-        color_matrix = np.zeros([len(patch_list), 1])
-        for patch in patch_list:
-            color_matrix[patch.number, 0] = getattr(patch, properties[prop]["attribute_id"])
-        if is_retro:
-            # modify the file name so that retrospective and 'live' plots are distinguishable
-            file_path = f"results/{sim}/{step}/figures/{prop}_retro.png"
-        else:
-            file_path = f"results/{sim}/{step}/figures/{prop}.png"
-        create_patches_plot(patch_list=patch_list, color_property=color_matrix, file_path=file_path,
-                            use_color_bar=properties[prop]["use_color_bar"],
-                            label_patches=properties[prop]["label_patches"],
-                            patch_label_attr=properties[prop]["patch_label_attr"],
-                            path_color=properties[prop]["path_color"],
-                            path_list=properties[prop]["path_list"],
-                            use_colors=properties[prop]["use_colors"],
-                            patch_label_color=properties[prop]["patch_label_color"],
-                            )
+        for sub_attr in properties[prop]["sub_attribute_list"]:
+            if sub_attr is None:
+                file_suffix = file_pre_suffix
+            else:
+                file_suffix = file_pre_suffix + '_' + str(sub_attr)
+            color_matrix = np.zeros([len(patch_list), 1])
+            for patch in patch_list:
+                if sub_attr is None:
+                    patch_attribute = getattr(patch, properties[prop]["attribute_id"])
+                    file_suffix = file_pre_suffix
+                else:
+                    patch_attribute = getattr(patch, properties[prop]["attribute_id"])[sub_attr]
+                color_matrix[patch.number, 0] = patch_attribute
+
+            file_path = f"results/{sim}/{step}/figures/{prop}{file_suffix}.png"
+            create_patches_plot(patch_list=patch_list, color_property=color_matrix, file_path=file_path,
+                                use_color_bar=properties[prop]["use_color_bar"],
+                                label_patches=properties[prop]["label_patches"],
+                                patch_label_attr=properties[prop]["patch_label_attr"],
+                                path_color=properties[prop]["path_color"],
+                                path_list=properties[prop]["path_list"],
+                                use_colors=properties[prop]["use_colors"],
+                                patch_label_color=properties[prop]["patch_label_color"],
+                                )
 
 
 def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_patch_adjacency_matrix, sim, step):
