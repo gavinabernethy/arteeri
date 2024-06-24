@@ -437,6 +437,9 @@ class Simulation_obj:
 
         # ??? Calculate Hurst Exponent of the global and average local diversity time-series:
 
+        # TODO: decide how to implement and store this
+        self.system_state.distance_metrics()
+
         # -----------------------------------------------------------------------------------------------------------#
 
         # return the resulting spatial distribution of species and average population sizes
