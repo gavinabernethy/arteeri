@@ -2,6 +2,8 @@ import numpy as np
 from copy import deepcopy
 from collections import Counter
 from degree_distribution import power_law_curve_fit
+from scipy.stats import spearmanr, pearsonr
+from data_manager_functions import update_local_population_nets
 
 
 def tuple_builder(property_list):
@@ -388,10 +390,10 @@ class System_state:
                                 new_path_length = best_tentative_length + 1
                                 new_path = best_tentative_path + [next_vertex_num]
                                 # single-path-cost = 1 / ( habitat-species-traversal * adjacency-border * patch-size)
-                                new_path_cost = \
-                                    best_tentative_cost + (1.0 / other_patch.this_habitat_species_traversal[
-                                        species_name]) * (1.0 / self.patch_adjacency_matrix[
-                                        next_vertex_num, other_patch_num]) / other_patch.size
+                                new_path_cost = best_tentative_cost + (
+                                        1.0 / other_patch.this_habitat_species_traversal[species_name]
+                                ) * (1.0 / self.patch_adjacency_matrix[next_vertex_num, other_patch_num]
+                                     ) / other_patch.size
                                 # Note: patch_adjacency_matrix is currently binary, so if this branch is reached
                                 # then part of this function will be 1/1;
                                 # However it is included because in the future we may wish to alter this matrix
@@ -430,8 +432,16 @@ class System_state:
 
     # --------------------------- SPECIES / COMMUNITY DISTRIBUTION ANALYSIS ----------------------------------------- #
     def distance_metrics(self):
+        update_local_population_nets(system_state=self)  # required to update .occupancy attribute of local_populations
         num_patches = len(self.current_patch_list)
         num_species = len(self.species_set["list"])
+
+        patch_habitat = []
+        patch_neighbours = []
+        for patch_num in self.current_patch_list:
+            patch_habitat.append(self.patch_list[patch_num].habitat_type_num)  # note here that if patches are deleted
+            # from the current system state, then the position in this list MIGHT NOT MATCH the patch number.
+            patch_neighbours.append(self.patch_list[patch_num].set_of_adjacent_patches)
 
         # gather the data
         community_state_presence_array = np.zeros([num_patches, num_species])
@@ -453,14 +463,18 @@ class System_state:
         # per species distance metrics - and species presence probabilities (overall and per habitat type)
         for species_index in range(num_species):
             self.network_analysis(patch_value_array=community_state_presence_array[:, species_index],
+                                  patch_habitat=patch_habitat, patch_neighbours=patch_neighbours,
                                   is_binary=True, is_distribution=False)
             self.network_analysis(patch_value_array=community_state_population_array[:, species_index],
+                                  patch_habitat=patch_habitat, patch_neighbours=patch_neighbours,
                                   is_binary=False, is_distribution=False)
 
         # community distance metrics
         self.network_analysis(patch_value_array=community_state_presence_array,
+                              patch_habitat=patch_habitat, patch_neighbours=patch_neighbours,
                               is_binary=False, is_distribution=True)
         self.network_analysis(patch_value_array=community_state_population_array,
+                              patch_habitat=patch_habitat, patch_neighbours=patch_neighbours,
                               is_binary=False, is_distribution=False)
 
         # each community state probabilities (overall and per habitat type)
@@ -484,21 +498,29 @@ class System_state:
             for patch_index, patch_state in enumerate(community_state_binary):
                 if patch_state == state:
                     state_array[patch_index] = 1.0
-            self.network_analysis(patch_value_array=state_array, is_binary=True, is_distribution=False)
+            self.network_analysis(patch_value_array=state_array, patch_habitat=patch_habitat,
+                                  patch_neighbours=patch_neighbours, is_binary=True, is_distribution=False)
 
         # Shannon entropy
         self.shannon_entropy(patch_state_array=community_state_presence_array,
-                             patch_binary_vector=community_state_binary)
+                             patch_habitat=patch_habitat, patch_binary_vector=community_state_binary)
 
         # species-species predictions
-        self.inter_species_predictions()
+        self.inter_species_predictions(presence_array=community_state_presence_array,
+                                       population_array=community_state_population_array,
+                                       patch_habitat=patch_habitat)
 
-    def inter_species_predictions(self):
+        self.population_distance_mantel_test()
+
+    def population_distance_mantel_test(self):
+        # For each species, Mantel test for correlation between matrix of path lengths (compare both adjacency and
+        # the species-specific shortest distance traversal score) and matrix of population differences across patches.
+        pass
+
+    def inter_species_predictions(self, presence_array, population_array, patch_habitat):
         # 1. Species-species presence/absence in same patch
         # 2. Population-population correlation coefficients in same patch (both Spearman and Pearson)
-        # 3. For each species, Mantel test for correlation between matrix of path lengths (compare both adjacency and
-        # the species-specific shortest distance traversal score) and matrix of population differences across patches.
-        # 4. (Applied for radius 1 (i.e. same patch), radius 2 (i.e. path length 1), and radius 3 (
+        # 3. (Applied for radius 1 (i.e. same patch), radius 2 (i.e. path length 1), and radius 3 (
         #   i.e. path length 2) calculation of expected value of population of one species given the presence of
         #   the unit population of a control species. Note carefully that the interpretation is in terms of 'realised
         #   maximum', and not the theoretical maximum in absence of the control species or other parameters. So it
@@ -507,26 +529,228 @@ class System_state:
         #   maximum and simply rescale by that. The normalised version will tell you about how the RELATIVE distribution
         #   of the target species is correlated to the presence and size of the control species.
         #
-        # In cases 1, 2, and 4, calculate these separately for each habitat type subnetwork in addition to overall.
-        pass
+        # In each case, calculate these separately for each habitat type subnetwork in addition to overall.
 
-    def network_analysis(self, patch_value_array, is_binary, is_distribution):
+        # Prepare keys for each habitat
+        species_list = [x.name for x in self.species_set["list"]]
+        habitat_type_nums = list(self.habitat_type_dictionary.keys())
+        habitat_type_nums.sort()
+
+        # ---------------------------------------------------------- 1.  Species-species presence/absence in same patch
+        #
+        # this will hold the counts
+        counting_array = {'all': 0}
+        for habitat_type_num in habitat_type_nums:
+            counting_array[habitat_type_num] = 0
+        # generate the nested dictionary
+        species_co_existence = {}
+        for species_1_name in species_list:
+            species_dict = {}
+            for species_2_name in species_list:  # include self
+                species_dict[species_2_name] = counting_array
+            species_co_existence[species_1_name] = species_dict
+
+        # iterate only once over the patches
+        for temp_patch_index, patch_row in enumerate(presence_array):
+            # iterate over the 'predictor' species
+            for species_index, species_name in enumerate(species_list):
+                if patch_row[species_index] > 0:
+                    # if found, then continue
+                    this_patch_habitat = patch_habitat[temp_patch_index]
+                    # iterate through all locally-present species, including self
+                    for other_species_index, other_species_name in enumerate(species_list):
+                        if patch_row[other_species_index] > 0:
+                            species_co_existence[species_name][other_species_name]['all'] += 1
+                            species_co_existence[species_name][other_species_name][this_patch_habitat] += 1
+
+        # calculate probability
+        coexistence_probability = {}
+        # iterate over the 'predictor' species
+        for species_key, species_value_dict in species_co_existence.items():
+            species_probability_dict = {}
+            # iterate over target species
+            for other_species_key, other_species_value_dict in species_value_dict.items():
+                species_species_prob_dict = {}
+                # iterate over location types
+                for network_key, network_value in other_species_value_dict.items():
+                    # check if normalising over zero for predictor species
+                    if species_value_dict[species_key][network_key] == 0:
+                        temp_value = 0.0
+                    else:
+                        temp_value = network_value / species_value_dict[species_key][network_key]
+                    species_species_prob_dict[network_key] = temp_value
+                species_probability_dict[other_species_key] = species_species_prob_dict
+            # Now store the { species { species { all, habitat_0, ..., habitat_M }}} co-existence probabilities:
+            coexistence_probability[species_key] = species_probability_dict
+
+        # ----------------- 2. Population-population correlation coefficients in same patch (both Spearman and Pearson)
+        corr_coefficients_store = {}
+        for species_1_index, species_1_name in enumerate(species_list):
+            species_1_base_vector = population_array[:, species_1_index]
+
+            for species_2_index in range(species_1_index + 1, len(species_list)):
+                species_2_name = species_list[species_2_index]
+                species_2_base_vector = population_array[:, species_2_index]
+
+                # all
+                corr_coefficients = {
+                    'all': {
+                        'pearson': pearsonr(species_1_base_vector, species_2_base_vector),
+                        'spearman': spearmanr(species_1_base_vector, species_2_base_vector),
+                    }
+                }
+
+                # per habitat
+                for habitat_type_num in habitat_type_nums:
+
+                    correlation_pass = True
+                    if habitat_type_num in patch_habitat:
+                        indexing_vector = np.where(np.asarray(patch_habitat) == habitat_type_num)[0]
+                        if len(indexing_vector) > 1:
+                            # create new copy of everything
+                            species_1_new_vector = species_1_base_vector[indexing_vector]
+                            species_2_new_vector = species_2_base_vector[indexing_vector]
+
+                            corr_coefficients[habitat_type_num] = {
+                                'success': 1,
+                                'pearson': pearsonr(species_1_new_vector, species_2_new_vector),
+                                'spearman': spearmanr(species_1_new_vector, species_2_new_vector),
+                            }
+                        else:
+                            correlation_pass = False
+                    else:
+                        correlation_pass = False
+
+                    if not correlation_pass:
+                        corr_coefficients[habitat_type_num] = {
+                            'success': 0,
+                            'pearson': 0.0,
+                            'spearman': 0.0,
+                        }
+
+                corr_coefficients_store[(species_1_name, species_2_name)] = corr_coefficients
+
+        # ------------------------------------------------------------------------------------- 3. Expected populations
+        # determine maximum population
+        # normalise the local population array by the max realised local population IN THAT HABITAT SUBNETWORK
+        # (THIS WILL TELL US IF, RELATIVE TO THAT HABITAT, THE SPECIES ARE HAVING AN IMPACT ON EACH OTHER)
+
+        # Prepare the storage structure:
+        species_dict = {species_name: (0.0, 0.0, 0.0) for species_name in species_list}  # ball radius (0, 1, 2)
+        nested_species_dict = {species_name: deepcopy(species_dict) for species_name in species_list}
+        expectation_store = {'all': nested_species_dict}
+        for habitat_type_num in habitat_type_nums:
+            expectation_store[habitat_type_num] = deepcopy(nested_species_dict)
+
+        # produce habitat subnetworks first - including adjacency arrays (store them in dict with same network keys)
+        sub_networks = {'all': {
+            "num_patches": len(self.current_patch_list),
+            "population_array": population_array,
+            "adjacency_array": self.patch_adjacency_matrix}
+        }
+
+        for habitat_type_num in habitat_type_nums:
+            # need adjacency matrix and population array
+            temp_num_patches = len(self.current_patch_list)
+            temp_adjacency = deepcopy(self.patch_adjacency_matrix)
+            temp_population = deepcopy(population_array)
+            temp_patch_habitat = deepcopy(patch_habitat)
+            # iterate to eliminate unwanted rows and columns
+            is_pass = False
+            while temp_num_patches > 0 and not is_pass:
+                is_pass = True
+                for temp_patch_index in range(temp_num_patches):
+                    if temp_patch_habitat[temp_patch_index] != habitat_type_num:
+                        # remove
+                        temp_patch_habitat.pop(temp_patch_index)
+                        temp_population = np.delete(temp_population, temp_patch_index, axis=0)
+                        temp_adjacency = np.delete(temp_adjacency, temp_patch_index, axis=0)
+                        temp_adjacency = np.delete(temp_adjacency, temp_patch_index, axis=1)
+                        # failed to cycle uninterrupted
+                        is_pass = False
+                        temp_num_patches -= 1
+                        break
+            # now store the single-habitat subnetwork
+            sub_networks[habitat_type_num] = deepcopy({
+                "num_patches": temp_num_patches,
+                "population_array": temp_population,
+                "adjacency_array": temp_adjacency,
+            })
+
+        for network_key in expectation_store.keys():
+
+            # Then conduct this analysis in each case...
+            current_num_patches = sub_networks[network_key]["num_patches"]
+            if current_num_patches > 0:
+                current_population_array = sub_networks[network_key]["population_array"]
+                current_adjacency_array = sub_networks[network_key]["adjacency_array"]
+
+                # identify max local population for each species
+                normalised_pop_array = np.zeros(np.shape(current_population_array))
+                for species_index in range(np.shape(current_population_array)[1]):
+                    species_max_population = np.max(current_population_array[:, species_index])
+                    if species_max_population > 0.0:
+                        normalised_pop_array[:, species_index] = current_population_array[
+                                                                 :, species_index] / species_max_population
+                # iterate predictor species
+                for species_1_index, species_1_name in enumerate(species_list):
+                    # sum total normalised population for denominator
+                    species_1_total = np.sum(normalised_pop_array[:, species_1_index])
+                    # iterate response species (including self)
+                    for species_2_index, species_2_name in enumerate(species_list):
+                        if species_1_total > 0.0:
+                            patch_response_sum = [0.0, 0.0, 0.0]
+                            # iterate over TEMPORARY patch numbers
+                            for temp_patch_index in range(np.shape(normalised_pop_array)[0]):
+
+                                for ball_radius in range(3):
+                                    if ball_radius == 0:
+                                        # ball (radius 0)
+                                        ball_patch_indices = [
+                                            temp_patch_index]  # CAREFUL - REORGANISED ARRAYS - MATCH TO TEMP ONLY!!!
+                                        ball_size = 1
+                                    elif ball_radius == 1:
+                                        # ball (radius 1)
+                                        ball_patch_indices = list(np.where(
+                                            current_adjacency_array[temp_patch_index, :] != 0)[0])
+                                        ball_size = len(ball_patch_indices)
+                                    elif ball_radius == 2:
+                                        # ball (radius 2)
+                                        composite_adjacency = np.matmul(current_adjacency_array,
+                                                                        current_adjacency_array)
+                                        ball_patch_indices = list(np.where(
+                                            composite_adjacency[temp_patch_index, :] != 0)[0])
+                                        ball_size = len(ball_patch_indices)
+                                    else:
+                                        raise Exception("Invalid ball radius.")
+
+                                    response_population = 0.0  # specific to this ball radius
+                                    for target_patch_index in ball_patch_indices:
+                                        response_population += normalised_pop_array[target_patch_index, species_2_index]
+                                    # normalise response
+                                    response_population = response_population / float(ball_size)
+
+                                    # add the predictor-weighted response
+                                    patch_response_sum[ball_radius] += np.sqrt(
+                                        response_population * normalised_pop_array[temp_patch_index, species_1_index])
+                            expected_population = tuple(patch_response_sum) / species_1_total
+                        else:
+                            expected_population = (0.0, 0.0, 0.0)  # ball radius (0, 1, 2)
+                        # store the species-species expectation for this (sub)network
+                        expectation_store[network_key][species_1_name][species_2_name] = expected_population
+        return coexistence_probability, corr_coefficients_store, expectation_store
+
+    def network_analysis(self, patch_value_array, patch_habitat, patch_neighbours, is_binary, is_distribution):
         # need value, habitat type, and neighbours of each patch for presence, auto_correlation, clustering analysis
         num_patches = len(self.current_patch_list)
         if np.ndim(patch_value_array) == 1:
             max_difference = 1
         else:
             max_difference = np.shape(patch_value_array)[1]  # should be either 1 or num_species
-        patch_habitat = []
-        patch_neighbours = []
 
         if len(patch_value_array) != num_patches:
             # how many ROWS in the array? Should match length of current_patch_list
             raise Exception("Incorrect dimensions of value array.")
-
-        for patch_num in self.current_patch_list:
-            patch_habitat.append(self.patch_list[patch_num].habitat_type_num)
-            patch_neighbours.append(self.patch_list[patch_num].set_of_adjacent_patches)
 
         # set up the nested dictionary to hold results
         template_presence = {"all": (0.0, 0.0)}  # (mean, standard deviation)
@@ -610,22 +834,27 @@ class System_state:
         }
         return output_dict
 
-    def shannon_entropy(self, patch_state_array, patch_binary_vector):
+    def shannon_entropy(self, patch_state_array, patch_habitat, patch_binary_vector):
         # Shannon information of community probability distributions:
         #   1. Considering each separate species state as a distinct variable value
         #   2. Just of the plain diversity (amount of species)
         # both of these are calculated over the whole system, and over each single-habitat-type subnetwork
-        num_patches = len(self.current_patch_list)
-        max_difference = np.shape(patch_state_array)[1]  # should be num_species (binary states for each species)
 
-        if len(patch_state_array) != num_patches or len(patch_binary_vector) != num_patches:
+        num_patches = len(self.current_patch_list)
+        if len(patch_binary_vector) != num_patches:
             # how many ROWS in the array? Should match length of current_patch_list
             raise Exception("Incorrect dimensions of value array.")
 
-        patch_habitat = []
-        for patch_num in self.current_patch_list:
-            patch_habitat.append(self.patch_list[patch_num].habitat_type_num)  # note here that if patches are deleted
-            # from the current system state, then the position in this list MIGHT NOT MATCH the patch number.
+        # need to convert patch_binary_vector to just the simplest index of achieved states (up to num_patches)
+        found_states = set({})
+        for state in patch_binary_vector:
+            found_states.add(state)
+        found_state_list = list(found_states)
+        found_state_list.sort()
+        reduced_patch_binary_vector = np.zeros(num_patches)
+        for patch_index in range(num_patches):
+            reduced_patch_binary_vector[patch_index] = found_state_list.index(patch_binary_vector[patch_index])
+        max_difference = int(max(found_state_list))
 
         # add keys for each habitat
         habitat_type_nums = list(self.habitat_type_dictionary.keys())
@@ -633,11 +862,11 @@ class System_state:
 
         # this will hold the frequency distributions
         shannon_array = {'all': {
-            'total': 0, 'dist_state': np.zeros(max_difference + 1), 'dist_biodiversity': np.zeros(max_difference + 1)}}
+            'total': 0, 'dist_state': np.zeros(max_difference), 'dist_biodiversity': np.zeros(max_difference)}}
         for habitat_type_num in habitat_type_nums:
             shannon_array[habitat_type_num] = {'total': 0,
-                                               'dist_state': np.zeros(max_difference + 1),
-                                               'dist_biodiversity': np.zeros(max_difference + 1)}
+                                               'dist_state': np.zeros(max_difference),
+                                               'dist_biodiversity': np.zeros(max_difference)}
 
         # iterate only once over the patches
         for temp_patch_index, patch_row in enumerate(patch_state_array):
@@ -649,7 +878,7 @@ class System_state:
             # for bio_diversity
             biodiversity = int(np.sum(patch_row))
             # for full system state
-            state_value = int(patch_binary_vector[temp_patch_index])
+            state_value = int(reduced_patch_binary_vector[temp_patch_index])
             shannon_array['all']['dist_state'][state_value] += 1
             shannon_array['all']['dist_biodiversity'][biodiversity] += 1
             shannon_array[patch_habitat[temp_patch_index]]['dist_state'][state_value] += 1
