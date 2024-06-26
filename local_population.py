@@ -130,20 +130,24 @@ class Local_population:
     def set_initial_population(self, patch, current_patch_list):
         # how to specify (or reset) the initial population in the patch based on species-specific scheme
         if self.species.initial_population_mechanism == "constant":
-            self.population = self.species.initial_population_para["VALUE"]
+            self.population = self.species.initial_population_para["CONSTANT_VALUE"]
+        elif self.species.initial_population_mechanism == "gaussian":
+            self.population = np.random.normal(
+                loc=self.species.initial_population_para["GAUSSIAN_MEAN"],
+                scale=self.species.initial_population_para["GAUSSIAN_ST_DEV"])
         elif self.species.initial_population_mechanism == "random_binomial":
             probability = self.species.initial_population_para["BINOMIAL_PROBABILITY"]
-            self.population = self.species.initial_population_para[
-                                  "MAXIMUM_MULTIPLIER"] * np.random.rand() * np.random.binomial(n=1, p=probability)
+            self.population = self.species.initial_population_para["BINOMIAL_MAXIMUM_MULTIPLIER"] * \
+                              np.random.rand() * np.random.binomial(n=1, p=probability)
         elif self.species.initial_population_mechanism == "constant_binomial":
             probability = self.species.initial_population_para["BINOMIAL_PROBABILITY"]
             self.population = self.species.initial_population_para[
-                                  "MAXIMUM_MULTIPLIER"] * np.random.binomial(n=1, p=probability)
+                                  "BINOMIAL_MAXIMUM_MULTIPLIER"] * np.random.binomial(n=1, p=probability)
         elif self.species.initial_population_mechanism == "habitat_binomial":
             # A habitat-specific probability of spawning (with fixed size)
             probability = self.species.initial_population_para["HABITAT_TYPE_NUM_BINOMIAL_DICT"][patch.habitat_type_num]
             self.population = self.species.initial_population_para[
-                                  "MAXIMUM_MULTIPLIER"] * np.random.binomial(n=1, p=probability)
+                                  "BINOMIAL_MAXIMUM_MULTIPLIER"] * np.random.binomial(n=1, p=probability)
         elif self.species.initial_population_mechanism == "patch_vector":
             patch_vector = self.species.initial_population_para["PATCH_VECTOR"]
             # check for errors
@@ -155,6 +159,9 @@ class Local_population:
         else:
             raise Exception(f'Unrecognised (or not given) mechanism for initial population '
                             f'of species {self.species} in patch {patch.number}.')
+        # check not below minimum!
+        if self.population < self.species.minimum_population_size:
+            self.population = 0.0
 
     def rebuild_patch_dependent_properties(self, patch):
         # necessary as the patch properties may be changed, and this would not change the attributes of a patch object

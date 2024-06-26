@@ -9,8 +9,10 @@ default_species = {
     "PREDATOR_LIST": [],  # What species are predators of this species?
     "INITIAL_POPULATION_PARA": {
         "INITIAL_POPULATION_MECHANISM": "random_binomial",
-        "VALUE": None,
-        "MAXIMUM_MULTIPLIER": 1.5,
+        "CONSTANT_VALUE": None,
+        "GAUSSIAN_MEAN": None,
+        "GAUSSIAN_ST_DEV": None,
+        "BINOMIAL_MAXIMUM_MULTIPLIER": 1.5,
         "BINOMIAL_PROBABILITY": 1.0,  # probability of occurrence in a given patch under any '_binomial' scheme
         "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},  # probability of occurrence in patch of given habitat_type_num
         "PATCH_VECTOR": [],
@@ -283,9 +285,11 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "constant",
-            "VALUE": 0.1,
-            "MAXIMUM_MULTIPLIER": 1.0,
+            "INITIAL_POPULATION_MECHANISM": "gaussian",
+            "CONSTANT_VALUE": None,
+            "GAUSSIAN_MEAN": 0.5,
+            "GAUSSIAN_ST_DEV": 0.1,
+            "BINOMIAL_MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
@@ -512,9 +516,11 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "constant",
-            "VALUE": 0.01,
-            "MAXIMUM_MULTIPLIER": 1.0,
+            "INITIAL_POPULATION_MECHANISM": "gaussian",
+            "CONSTANT_VALUE": None,
+            "GAUSSIAN_MEAN": 0.01,
+            "GAUSSIAN_ST_DEV": 0.1,
+            "BINOMIAL_MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
@@ -747,8 +753,10 @@ WATER_VOLE_MINK_MASTER = {
             "PREDATOR_LIST": ['mink'],
             "INITIAL_POPULATION_PARA": {
                 "INITIAL_POPULATION_MECHANISM": "constant_binomial",
-                "VALUE": None,
-                "MAXIMUM_MULTIPLIER": 5.0,
+                "CONSTANT_VALUE": None,
+                "GAUSSIAN_MEAN": None,
+                "GAUSSIAN_ST_DEV": None,
+                "BINOMIAL_MAXIMUM_MULTIPLIER": 5.0,
                 "BINOMIAL_PROBABILITY": 0.3,
                 "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
                 "PATCH_VECTOR": [],
@@ -979,8 +987,10 @@ WATER_VOLE_MINK_MASTER = {
             "PREDATOR_LIST": [],
             "INITIAL_POPULATION_PARA": {
                 "INITIAL_POPULATION_MECHANISM": "constant_binomial",
-                "VALUE": None,
-                "MAXIMUM_MULTIPLIER": 1.1,
+                "CONSTANT_VALUE": None,
+                "GAUSSIAN_MEAN": None,
+                "GAUSSIAN_ST_DEV": None,
+                "BINOMIAL_MAXIMUM_MULTIPLIER": 1.1,
                 "BINOMIAL_PROBABILITY": 0.05,
                 "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
                 "PATCH_VECTOR": [],

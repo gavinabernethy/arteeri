@@ -792,13 +792,19 @@ class System_state:
                                         species_1_ball_radius][species_2_name][species_2_ball_radius] = prediction
 
                                     # D. (Two) correlation coefficients
+                                    # must first test for 'nearly constant' vectors to avoid warnings
+                                    species_1_near_constant = np.var(species_1_pop_vector
+                                                                     ) < 1e-13 * abs(np.mean(species_1_pop_vector))
+                                    species_2_near_constant = np.var(species_2_pop_vector
+                                                                     ) < 1e-13 * abs(np.mean(species_2_pop_vector))
+                                    is_cc_auto_fail = (species_1_near_constant or species_2_near_constant or np.var(
+                                        species_1_pop_vector) <= 0.0 or np.var(species_2_pop_vector) <= 0.0 or
+                                                       len(species_1_pop_vector) < 2 or len(species_2_pop_vector) < 2)
                                     is_cc_success = 0
                                     pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
                                     # for correlation coefficients to work, we need two vectors of at least two pairs
                                     # and at least some variance
-                                    if len(species_1_pop_vector) and len(species_2_pop_vector) > 1 and np.var(
-                                            species_1_pop_vector) > 0.0 and np.var(species_2_pop_vector) > 0.0 and len(
-                                        species_1_pop_vector) == len(species_2_pop_vector):
+                                    if not is_cc_auto_fail:
                                         try:
                                             pearson_cc, pearson_p = pearsonr(species_1_pop_vector, species_2_pop_vector)
                                             spearman_rho, spearman_p = spearmanr(
