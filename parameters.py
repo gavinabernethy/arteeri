@@ -136,6 +136,7 @@ master_para = {
         {
             "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
+            "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
@@ -151,6 +152,7 @@ master_para = {
             "IS_ODE_RECORDINGS": False,  # do we save the history of each iteration of the ODE details as an attribute
             # of each local population object (it would then be printed as part of IS_SAVE_PATCH_LOCAL_POP_DATA)?
             # This is memory-intensive and mainly intended for debugging.
+            "IS_SAVE_DISTANCE_METRICS": True,  # produce JSON of species and community distribution analysis.
             "IS_PICKLE_SAVE": False,  # save the Python objects.
             "IS_SAVE_CURRENT_MOVE_SCORES": False,  # writes the final movement scores to the simulation-specific folder.
             #

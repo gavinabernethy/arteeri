@@ -523,7 +523,6 @@ class System_state:
 
             max_population = max(community_state_population_array[:, species_index])
             if max_population > 0.0:
-
                 norm_species_pop_vector = community_state_population_array[:, species_index] / max_population
 
                 network_analysis_species[species_name] = {
@@ -540,9 +539,9 @@ class System_state:
 
         # community distance metrics
         network_analysis_community_distance = self.network_analysis(
-                patch_value_array=community_state_presence_array,
-                patch_habitat=patch_habitat, patch_neighbours=patch_neighbours,
-                is_presence=False, is_distribution=True)
+            patch_value_array=community_state_presence_array,
+            patch_habitat=patch_habitat, patch_neighbours=patch_neighbours,
+            is_presence=False, is_distribution=True)
 
         # each community state probabilities (overall and per habitat type)
         #
@@ -780,8 +779,8 @@ class System_state:
                                     else:
                                         similarity = np.sum(np.sqrt(np.multiply(
                                             species_1_pop_vector, species_2_pop_vector))) / (np.sqrt(
-                                                             np.sum(species_1_pop_vector) * np.sum(
-                                                         species_2_pop_vector)))
+                                            np.sum(species_1_pop_vector) * np.sum(
+                                                species_2_pop_vector)))
                                     similarity_store[network_key][species_1_name][
                                         species_1_ball_radius][species_2_name][species_2_ball_radius] = similarity
 

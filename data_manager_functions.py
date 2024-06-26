@@ -153,6 +153,12 @@ def write_patch_list_local_populations(patch_list, sim, step, is_save_local_popu
                 dump_json(data=local_pop.__dict__, filename=json_local_file_name)
 
 
+def distance_metrics_save(simulation_obj, sim, step):
+    print("Saving distance metrics in JSON file.")
+    json__file_name = f"results/{sim}/{step}/data/distance_metrics.json"
+    dump_json(data=simulation_obj.system_state.distance_metrics_store, filename=json__file_name)
+
+
 def pickle_save(simulation_obj, sim, step):
     pickle_file_name = f"results/{sim}/{step}/data/simulation_obj.pkl"
     save_object(simulation_obj, pickle_file_name)

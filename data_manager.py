@@ -108,6 +108,12 @@ def print_key_outputs_to_console(simulation_obj):
                          f"{local_population.population_period_strong}, " \
                          f"{local_population.recent_occupancy_change_frequency};"
             print(output_str)
+    if simulation_obj.parameters["plot_save_para"]["IS_PRINT_DISTANCE_METRICS_TO_CONSOLE"]:
+        print("\n********** SPECIES AND DISTANCE METRIC OUTPUTS **********\n")
+        for key, value in simulation_obj.system_state.distance_metrics_store.items():
+            output_str = f"METRIC_KEY_{key}: " \
+                         f"{json.dumps(value, ensure_ascii=True, default=set_default, skipkeys=True)}\n"
+            print(output_str)
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
     # Restore default configuration.
     np.set_printoptions(threshold=1000)
@@ -149,6 +155,9 @@ def save_all_data(simulation_obj):
     if simulation_obj.parameters["plot_save_para"]["IS_PICKLE_SAVE"]:
         # Pickle save of the Python objects
         pickle_save(simulation_obj=simulation_obj, sim=sim, step=step)
+    if simulation_obj.parameters["plot_save_para"]["IS_SAVE_DISTANCE_METRICS"]:
+        # produce JSON of species and community distribution analysis
+        distance_metrics_save(simulation_obj=simulation_obj, sim=sim, step=step)
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_CURRENT_MOVE_SCORES"]:
         # save a JSON file per patch containing the SMS of each species to each other patch
         write_current_species_movement_scores(patch_list=patch_list, sim=sim, step=step)
