@@ -9,6 +9,7 @@ default_species = {
     "PREDATOR_LIST": [],  # What species are predators of this species?
     "INITIAL_POPULATION_PARA": {
         "INITIAL_POPULATION_MECHANISM": "random_binomial",
+        "IS_ENSURE_MINIMUM_POPULATION": False,
         "CONSTANT_VALUE": None,
         "GAUSSIAN_MEAN": None,
         "GAUSSIAN_ST_DEV": None,
@@ -286,6 +287,7 @@ ARTEMIS_01_MASTER = {
         "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "gaussian",
+            "IS_ENSURE_MINIMUM_POPULATION": False,
             "CONSTANT_VALUE": None,
             "GAUSSIAN_MEAN": 0.5,
             "GAUSSIAN_ST_DEV": 0.1,
@@ -517,6 +519,7 @@ ARTEMIS_01_MASTER = {
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "gaussian",
+            "IS_ENSURE_MINIMUM_POPULATION": False,
             "CONSTANT_VALUE": None,
             "GAUSSIAN_MEAN": 0.01,
             "GAUSSIAN_ST_DEV": 0.1,
@@ -753,6 +756,7 @@ WATER_VOLE_MINK_MASTER = {
             "PREDATOR_LIST": ['mink'],
             "INITIAL_POPULATION_PARA": {
                 "INITIAL_POPULATION_MECHANISM": "constant_binomial",
+                "IS_ENSURE_MINIMUM_POPULATION": False,
                 "CONSTANT_VALUE": None,
                 "GAUSSIAN_MEAN": None,
                 "GAUSSIAN_ST_DEV": None,
@@ -987,6 +991,7 @@ WATER_VOLE_MINK_MASTER = {
             "PREDATOR_LIST": [],
             "INITIAL_POPULATION_PARA": {
                 "INITIAL_POPULATION_MECHANISM": "constant_binomial",
+                "IS_ENSURE_MINIMUM_POPULATION": False,
                 "CONSTANT_VALUE": None,
                 "GAUSSIAN_MEAN": None,
                 "GAUSSIAN_ST_DEV": None,

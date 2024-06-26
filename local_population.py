@@ -159,9 +159,13 @@ class Local_population:
         else:
             raise Exception(f'Unrecognised (or not given) mechanism for initial population '
                             f'of species {self.species} in patch {patch.number}.')
-        # check not below minimum!
+        # check if the population has been drawn below the minimum:
         if self.population < self.species.minimum_population_size:
-            self.population = 0.0
+            # if so, then top-up or eliminate according to species-specific generation option:
+            if self.species.initial_population_para["IS_ENSURE_MINIMUM_POPULATION"]:
+                self.population = self.species.minimum_population_size
+            else:
+                self.population = 0.0
 
     def rebuild_patch_dependent_properties(self, patch):
         # necessary as the patch properties may be changed, and this would not change the attributes of a patch object
