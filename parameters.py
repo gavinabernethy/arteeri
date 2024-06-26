@@ -19,15 +19,8 @@ master_para = {
             "SPATIAL_TEST_SET": 1,
             "SPATIAL_DESCRIPTION": "artemis_01",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
-            "GRAPH_TYPE": "manual",
-            "ADJACENCY_MANUAL_SPEC": [[1,0,0,0,0,0,0,0],
-                                      [0,1,1,1,0,0,0,1],
-                                      [0,1,1,1,0,0,0,1],
-                                      [0,1,1,1,1,1,1,1],
-                                      [0,0,0,1,1,1,1,0],
-                                      [0,0,0,1,1,1,1,0],
-                                      [0,0,0,1,1,1,1,0],
-                                      [0,1,1,1,0,0,0,1]],  # should be None if we want to generate the patch adjacency matrix by
+            "GRAPH_TYPE": "lattice",
+            "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
@@ -94,7 +87,7 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 8,
+            "NUM_PATCHES": 4,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',

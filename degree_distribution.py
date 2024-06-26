@@ -40,8 +40,8 @@ def power_law_curve_fit(degree_distribution_list):
             optimal_parameters, opt_para_covariance = curve_fit(linear_func_to_fit, x2, y2, p0=[5, -2.5])
             a, b = [np.exp(optimal_parameters[0]), optimal_parameters[1]]
             fit_success = 1
-        except RuntimeError:
-            # optimal parameters are not found
+        except (Warning, RuntimeError, TypeError):
+            # optimal parameters or co-variance are not found
             pass
 
     return [fit_success, a, b, start_x, opt_para_covariance]
