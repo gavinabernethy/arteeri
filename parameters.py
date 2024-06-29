@@ -32,7 +32,7 @@ master_para = {
             "CLUSTER_PROBABILITY": 0.9,
             # Habitat type:
             "HABITAT_TYPE_MANUAL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.5,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.7,  # in range [-1, 1]
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,
@@ -134,11 +134,11 @@ master_para = {
         },
     "plot_save_para":
         {
-            "IS_ALLOW_FILE_CREATION": False,  # prevents creation of any files for running on remote clusters
+            "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": False,  # do you save ANY data files?
-            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.

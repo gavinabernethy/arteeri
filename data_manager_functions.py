@@ -261,7 +261,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     max_color_value = np.max(color_property)
 
     # space them out slightly so that size=1 patches can still be distinguished
-    patch_scaling_factor = 1.1
+    patch_scaling_factor = 1.2
 
     # Some set up for the colorings
     color_offset = 0.0
