@@ -112,16 +112,28 @@ class Simulation_obj:
         # Record the maximum x and y values in the spatial network:
         dimensions = np.max(patch_position_array, axis=0)
 
-        # check the species inputs
-        for spec_num in self.parameters["main_para"]["INITIAL_SPECIES_SET"]:
-            if spec_num not in self.parameters["main_para"]["SPECIES_TYPES"]:
+        # Check the species inputs.
+        initial_species_set = self.parameters["main_para"]["INITIAL_SPECIES_SET"]
+        species_types = self.parameters["main_para"]["SPECIES_TYPES"]
+        # Confirm keys in initialisation declaration are all found as species keys:
+        for spec_num in initial_species_set:
+            if spec_num not in species_types:
                 raise Exception(f'Species type {spec_num} to be used in sim initiation but not part of the global set.')
-        for spec_num in self.parameters["main_para"]["SPECIES_TYPES"]:
-            if spec_num > len(self.parameters["main_para"]["SPECIES_TYPES"]) or type(spec_num) is not int:
+        # Confirm that species keys are suitable integers in [0, num_spec - 1]:
+        for spec_num in species_types:
+            if spec_num > len(species_types) or type(spec_num) is not int:
                 raise Exception(f'Species type {spec_num} is not a suitable number.')
-        for check_num in range(len(self.parameters["main_para"]["SPECIES_TYPES"])):
-            if check_num not in self.parameters["main_para"]["SPECIES_TYPES"]:
-                raise Exception(f'{check_num} is missing from the global set of species types.')
+            # Confirm that species names are unique:
+            for spec_num_2 in species_types:
+                if spec_num_2 != spec_num and species_types[spec_num_2] == species_types[spec_num]:
+                    raise Exception(f"Species {species_types[spec_num_2]} assigned keys {spec_num} and {spec_num_2}.")
+        # Ensure all integers in [0, num_spec - 1] are used as species keys:
+        for check_num in range(len(species_types)):
+            if check_num not in species_types:
+                raise Exception(f'{check_num} is missing from the global set of species type keys.')
+        # Confirm that the number of unique assigned keys matches the final size of the species repository:
+        if len(species_types) != len(self.parameters["species_para"]):
+            raise Exception("Number of expected species types does not match the parsed species parameter dictionary.")
 
         # generate ordered list of the species from names list in the parameters
         species_list = []
