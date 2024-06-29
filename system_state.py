@@ -560,7 +560,7 @@ class System_state:
         ordered_state_list = list(extant_state_set)
         ordered_state_list.sort()
         network_analysis_state_probability = {}
-        for state in ordered_state_list:
+        for state in [0,1,2,3]:  # ordered_state_list
             state_array = np.zeros(num_patches)
             for patch_index, patch_state in enumerate(community_state_binary):
                 if patch_state == state:
@@ -568,6 +568,11 @@ class System_state:
             network_analysis_state_probability[state] = self.network_analysis(
                 patch_value_array=state_array, patch_habitat=patch_habitat,
                 patch_neighbours=patch_neighbours, is_presence=True, is_distribution=False)
+            state_species_list = []
+            for species_index in range(len(species_list)):
+                if np.mod(state, int(2.0**(species_index+1))) >= int(2.0 ** species_index):
+                    state_species_list.append(species_list[species_index])
+            network_analysis_state_probability[state]["state_species_list"] = state_species_list
 
         # Shannon entropy
         shannon_entropy = self.shannon_entropy(patch_state_array=community_state_presence_array,
