@@ -146,7 +146,8 @@ master_para = {
             # Data control options (requires IS_SAVE to be true):
             "IS_SAVE_LOCAL_POP_HISTORY_CSV": True,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
-            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object.
+            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
+            # the full history per-patch of different local clustering values).
             "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
             # note that this requires IS_SAVE_PATCH_DATA to be true first.
             "IS_ODE_RECORDINGS": False,  # do we save the history of each iteration of the ODE details as an attribute

@@ -64,8 +64,8 @@ def temporal_function(parameter, time):
 
 def dispersal_scheme_step_polynomial(species_from, movement_score, parameters):
     # Potentially two separate polynomials, whose order and coefficients are contained in lists in the species
-    # parameters. These apply separately depending on whether the local population is above or below its patch-specific
-    # carrying capacity.
+    # parameters. These apply separately depending on whether the local population is above or below its
+    # species-specific threshold fraction of its patch-specific carrying capacity.
     #
     # e.g. For simple diffusion that scales with local population density, could do: [0, M] [0, M] for some M.
     #
@@ -74,7 +74,7 @@ def dispersal_scheme_step_polynomial(species_from, movement_score, parameters):
     # increasing) when this IS exceeded.
     poly_para = species_from.species.current_coefficients_lists
     density = species_from.holding_population / species_from.carrying_capacity  # note that this depends on patch size
-    if density <= 1.0:
+    if density <= poly_para["DENSITY_THRESHOLD"]:
         coefficients = poly_para["UNDER"]
     else:
         coefficients = poly_para["OVER"]

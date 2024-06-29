@@ -215,6 +215,7 @@ default_species = {
             "COEFFICIENTS_LISTS": {
                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                 "constant_value": {
+                    "DENSITY_THRESHOLD": 1.0,  # uses UNDER if x/K <= this value, OVER otherwise
                     "UNDER": [0],
                     "OVER": [0, 1.0],
                 },
@@ -466,6 +467,7 @@ ARTEMIS_01_MASTER = {
                 "COEFFICIENTS_LISTS": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": {
+                        "DENSITY_THRESHOLD": 1.0,  # uses UNDER if x/K <= this value, OVER otherwise
                         "UNDER": [0.0, 0.1],
                         "OVER": [-0.9, 1.0],
                     },
@@ -937,6 +939,7 @@ WATER_VOLE_MINK_MASTER = {
                     "COEFFICIENTS_LISTS": {
                         "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                         "constant_value": {
+                            "DENSITY_THRESHOLD": 1.0,  # uses UNDER if x/K <= this value, OVER otherwise
                             "UNDER": [0],
                             "OVER": [0, 1.0],
                         },
@@ -1171,6 +1174,7 @@ WATER_VOLE_MINK_MASTER = {
                     "COEFFICIENTS_LISTS": {
                         "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                         "constant_value": {
+                            "DENSITY_THRESHOLD": 1.0,  # uses UNDER if x/K <= this value, OVER otherwise
                             "UNDER": [0],
                             "OVER": [1.0, 10.0],
                         },
