@@ -84,6 +84,10 @@ def print_key_outputs_to_console(simulation_obj):
     np.set_printoptions(threshold=sys.maxsize)
 
     print("\n******************** SIMULATION OUTPUTS: BEGIN ********************\n")
+    print("Numpy seed:")
+    print(f"{simulation_obj.metadata['numpy_seed']}")
+    print("Random seed:")
+    print(f"{simulation_obj.metadata['random_seed']}")
     print("\n********** SPATIAL NETWORK DESCRIPTION **********\n")
     print(f"{len(simulation_obj.system_state.patch_list)}, "
           f"{len(simulation_obj.system_state.habitat_type_dictionary)}")
