@@ -176,6 +176,7 @@ class System_state:
                     spatial_auto_correlation = 1.0
                 else:
                     spatial_auto_correlation = (auto_cor_sum / norm_sum - expectation) / st_dev
+        # Record:
         self.habitat_auto_correlation_history[self.step] = spatial_auto_correlation
         for habitat_type_num in self.habitat_type_dictionary:
             self.habitat_amounts_history[habitat_type_num][self.step] = temp_habitat_counts[habitat_type_num]

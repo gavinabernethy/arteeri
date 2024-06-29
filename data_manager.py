@@ -95,6 +95,12 @@ def print_key_outputs_to_console(simulation_obj):
     print(simulation_obj.system_state.habitat_species_traversal)
     print("Habitat species feeding:")
     print(simulation_obj.system_state.habitat_species_feeding)
+    print("Habitat amounts (final):")
+    print(simulation_obj.system_state.habitat_amounts_history[
+              max(x for x in simulation_obj.system_state.habitat_amounts_history)])
+    print("Posterior habitat spatial auto-correlation (final):")
+    print(simulation_obj.system_state.habitat_auto_correlation_history[
+              max(x for x in simulation_obj.system_state.habitat_auto_correlation_history)])
     print("Patch adjacency matrix (final):")
     print(simulation_obj.system_state.patch_adjacency_matrix)
     print("\n********** LOCAL POPULATION OUTPUTS **********\n")
