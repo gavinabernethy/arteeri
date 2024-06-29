@@ -344,7 +344,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
 
             # check for wrap
             is_wrap = False
-            if min_x != max_x and min_y != max_y:
+            if min_x+1 < max_x and min_y+1 < max_y:
                 if patch_list[path_tuple[0]].position[0] == patch_list[path_tuple[1]].position[0]:
                     if {min_y, max_y} <= {patch_list[path_tuple[0]].position[1], patch_list[path_tuple[1]].position[1]}:
                         is_wrap = True

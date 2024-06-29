@@ -101,6 +101,13 @@ def print_key_outputs_to_console(simulation_obj):
     print("Posterior habitat spatial auto-correlation (final):")
     print(simulation_obj.system_state.habitat_auto_correlation_history[
               max(x for x in simulation_obj.system_state.habitat_auto_correlation_history)])
+    print("LCCs (final):")
+    print("All:", simulation_obj.system_state.patch_lcc_history['all'][
+        max(x for x in simulation_obj.system_state.patch_lcc_history['all'])])
+    print("Same:", simulation_obj.system_state.patch_lcc_history['same'][
+        max(x for x in simulation_obj.system_state.patch_lcc_history['same'])])
+    print("Different:", simulation_obj.system_state.patch_lcc_history['different'][
+        max(x for x in simulation_obj.system_state.patch_lcc_history['different'])])
     print("Patch adjacency matrix (final):")
     print(simulation_obj.system_state.patch_adjacency_matrix)
     print("\n********** LOCAL POPULATION OUTPUTS **********\n")
