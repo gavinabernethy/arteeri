@@ -32,7 +32,7 @@ master_para = {
             "CLUSTER_PROBABILITY": 0.9,
             # Habitat type:
             "HABITAT_TYPE_MANUAL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.5,  # in range [-1, 1]
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,
@@ -58,8 +58,8 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 100,
-            "NUM_RECORD_STEPS": 100,
+            "NUM_TRANSIENT_STEPS": 10000,
+            "NUM_RECORD_STEPS": 1000,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
@@ -87,7 +87,7 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 4,
+            "NUM_PATCHES": 400,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
@@ -105,8 +105,8 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [1.0, 1.0],
-                                       1: [1.0, 1.0]},
+                    "HABITAT_SCORES": {0: [1.0, 0.0],
+                                       1: [0.0, 1.0]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
@@ -134,17 +134,17 @@ master_para = {
         },
     "plot_save_para":
         {
-            "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
+            "IS_ALLOW_FILE_CREATION": False,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
-            "IS_SAVE": True,  # do you save ANY data files?
-            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_SAVE": False,  # do you save ANY data files?
+            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.
             #
             # Data control options (requires IS_SAVE to be true):
-            "IS_SAVE_LOCAL_POP_HISTORY_CSV": True,  # produce individual .csv file with only the core time series
+            "IS_SAVE_LOCAL_POP_HISTORY_CSV": False,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
             "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
             # the full history per-patch of different local clustering values).
@@ -153,7 +153,7 @@ master_para = {
             "IS_ODE_RECORDINGS": False,  # do we save the history of each iteration of the ODE details as an attribute
             # of each local population object (it would then be printed as part of IS_SAVE_PATCH_LOCAL_POP_DATA)?
             # This is memory-intensive and mainly intended for debugging.
-            "IS_SAVE_DISTANCE_METRICS": True,  # produce JSON of species and community distribution analysis.
+            "IS_SAVE_DISTANCE_METRICS": False,  # produce JSON of species and community distribution analysis.
             "IS_PICKLE_SAVE": False,  # save the Python objects.
             "IS_SAVE_CURRENT_MOVE_SCORES": False,  # writes the final movement scores to the simulation-specific folder.
             #
@@ -166,7 +166,7 @@ master_para = {
             "IS_PLOT_ADJACENCY_SUB_GRAPHS": False,  # plots the undirected adjacency-based sub-graphs, regardless of any
             # species actual ability to traverse them.
             "IS_PLOT_INTERACTIONS": False,  # this draws at least num_species * num_patches plots
-            "IS_PLOT_DEGREE_DISTRIBUTION": True,
+            "IS_PLOT_DEGREE_DISTRIBUTION": False,
             "IS_PLOT_UNRESTRICTED_PATHS": False,  # # plots all reachable foraging/direct dispersal paths per species
             # WITHOUT threshold and path-length restriction (crowded plot if species able to traverse most habitats).
             "IS_BIODIVERSITY_ANALYSIS": False,  # produce a species-area curve

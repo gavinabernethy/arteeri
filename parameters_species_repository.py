@@ -288,10 +288,10 @@ ARTEMIS_01_MASTER = {
         "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "gaussian",
-            "IS_ENSURE_MINIMUM_POPULATION": False,
+            "IS_ENSURE_MINIMUM_POPULATION": True,
             "CONSTANT_VALUE": None,
-            "GAUSSIAN_MEAN": 0.5,
-            "GAUSSIAN_ST_DEV": 0.1,
+            "GAUSSIAN_MEAN": 0.1,
+            "GAUSSIAN_ST_DEV": 0.01,
             "BINOMIAL_MAXIMUM_MULTIPLIER": 1.0,
             "BINOMIAL_PROBABILITY": 0.1,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
@@ -303,7 +303,7 @@ ARTEMIS_01_MASTER = {
                 "GROWTH_FUNCTION": "logistic",
                 "R": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 3.8,
+                    "constant_value": 4.0,
                     "period": 0.0,
                     "amplitude": 0.0,
                     "phase_shift": 0.0,
@@ -311,7 +311,7 @@ ARTEMIS_01_MASTER = {
                     "vector_exp": None,
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
-                "RESOURCE_USAGE_CONVERSION": 1.0,  # in [0, 1] - how much resource do you use relative to other species?
+                "RESOURCE_USAGE_CONVERSION": 0.5,  # in [0, 1] - how much resource do you use relative to other species?
                 # Essentially this allows a conversion scale for different carrying capacities of species.
                 "CARRYING_CAPACITY": 1.0,
                 "ANNUAL_OFFSET": {
@@ -412,7 +412,7 @@ ARTEMIS_01_MASTER = {
                 "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-                    "constant_value": "step_poly",
+                    "constant_value": "diffusion",
                     "period": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -433,7 +433,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.5,
+                    "constant_value": 0.05,
                     "period": 300,
                     "amplitude": 0.1,
                     "phase_shift": 0.0,
@@ -467,7 +467,7 @@ ARTEMIS_01_MASTER = {
                 "COEFFICIENTS_LISTS": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": {
-                        "DENSITY_THRESHOLD": 1.0,  # uses UNDER if x/K <= this value, OVER otherwise
+                        "DENSITY_THRESHOLD": 0.5,  # uses UNDER if x/K <= this value, OVER otherwise
                         "UNDER": [0.0, 0.1],
                         "OVER": [-0.9, 1.0],
                     },
@@ -580,7 +580,7 @@ ARTEMIS_01_MASTER = {
                 "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": True,
                 "MAX_FORAGING_PATH_LENGTH": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 1,
+                    "constant_value": 2,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -631,7 +631,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "PREDATION_FOCUS": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 2.7,  # should be non-negative
+                    "constant_value": 2.5,  # should be non-negative
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
