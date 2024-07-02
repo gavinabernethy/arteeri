@@ -317,11 +317,12 @@ def all_plots(simulation_obj):
     # ---- Type III: Patch plots (heat maps) of different species-specific properties ---- #
     for species in species_set["list"]:
         # can iterate through list of any local_population attributes that you wish to create patch plots of:
-        attribute_to_plot = ["occupancy", "internal_change", "net_internal", "population_enter", "population_leave",
-                             "net_enter", "source", "sink", "average_population", "average_internal_change",
-                             "average_net_internal", "average_population_enter", "average_population_leave",
-                             "average_net_enter", "average_source", "average_sink", "population_period_weak",
-                             "population_period_med", "population_period_strong", "recent_occupancy_change_frequency"]
+        attribute_to_plot = ["occupancy", "population", "internal_change", "net_internal",
+                             "population_enter", "population_leave", "net_enter", "source", "sink",
+                             "average_population", "average_internal_change", "average_net_internal",
+                             "average_population_enter", "average_population_leave", "average_net_enter",
+                             "average_source", "average_sink", "population_period_weak", "population_period_med",
+                             "population_period_strong", "recent_occupancy_change_frequency"]
         for attr in attribute_to_plot:
             plot_current_local_population_attribute(species=species, patch_list=patch_list, sim=sim,
                                                     attribute_name=attr, step=step)

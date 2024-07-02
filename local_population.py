@@ -83,6 +83,10 @@ class Local_population:
         self.internal_change_history = []
         self.population_enter_history = []
         self.population_leave_history = []
+        self.carrying_capacity_history = {}  # used for sink/source - save only when the network is changed as
+        #  we assume species-level global carrying capacity does NOT change, so only patch-size dependent within sim.
+        self.potential_dispersal = 0.0  # record temporarily during the dispersal() sub-step
+        self.potential_dispersal_history = []  # then update this list at the same time as the other histories
         self.record_population_history()  # need this so that the initial population is recorded
         self.population_history_hurst_exponent = 0.0
         self.average_population = 0.0
@@ -126,6 +130,10 @@ class Local_population:
         self.survivors = 0.0
         self.prey_shortfall = 0.0
         self.predator_shortfall = 0.0
+        self.record_carrying_capacity_history(step=0)  # record initial value of Carrying Capacity at instantiation
+
+    def record_carrying_capacity_history(self, step):
+        self.carrying_capacity_history[step] = self.carrying_capacity
 
     def set_initial_population(self, patch, current_patch_list):
         # how to specify (or reset) the initial population in the patch based on species-specific scheme
@@ -180,11 +188,12 @@ class Local_population:
         self.internal_change_history.append(self.internal_change)
         self.population_leave_history.append(self.population_leave)
         self.population_enter_history.append(self.population_enter)
+        self.potential_dispersal_history.append(self.potential_dispersal)
 
     def growth_malthusian(self, r_value, patch_competitors, alpha):
         r_ = r_value * self.r_mod
         l_ = self.species.lifespan
-        k_ = k_ = self.carrying_capacity
+        k_ = k_ = self.carrying_capacity  # not used in Malthusian growth
         competitors = 0.0
         gain = r_ * self.holding_population
         mortality = (1 / l_) * self.holding_population
@@ -591,19 +600,29 @@ class Local_population:
         else:
             self.average_net_internal = np.sum(np.abs(self.internal_change_history[
                                                       current_step - back_steps: current_step])) / total_change
-        # Average sink detection (i.e. fraction of current population that entered by immigration last step)
+        # Average sink detection and source detection:
+        # Sink = proportion of of net positive population growth from migration vs. other net processes
+        # Source = proportion of population that dispersed when actually given the chance
         sum_sink_change = 0.0
-        for n in range(back_steps):
-            if self.population_history[current_step - n] != 0.0:
-                sum_sink_change += self.population_enter_history[current_step - n] / \
-                                   self.population_history[current_step - n]
-        self.average_sink = (1.0 / back_steps) * sum_sink_change
-        # Average source detection (i.e. fraction of previous population that left by emigration)
         sum_source_change = 0.0
+
         for n in range(back_steps):
-            if self.population_history[current_step - n - 1] != 0.0:
-                sum_source_change += self.population_leave_history[current_step - n] / \
-                                     self.population_history[current_step - n - 1]
+            this_step = current_step - n
+
+            positive_change = max(0.0, self.population_enter_history[this_step] - self.population_leave_history[
+                this_step]) + max(0.0, self.internal_change_history[this_step])
+
+            if positive_change > 0.0:
+                sum_sink_change += max(0.0, self.population_enter_history[this_step] - self.population_leave_history[
+                    this_step]) / positive_change
+
+            if self.potential_dispersal_history[this_step] == 0.0:
+                self.source = 0.0
+            else:
+                sum_source_change += max(0.0, self.population_leave_history[this_step] - self.population_enter_history[
+                                         this_step])/ self.potential_dispersal_history[this_step]
+
+        self.average_sink = (1.0 / back_steps) * sum_sink_change
         self.average_source = (1.0 / back_steps) * sum_source_change
 
     def update_local_nets(self):
@@ -625,30 +644,29 @@ class Local_population:
             self.net_internal = 0.0
         else:
             self.net_internal = np.abs(self.internal_change) / total_change
-        # Sink detection - (non-native entered compared to net CURRENT population):
-        # Fraction of the current population that entered via immigration at the most recently completed step
-        # Note that this can be greater than 1.0, if sufficient population died, left, or was predated simultaneously.
-        if self.population == 0.0:
+
+        # Sink detection and Source detection
+        # this_capacity = self.carrying_capacity_history[max(x for x in self.carrying_capacity_history)] ???????????
+
+        # sink
+        positive_change = max(0.0, self.population_enter_history[-1] - self.population_leave_history[-1]
+                              ) + max(0.0, self.internal_change_history[-1])
+        if positive_change <= 0.0:
             self.sink = 0.0
         else:
-            self.sink = self.population_enter_history[-1] / self.population_history[-1]
-        # Source detection - (emigration compared to PREVIOUS population):
-        # Fraction of the previous population that emigrated in most recently completed step
-        if self.population_history[-2] == 0.0:
+            self.sink = max(0.0, self.population_enter_history[-1] - self.population_leave_history[-1]
+                              ) / positive_change
+
+        # source
+        if self.potential_dispersal_history[-1] == 0.0:
             self.source = 0.0
         else:
-            self.source = self.population_leave_history[-1] / self.population_history[-2]
-        # Source notes:
-        # This is called after (not 'within') a time-step. At the end of the step histories are updated so
-        # self.population_leave is amount that left in the step, and self.population & self.population_history[-1]
-        # will BOTH be the current population at the end of this same step. Thus use [-2] to access the previous
-        # population recorded before this most recent time step. Because of the different possible sub-stage
-        # configurations, the most consistent across them is just to record the proportion leaving in this
-        # step (whether before, during, or after reproduction) compared to population present at the end of the
-        # previous full time-step.
-        # Timeline:
+            self.source = max(0.0, self.population_leave_history[-1] - self.population_enter_history[-1])\
+                          / self.potential_dispersal_history[-1]
+
+        # Notes on timeline:
         # - record population_history[-2] etc.
         # - complete one entire time-step of reproduction, foraging, direct impact, dispersal
         # - update internal_change, population_leave, population_enter and FROM ALL OF THESE population and
         # population_history[-1], internal_change_history[-1], population_leave[-1], population_enter[-1].
-        # So we do not actually record the population state between ecological sub-stages.
+        # So we do not actually record population state between ecological sub-stages (except in potential_dispersal).

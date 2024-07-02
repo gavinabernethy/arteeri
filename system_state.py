@@ -135,6 +135,13 @@ class System_state:
         self.num_perturbations += 1
         self.num_perturbations_history[self.step] = self.num_perturbations
 
+    def update_local_capacity_history(self):
+        # this is used for calculating source and sink indices of local populations,
+        # which could in principle be altered if we introduced a "change patch size" perturbation in future.
+        for patch in self.patch_list:
+            for local_population in patch.local_populations.values():
+                local_population.record_carrying_capacity_history(step=self.step)
+
     def update_habitat_distributions_history(self):
         # count the amount of each habitat and the spatial auto-correlation (essentially the a-posteriori probability
         # that two neighbours have the same habitat type) and store history of each.

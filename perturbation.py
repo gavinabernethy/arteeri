@@ -655,6 +655,7 @@ def remove_patch(system_state,
     system_state.update_habitat_distributions_history()
     system_state.update_quality_history()
     system_state.update_degree_history()
+    system_state.update_local_capacity_history()
 
 
 # Add or remove corridors between specified patches

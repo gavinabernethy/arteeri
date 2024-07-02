@@ -186,6 +186,9 @@ def pre_dispersal_of_local_population(
 ):
     # Calculates movements FROM a given patch. But not actually enacted yet, as these all need to occur simultaneously.
 
+    # Record current population as the potential dispersers (for source calculation)
+    local_pop.potential_dispersal = local_pop.holding_population
+
     # First, check all conditions, including: is there somewhere that CAN actually be travelled to?
     if local_pop.holding_population > 0.0 and len(local_pop.actual_dispersal_targets) > 0 \
             and (is_dispersal_override or local_pop.species.is_dispersal):

@@ -446,8 +446,8 @@ def global_species_time_series_properties(
             species_global_patches_occupied_change, species_internal_population_change, species_dispersal_out, \
             species_dispersal_in, species_patches_colonised, species_patches_extinct, species_source_average, \
             species_sink_average = (np.zeros([num_time_steps, 1]) for _ in range(11))
-        species_source_index = np.zeros([num_time_steps, 3])
-        species_sink_index = np.zeros([num_time_steps, 3])
+        species_source_index = np.zeros([num_time_steps, 5])
+        species_sink_index = np.zeros([num_time_steps, 5])
 
         for patch in patch_list:
             # locate the species
@@ -459,37 +459,56 @@ def global_species_time_series_properties(
                         species_internal_population_change[_] += float(local_pop.internal_change_history[_])
                         species_dispersal_out[_] += float(local_pop.population_leave_history[_])
                         species_dispersal_in[_] += float(local_pop.population_enter_history[_])
+
+                        # source and sink
                         sink = 0.0
                         source = 0.0
+                        positive_change = max(0.0, local_pop.population_enter_history[
+                            _] - local_pop.population_leave_history[_]) + max(0.0, local_pop.internal_change_history[_])
+                        if positive_change > 0:
+                            sink = max(0.0, local_pop.population_enter_history[_] -
+                                       local_pop.population_leave_history[_]) / positive_change
+                        if local_pop.potential_dispersal_history[_] > 0.0:
+                            source = max(0.0, local_pop.population_leave_history[
+                                _] - local_pop.population_enter_history[_]) / local_pop.potential_dispersal_history[_]
+
+                        # occupancy and change in status
                         if float(local_pop.population_history[_]) >= local_pop.species.minimum_population_size:
                             species_global_patches_occupied[_] += 1
-                            sink = local_pop.population_enter_history[_] / local_pop.population_history[_]
+
                             if _ > 0 and float(local_pop.population_history[_ - 1]) <\
                                     local_pop.species.minimum_population_size:
                                 species_patches_colonised[_] += 1
                                 species_global_patches_occupied_change[_] += 1
+
                         elif _ > 0 and float(local_pop.population_history[_ - 1]) >=\
                                 local_pop.species.minimum_population_size:
                             species_patches_extinct[_] += 1
                             species_global_patches_occupied_change[_] += 1
-                        if _ > 0 and local_pop.population_history[_ - 1] > 0.0:
-                            source = local_pop.population_leave_history[_] / local_pop.population_history[_ - 1]
 
                         # update running totals for global source and sink calculations at that step
                         species_sink_average[_] += sink
                         species_source_average[_] += source
-                        if sink >= 0.2:
+                        if sink >= 0.01:
                             species_sink_index[_, 0] += 1
-                            if sink >= 0.5:
+                            if sink >= 0.05:
                                 species_sink_index[_, 1] += 1
-                                if sink >= 0.8:
+                                if sink >= 0.1:
                                     species_sink_index[_, 2] += 1
-                        if source >= 0.2:
+                                    if sink >= 0.4:
+                                        species_sink_index[_, 3] += 1
+                                        if sink >= 0.8:
+                                            species_sink_index[_, 4] += 1
+                        if source >= 0.01:
                             species_source_index[_, 0] += 1
-                            if source >= 0.5:
+                            if source >= 0.05:
                                 species_source_index[_, 1] += 1
-                                if source >= 0.8:
+                                if source >= 0.1:
                                     species_source_index[_, 2] += 1
+                                    if sink >= 0.4:
+                                        species_source_index[_, 3] += 1
+                                        if sink >= 0.8:
+                                            species_source_index[_, 4] += 1
                     break
 
         # normalising
@@ -560,12 +579,12 @@ def global_species_time_series_properties(
             "sink_index": {
                 "data": species_sink_index,
                 "y_label": "Sink indexes",
-                "legend_list": ["0.2", "0.5", "0.8"],
+                "legend_list": ["0.01", "0.05", "0.1", "0.4", "0.8"],
             },
             "source_index": {
                 "data": species_source_index,
                 "y_label": "Source indexes",
-                "legend_list": ["0.2", "0.5", "0.8"],
+                "legend_list": ["0.01", "0.05", "0.1", "0.4", "0.8"],
             },
         }
         for _ in global_property_dict:

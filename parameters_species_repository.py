@@ -292,8 +292,8 @@ ARTEMIS_01_MASTER = {
             "CONSTANT_VALUE": None,
             "GAUSSIAN_MEAN": 0.1,
             "GAUSSIAN_ST_DEV": 0.01,
-            "BINOMIAL_MAXIMUM_MULTIPLIER": 1.0,
-            "BINOMIAL_PROBABILITY": 0.1,
+            "BINOMIAL_MAXIMUM_MULTIPLIER": None,
+            "BINOMIAL_PROBABILITY": None,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
@@ -304,10 +304,10 @@ ARTEMIS_01_MASTER = {
                 "R": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 4.0,
-                    "period": 0.0,
-                    "amplitude": 0.0,
-                    "phase_shift": 0.0,
-                    "vertical_shift": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
                     "vector_exp": None,
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
@@ -434,10 +434,10 @@ ARTEMIS_01_MASTER = {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
                     "constant_value": 0.05,
-                    "period": 300,
-                    "amplitude": 0.1,
-                    "phase_shift": 0.0,
-                    "vertical_shift": 0.2,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
@@ -465,12 +465,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "BINOMIAL_EXTRA_INDIVIDUAL": 0.0,
                 "COEFFICIENTS_LISTS": {
-                    "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-                    "constant_value": {
-                        "DENSITY_THRESHOLD": 0.5,  # uses UNDER if x/K <= this value, OVER otherwise
-                        "UNDER": [0.0, 0.1],
-                        "OVER": [-0.9, 1.0],
-                    },
+                    "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
                     "period": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -480,13 +475,13 @@ ARTEMIS_01_MASTER = {
         "PURE_DIRECT_IMPACT_PARA":
             {
                 "TYPE": "vector",
-                "IMPACT": 0.0,
-                "PROBABILITY": 0.0,
+                "IMPACT": None,
+                "PROBABILITY": None,
                 "DIRECT_VECTOR": [],
                 "ANNUAL_OFFSET": {
                     "IS_DIRECT_OFFSET": False,  # is there an annual offset to early/late seasonal
                     # behaviour, for example to delay mating season or late spring etc.
-                    "ANNUAL_DURATION": 0.0,  # This is how long each year is
+                    "ANNUAL_DURATION": None,  # This is how long each year is
                     "DIRECT_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
                     "IS_DIRECT_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
                     "DIRECT_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
@@ -525,8 +520,8 @@ ARTEMIS_01_MASTER = {
             "CONSTANT_VALUE": None,
             "GAUSSIAN_MEAN": 0.001,
             "GAUSSIAN_ST_DEV": 0.5,
-            "BINOMIAL_MAXIMUM_MULTIPLIER": 1.0,
-            "BINOMIAL_PROBABILITY": 0.1,
+            "BINOMIAL_MAXIMUM_MULTIPLIER": None,
+            "BINOMIAL_PROBABILITY": None,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
@@ -550,7 +545,7 @@ ARTEMIS_01_MASTER = {
                 "ANNUAL_OFFSET": {
                     "IS_GROWTH_OFFSET": False,  # is there an annual offset to early/late seasonal
                     # behaviour, for example to delay mating season or late spring etc.
-                    "ANNUAL_DURATION": 0.0,  # This is how long each year is
+                    "ANNUAL_DURATION": None,  # This is how long each year is
                     "GROWTH_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
                     "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
                     "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
@@ -711,13 +706,13 @@ ARTEMIS_01_MASTER = {
         "PURE_DIRECT_IMPACT_PARA":
             {
                 "TYPE": "vector",
-                "IMPACT": 0.0,
-                "PROBABILITY": 0.0,
+                "IMPACT": None,
+                "PROBABILITY": None,
                 "DIRECT_VECTOR": [],
                 "ANNUAL_OFFSET": {
                     "IS_DIRECT_OFFSET": False,  # is there an annual offset to early/late seasonal
                     # behaviour, for example to delay mating season or late spring etc.
-                    "ANNUAL_DURATION": 0.0,  # This is how long each year is
+                    "ANNUAL_DURATION": None,  # This is how long each year is
                     "DIRECT_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
                     "IS_DIRECT_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
                     "DIRECT_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
@@ -737,11 +732,11 @@ ARTEMIS_01_MASTER = {
             "PERTURBATION": {
                 "IS_REMOVAL": False,
                 "IS_HABITAT_TYPE_CHANGE": False,
-                "HABITAT_TYPE_NUM_TO_CHANGE_TO": 0,  # integer habitat type number
+                "HABITAT_TYPE_NUM_TO_CHANGE_TO": None,  # integer habitat type number
                 "IS_QUALITY_CHANGE": False,
                 "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
                 "IS_ADJACENCY_CHANGE": False,
-                "ABSOLUTE_ADJACENCY_CHANGE": 0.0,  # 1 or 0
+                "ABSOLUTE_ADJACENCY_CHANGE": None,  # 1 or 0
             },
         },
     },

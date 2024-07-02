@@ -22,7 +22,7 @@ master_para = {
             "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
+            "LATTICE_GRAPH_CONNECTIVITY": 0.8,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": 0.05,
@@ -87,7 +87,7 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 100,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
