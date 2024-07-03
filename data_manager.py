@@ -166,6 +166,10 @@ def save_all_data(simulation_obj):
     # All species full local population size, internal change, and dispersal in .CSVs for each local_pop object:
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_LOCAL_POP_HISTORY_CSV"]:
         write_population_history_data(patch_list=patch_list, sim=sim, step=step)
+    # JSON file of system_state with distance-metrics and histories of network-average properties (e.g. local
+    # biodiversity, patch size and quality) and perturbation history:
+    if simulation_obj.parameters["plot_save_para"]["IS_SAVE_SYSTEM_STATE_DATA"]:
+        write_system_state(system_state=simulation_obj.system_state, sim=sim, step=step)
     # JSON files with the full history of each patch and additional JSON per local population:
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_PATCH_DATA"]:
         write_patch_list_local_populations(patch_list=patch_list, sim=sim, step=step,

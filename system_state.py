@@ -64,10 +64,12 @@ class System_state:
         self.degree_dist_power_law_fit_history = {}
         self.total_connections_history = {}  # how many undirected links between different patches?
         self.patch_quality_history = {}
+        self.patch_size_history = {}
         self.update_habitat_distributions_history()
         self.update_degree_history()
         self.update_centrality_history(parameters=parameters)
         self.update_quality_history()
+        self.update_size_history()
         self.record_xy_adjacency()
 
     def update_biodiversity_history(self):
@@ -89,6 +91,12 @@ class System_state:
         for patch_num in self.current_patch_list:
             current_quality_list.append(self.patch_list[patch_num].quality)
         self.patch_quality_history[self.step] = tuple_builder(current_quality_list)
+
+    def update_size_history(self):
+        current_size_list = []
+        for patch_num in self.current_patch_list:
+            current_size_list.append(self.patch_list[patch_num].size)
+        self.patch_size_history[self.step] = tuple_builder(current_size_list)
 
     def update_degree_history(self):
         # record history of network-level averages and SDs of patch degree, patch clustering, and total number of edges

@@ -141,6 +141,12 @@ def write_population_history_data(patch_list, sim, step):
                 np.savetxt(f, combined_array, newline='\n', fmt='%.20f')
 
 
+def write_system_state(system_state, sim, step):
+    print("Saving system_state object in JSON file.")
+    json_file_name = f"results/{sim}/{step}/data/system_state.json"
+    dump_json(data=system_state.__dict__, filename=json_file_name)
+
+
 def write_patch_list_local_populations(patch_list, sim, step, is_save_local_populations):
     print("Saving patch objects in JSON files.")
     for patch in patch_list:
@@ -343,30 +349,39 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
         for path_tuple in path_list:
 
             # check for wrap
-            is_wrap = False
+            is_x_wrap = False
+            is_y_wrap = False
             if min_x+1 < max_x and min_y+1 < max_y:
                 if patch_list[path_tuple[0]].position[0] == patch_list[path_tuple[1]].position[0]:
                     if {min_y, max_y} <= {patch_list[path_tuple[0]].position[1], patch_list[path_tuple[1]].position[1]}:
-                        is_wrap = True
+                        is_y_wrap = True
                 if patch_list[path_tuple[0]].position[1] == patch_list[path_tuple[1]].position[1]:
                     if {min_x, max_x} <= {patch_list[path_tuple[0]].position[0], patch_list[path_tuple[1]].position[0]}:
-                        is_wrap = True
+                        is_x_wrap = True
 
             start_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
             end_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
-            if is_wrap:
+            if is_x_wrap or is_y_wrap:
                 patch_one = [patch_list[path_tuple[0]].position[0]*patch_scaling_factor + start_patch_radius,
-                             patch_list[path_tuple[0]].position[1]*patch_scaling_factor + end_patch_radius]
-                patch_two = [patch_list[path_tuple[1]].position[0]*patch_scaling_factor + start_patch_radius,
+                             patch_list[path_tuple[0]].position[1]*patch_scaling_factor + start_patch_radius]
+                patch_two = [patch_list[path_tuple[1]].position[0]*patch_scaling_factor + end_patch_radius,
                              patch_list[path_tuple[1]].position[1]*patch_scaling_factor + end_patch_radius]
                 both_patches = [patch_one, patch_two]
                 for line_num in range(2):
                     x_start = both_patches[line_num][0]
-                    x_end = both_patches[line_num][0] - (both_patches[line_num-1][0] - both_patches[line_num][0]) / (
-                            np.sqrt(len(patch_list)))
+                    if is_x_wrap:
+                        x_end = both_patches[line_num][0] - (both_patches[line_num - 1][0] -
+                                                             both_patches[line_num][0]) / (np.sqrt(len(patch_list)))
+                    else:
+                        x_end = both_patches[line_num][0] + (both_patches[line_num-1][0] -
+                                                             both_patches[line_num][0]) / 2
                     y_start = both_patches[line_num][1]
-                    y_end = both_patches[line_num][1] - (both_patches[line_num - 1][1] - both_patches[line_num][1]) / (
-                            np.sqrt(len(patch_list)))
+                    if is_y_wrap:
+                        y_end = both_patches[line_num][1] - (both_patches[line_num - 1][1] -
+                                                             both_patches[line_num][1]) / (np.sqrt(len(patch_list)))
+                    else:
+                        y_end = both_patches[line_num][1] + (both_patches[line_num - 1][1] -
+                                                             both_patches[line_num][1]) / 2
                     if type(path_tuple[3]) is list and len(path_tuple[3]) == 3:
                         ax.plot([x_start, x_end], [y_start, y_end], color=path_tuple[3])
                     elif path_color is None:
@@ -375,7 +390,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                         ax.plot([x_start, x_end], [y_start, y_end], color=path_color)
 
             else:
-                # not a wrp - just a direct path
+                # not a wrap - just a direct path
                 start_x = patch_list[path_tuple[0]].position[0] * patch_scaling_factor + start_patch_radius
                 end_x = patch_list[path_tuple[1]].position[0] * patch_scaling_factor + end_patch_radius
                 start_y = patch_list[path_tuple[0]].position[1] * patch_scaling_factor + start_patch_radius

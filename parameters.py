@@ -58,8 +58,8 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 10000,
-            "NUM_RECORD_STEPS": 1000,
+            "NUM_TRANSIENT_STEPS": 1000,
+            "NUM_RECORD_STEPS": 300,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
             "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
@@ -146,6 +146,9 @@ master_para = {
             # Data control options (requires IS_SAVE to be true):
             "IS_SAVE_LOCAL_POP_HISTORY_CSV": False,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
+            "IS_SAVE_SYSTEM_STATE_DATA": False,  # produce JSON of system state, including, for example, histories of
+            # perturbation, biodiversity, and the mean and s.d. of quality and size of patches present at that time in
+            # the network, and the full set of network distance-metric analysis.
             "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
             # the full history per-patch of different local clustering values).
             "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
@@ -222,8 +225,8 @@ master_para = {
 # "PERT_ARCHETYPE_DICTIONARY": {
 #     "a": {
 #         "perturbation_type": "patch_perturbation",
-#         "perturbation_subtype": "change_quality",
-#         # "change_habitat" or "change_quality" or "remove_patch" or ""change_adjacency"
+#         "perturbation_subtype": "change_parameter",
+#         # "change_habitat" or "change_parameter" or "remove_patch" or ""change_adjacency"
 #         "patch_list_overwrite": None,  # list if desired
 #         "patches_affected": [{"num_patches": 2,
 #                               "habitat_nums_permitted": None,  # if None then all by default
@@ -232,10 +235,9 @@ master_para = {
 #                               }],
 #         "is_pairs": False,
 #         "habitat_nums_to_change_to": None,
-#         "quality_change": 0.5,
-#         "is_absolute": False,
-#         "is_relative_multiply": True,
-#         "is_relative_add": False,
+#         "parameter_change": 0.5,  # numerical value
+#         "parameter_change_type": "relative_multiply",  # 'absolute', 'relative_add', or 'relative_multiply'
+#         "parameter_change_attr": "quality",  # 'quality' or 'size'
 #         "adjacency_change": None,
 #         "is_reserves_overwrite": False,
 #         "clusters_must_be_separated": True,
@@ -246,6 +248,8 @@ master_para = {
 #         "all_weighting": None,
 #         "rebuild_all_patches": False,
 #     },
+# },
+#
 #
 #     "b": {
 #         "perturbation_type": "population_perturbation",

@@ -83,8 +83,6 @@ class Local_population:
         self.internal_change_history = []
         self.population_enter_history = []
         self.population_leave_history = []
-        self.carrying_capacity_history = {}  # used for sink/source - save only when the network is changed as
-        #  we assume species-level global carrying capacity does NOT change, so only patch-size dependent within sim.
         self.potential_dispersal = 0.0  # record temporarily during the dispersal() sub-step
         self.potential_dispersal_history = []  # then update this list at the same time as the other histories
         self.record_population_history()  # need this so that the initial population is recorded
@@ -132,10 +130,6 @@ class Local_population:
         self.survivors = 0.0
         self.prey_shortfall = 0.0
         self.predator_shortfall = 0.0
-        self.record_carrying_capacity_history(step=0)  # record initial value of Carrying Capacity at instantiation
-
-    def record_carrying_capacity_history(self, step):
-        self.carrying_capacity_history[step] = self.carrying_capacity
 
     def set_initial_population(self, patch, current_patch_list):
         # how to specify (or reset) the initial population in the patch based on species-specific scheme
@@ -658,7 +652,6 @@ class Local_population:
             self.net_internal = np.abs(self.internal_change) / total_change
 
         # Sink detection and Source detection
-        # this_capacity = self.carrying_capacity_history[max(x for x in self.carrying_capacity_history)] ???????????
 
         # sink
         positive_change = max(0.0, self.population_enter_history[-1] - self.population_leave_history[-1]

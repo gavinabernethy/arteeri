@@ -33,6 +33,9 @@ from population_dynamics import build_interacting_populations_list, build_actual
 # 	     changing to the ``frozen'' habitat type which would need to already exist in the set with appropriate traversal
 # 	     scores for each species. The second would then reverse both of these effects to the original quality and
 # 	     habitat types.
+#   - Note that change_patch_parameter() can apply to either quality (thus, reproductive rate) or size for implementing
+#        either patch degradation or restoration (impacting carrying capacity) as parts of the same connected patch
+#        become less or more usable by residents.
 
 #
 # ---------------------------------------------- RESERVE CONSTRUCTION ---------------------------------------------- #
@@ -63,10 +66,6 @@ def perturbation(system_state, parameters, pert_paras):
     except KeyError:
         patch_list_overwrite = None
     try:
-        patches_affected = pert_paras["patches_affected"]
-    except KeyError:
-        patches_affected = None
-    try:
         is_pairs = pert_paras["is_pairs"]
     except KeyError:
         is_pairs = False
@@ -75,21 +74,17 @@ def perturbation(system_state, parameters, pert_paras):
     except KeyError:
         habitat_nums_to_change_to = None
     try:
-        quality_change = pert_paras["quality_change"]
+        parameter_change = pert_paras["parameter_change"]
     except KeyError:
-        quality_change = None
+        parameter_change = None
     try:
-        is_absolute = pert_paras["is_absolute"]
+        parameter_change_type = pert_paras["parameter_change_type"]
     except KeyError:
-        is_absolute = False
+        parameter_change_type = None
     try:
-        is_relative_multiply = pert_paras["is_relative_multiply"]
+        parameter_change_attr = pert_paras["parameter_change_attr"]
     except KeyError:
-        is_relative_multiply = False
-    try:
-        is_relative_add = pert_paras["is_relative_add"]
-    except KeyError:
-        is_relative_add = False
+        parameter_change_attr = None
     try:
         adjacency_change = pert_paras["adjacency_change"]
     except KeyError:
@@ -129,7 +124,7 @@ def perturbation(system_state, parameters, pert_paras):
     except KeyError:
         fraction_of_population = None
     try:
-        species_affected = pert_paras["species_affected"] # if None (list of names of species) then default is all
+        species_affected = pert_paras["species_affected"]  # if None (list of names of species) then default is all
     except KeyError:
         species_affected = None
     try:
@@ -150,10 +145,9 @@ def perturbation(system_state, parameters, pert_paras):
                            patches_affected=patches_affected,
                            is_pairs=is_pairs,
                            habitat_nums_to_change_to=habitat_nums_to_change_to,
-                           quality_change=quality_change,
-                           is_absolute=is_absolute,
-                           is_relative_multiply=is_relative_multiply,
-                           is_relative_add=is_relative_add,
+                           parameter_change=parameter_change,
+                           parameter_change_type=parameter_change_type,
+                           parameter_change_attr=parameter_change_attr,
                            adjacency_change=adjacency_change,
                            is_reserves_overwrite=is_reserves_overwrite,
                            clusters_must_be_separated=clusters_must_be_separated,
@@ -331,10 +325,9 @@ def patch_perturbation(
         patches_affected=None,
         is_pairs=False,
         habitat_nums_to_change_to=None,
-        quality_change=None,
-        is_absolute=False,
-        is_relative_multiply=False,
-        is_relative_add=False,
+        parameter_change=None,
+        parameter_change_type=None,
+        parameter_change_attr=None,
         adjacency_change=None,
         is_reserves_overwrite=False,
         clusters_must_be_separated=False,
@@ -350,7 +343,7 @@ def patch_perturbation(
     # establish the dictionary of functions
     function_dictionary = {
         "change_habitat": change_patch_to_habitat,
-        "change_quality": change_patch_quality,
+        "change_parameter": change_patch_parameter,
         "remove_patch": remove_patch,
         "change_adjacency": change_patch_adjacency,
     }
@@ -426,10 +419,9 @@ def patch_perturbation(
         parameters=parameters,
         patches_to_change=patches_to_alter,
         habitat_nums_to_change_to=habitat_nums_to_change_to,
-        quality_change=quality_change,
-        is_absolute=is_absolute,
-        is_relative_multiply=is_relative_multiply,
-        is_relative_add=is_relative_add,
+        parameter_change=parameter_change,
+        parameter_change_type=parameter_change_type,
+        parameter_change_attr=parameter_change_attr,
         patch_pairs_to_change=patch_pairs_to_change,
         adjacency_change=adjacency_change,
     )
@@ -512,10 +504,9 @@ def change_patch_to_habitat(system_state,
                             parameters,
                             patches_to_change,
                             habitat_nums_to_change_to,
-                            quality_change=None,
-                            is_absolute=None,
-                            is_relative_multiply=None,
-                            is_relative_add=None,
+                            parameter_change=None,
+                            parameter_change_type=None,
+                            parameter_change_attr=None,
                             patch_pairs_to_change=None,
                             adjacency_change=None,
                             ):
@@ -539,52 +530,64 @@ def change_patch_to_habitat(system_state,
     system_state.update_habitat_distributions_history()
 
 
-# Change habitat quality
-def change_patch_quality(system_state,
-                         parameters,
-                         patches_to_change,
-                         quality_change,
-                         is_absolute,
-                         is_relative_multiply,
-                         is_relative_add,
-                         habitat_nums_to_change_to=None,
-                         patch_pairs_to_change=None,
-                         adjacency_change=None,
-                         ):
-    # pass in a list of the numbers of the patches to change, and the change required to their quality
-    # either as a scaling factor (is_relative) or as a new specified value to adopt (is_absolute)
-    if type(quality_change) is list and len(patches_to_change) != len(quality_change):
-        raise "List of patches to alter is not the same length as the list of quality alterations."
-    elif sum([is_absolute, is_relative_multiply, is_relative_add]) != 1:
-        raise "Exactly one of these must be true."
+# Change patch floating point parameter value in range [0, 1] (quality or size)
+def change_patch_parameter(system_state,
+                           parameters,
+                           patches_to_change,
+                           parameter_change,
+                           parameter_change_attr,
+                           parameter_change_type,
+                           habitat_nums_to_change_to=None,
+                           patch_pairs_to_change=None,
+                           adjacency_change=None,
+                           ):
+    if parameter_change_attr not in ["size", "quality"]:
+        # ensure that either "size" or "quality" is specified:
+        raise Exception(f"Perturbation parameter {parameter_change_attr} should be either 'size' or 'quality'.")
+    elif type(parameter_change) is list and len(patches_to_change) != len(parameter_change):
+        # pass in a list of the numbers of the patches to change, and the change required to their quality/size
+        # either as a scaling factor (is_relative) or as a new specified value to adopt (is_absolute)
+        raise Exception("List of patches to alter is not the same length as the list of specified alterations.")
+    elif parameter_change_type not in ["absolute", "relative_multiply", "relative_add"]:
+        raise Exception("Exactly one of these must be the provided key.")
     else:
         for num_in_temp_list, patch_number in enumerate(patches_to_change):
-            old_quality = deepcopy(system_state.patch_list[patch_number].quality)
+            old_parameter_value = deepcopy(getattr(system_state.patch_list[patch_number], parameter_change_attr))
             # determine the value of the change - either a single value for all, or a specified patch-length list
-            if type(quality_change) is list:
-                this_quality_change = quality_change[num_in_temp_list]
-            elif type(quality_change) in [float, int]:
-                this_quality_change = quality_change
+            if type(parameter_change) is list:
+                this_parameter_change = parameter_change[num_in_temp_list]
+            elif type(parameter_change) in [float, int]:
+                this_parameter_change = parameter_change
             else:
-                raise "Quality change needs to be either a single value or a list of equal length to the number of" \
-                      " patches to change."
+                raise "Value change needs to be either a single value or a list of equal length to" \
+                      " the number of patches to change."
             # what type of change is it?
-            if is_relative_multiply:
-                new_quality = system_state.patch_list[patch_number].quality * this_quality_change
-            elif is_relative_add:
-                new_quality = system_state.patch_list[patch_number].quality + this_quality_change
-            elif is_absolute:
-                new_quality = this_quality_change
+            if parameter_change_type == "relative_multiply":
+                new_parameter_value = getattr(system_state.patch_list[patch_number],
+                                              parameter_change_attr) * this_parameter_change
+            elif parameter_change_type == "relative_add":
+                new_parameter_value = getattr(system_state.patch_list[patch_number],
+                                              parameter_change_attr) + this_parameter_change
+            elif parameter_change_type == "absolute":
+                new_parameter_value = this_parameter_change
             else:
-                raise "Quality error."
-            new_quality = min(max(new_quality, 0.0), 1.0)
-            system_state.patch_list[patch_number].quality = new_quality
-            # record history
-            system_state.patch_list[patch_number].quality_history[system_state.step] = new_quality
+                raise "Parameter value error."
+            # now set the new value
+            new_parameter_value = min(max(new_parameter_value, 0.0), 1.0)
+            setattr(system_state.patch_list[patch_number], parameter_change_attr, new_parameter_value)
+            # record history for local patches
+            if parameter_change_attr == "size":
+                system_state.patch_list[patch_number].size_history[system_state.step] = new_parameter_value
+            elif parameter_change_attr == "quality":
+                system_state.patch_list[patch_number].quality_history[system_state.step] = new_parameter_value
             # record if real change
-            if new_quality != old_quality:
+            if new_parameter_value != old_parameter_value:
                 system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
-    system_state.update_quality_history()
+    # record network-level values (mean and s.d. of values for all extant patches)
+    if parameter_change_attr == "size":
+        system_state.update_size_history()
+    elif parameter_change_attr == "quality":
+        system_state.update_quality_history()
 
 
 # Remove a patch
@@ -593,10 +596,9 @@ def remove_patch(system_state,
                  patches_to_change,
                  patch_pairs_to_change=None,
                  adjacency_change=None,
-                 quality_change=None,
-                 is_absolute=None,
-                 is_relative_multiply=None,
-                 is_relative_add=None,
+                 parameter_change=None,
+                 parameter_change_type=None,
+                 parameter_change_attr=None,
                  habitat_nums_to_change_to=None,
                  ):
     patches_to_remove = patches_to_change
@@ -655,7 +657,6 @@ def remove_patch(system_state,
     system_state.update_habitat_distributions_history()
     system_state.update_quality_history()
     system_state.update_degree_history()
-    system_state.update_local_capacity_history()
 
 
 # Add or remove corridors between specified patches
@@ -664,10 +665,9 @@ def change_patch_adjacency(system_state,
                            patch_pairs_to_change,
                            adjacency_change,
                            patches_to_change=None,
-                           quality_change=None,
-                           is_absolute=None,
-                           is_relative_multiply=None,
-                           is_relative_add=None,
+                           parameter_change=None,
+                           parameter_change_type=None,
+                           parameter_change_attr=None,
                            habitat_nums_to_change_to=None,
                            ):
     # patch_pairs_to_change should be a N-length list of 2x1 tuples containing the pairs of patches
