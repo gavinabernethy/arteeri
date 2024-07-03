@@ -270,6 +270,7 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
                             home_patch_traversal_score):
     # used by both build_actual_dispersal_targets() and build_interacting_populations_list() to determine the
     # local_population's access to distant patches given their CURRENT mobility scores and path length restrictions
+    path_length = 0
     if home_patch_traversal_score == 0.0:
         score = 0.0
     else:
@@ -277,15 +278,18 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
             # path length restricted, but is the best one within the allowed range anyway?
             if target["best"][0] <= getattr(local_pop.species, max_path_attr):
                 cost = target["best"][1]
+                path_length = target["best"][0]
             else:
                 cost = float('inf')
                 # otherwise look for best reachable
                 for try_path_length in range(1, getattr(local_pop.species, max_path_attr) + 1):
                     if try_path_length in target:
                         cost = min(cost, target[try_path_length][0])
+                        path_length = try_path_length
         else:
             # path unrestricted so just return the best overall cost
             cost = target["best"][1]
+            path_length = target["best"][0]
 
         # now pass into Heaviside step function
         if is_heaviside_manual:
@@ -299,7 +303,7 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
         # scale by mobility attribute and return
         score = getattr(local_pop.species, mobility_scaling_attr) * (
                 1.0 / home_patch_traversal_score + filtered_cost) ** (-1.0)
-    return score
+    return score, path_length
 
 
 def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time):
@@ -341,7 +345,7 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                         if reachable_patch_num != patch.number:
 
                             z = patch.species_movement_scores[local_pop.name][reachable_patch_num]
-                            target_score = find_best_actual_scores(
+                            target_score, unused_path_length = find_best_actual_scores(
                                 local_pop=local_pop,
                                 target=z,
                                 query_attr="is_dispersal_path_restricted",
@@ -408,6 +412,8 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                         patch_to_species_traversal = patch_to.this_habitat_species_traversal[local_pop_to.species.name]
                         patch_to_species_feeding = patch_to.this_habitat_species_feeding[local_pop_to.species.name]
 
+                        path_to_length = 0
+                        path_from_length = 0
                         if patch_to_num == patch.number:
                             # for WITHIN-PATCH FEEDING:
                             if is_local_foraging_ensured:
@@ -425,7 +431,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                             if local_pop.species.is_nonlocal_foraging:
                                 # score dictionary for THIS species' local population to THAT patch
                                 z = patch.species_movement_scores[local_pop.name][patch_to_num]
-                                local_pop_score = find_best_actual_scores(
+                                local_pop_score, path_to_length = find_best_actual_scores(
                                     local_pop=local_pop, target=z,
                                     query_attr="is_foraging_path_restricted",
                                     max_path_attr="current_max_foraging_path_length",
@@ -441,7 +447,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                             if local_pop_to.species.is_nonlocal_foraging:
                                 # score dictionary for THAT species' local population to THIS patch
                                 z = patch_to.species_movement_scores[local_pop_to.name][patch.number]
-                                local_pop_to_score = find_best_actual_scores(
+                                local_pop_to_score, path_from_length = find_best_actual_scores(
                                     local_pop=local_pop_to, target=z,
                                     query_attr="is_foraging_path_restricted",
                                     max_path_attr="current_max_foraging_path_length",
@@ -462,11 +468,15 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                                                       "score_to": local_pop_score,
                                                                       "score_from": local_pop_to_score,
                                                                       "is_same_patch": patch_to_num == patch.number,
+                                                                      "path_to_length": path_to_length,
+                                                                      "path_from_length": path_from_length,
                                                                       })
                             local_pop_to.interacting_populations.append({"object": local_pop,
                                                                          "score_to": local_pop_to_score,
                                                                          "score_from": local_pop_score,
                                                                          "is_same_patch": patch_to_num == patch.number,
+                                                                         "path_to_length": path_from_length,
+                                                                         "path_from_length": path_to_length,
                                                                          })
 
     # check that there are no duplicates - this will be caused by two populations who CAN both reach each other,

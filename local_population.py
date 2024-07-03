@@ -102,6 +102,8 @@ class Local_population:
         self.average_net_internal = 0.0
         self.average_sink = 0.0
         self.average_source = 0.0
+        self.weighted_foraging_distance = 0.0  # Used to understand predator distant-foraging behaviour - the length of
+        self.maximum_foraging_distance = 0  # the actual hunting path (not necessarily shortest species-invariant path).
         self.recent_occupancy_change_frequency = 0  # how many times in averaging period/num_steps did occupancy change?
         self.stored_pop_values = {}  # used for comparisons during perturbation studies
         self.stored_change = {}  # used for comparisons during perturbation studies
@@ -381,6 +383,10 @@ class Local_population:
         # It should be run first to get the predation by the predator if it had sole access to all prey
         prey_sum_shortfall = 0.0
         self.g_values["g2"] = 0.0
+
+        weighted_foraging_distance = 0.0
+        maximum_foraging_distance = 0.0
+
         if self.holding_population > 0.0:
 
             total_prey_hunted = 0.0
@@ -438,6 +444,8 @@ class Local_population:
                                 final_effort = effort_rescale * self.kills["g0"][population["object"]][1]
                                 final_prey_eaten = effort_rescale * self.kills["g0"][population[
                                     "object"]][0] * self.g_values["g1"] / rescaled_total_prey_hunted
+                                # record predation distance for reporting of behaviour - max here only for non-zero
+                                maximum_foraging_distance = max(maximum_foraging_distance, population["path_to_length"])
                             else:
                                 final_effort = 0.0
                                 final_prey_eaten = 0.0
@@ -446,10 +454,14 @@ class Local_population:
                             population["object"].killed["g1"][self] = final_prey_eaten  # g1
                             # record shortfall in prey hunted vs. killed
                             prey_sum_shortfall += max(0.0, self.kills["g0"][population["object"]][0] - final_prey_eaten)
+                            # record predation distance for reporting of behaviour - build up the mean
+                            weighted_foraging_distance += final_effort * population["path_to_length"]
             else:
                 self.g_values["g0"] = 0.0
                 self.g_values["g1"] = 0.0
         self.prey_shortfall = prey_sum_shortfall
+        self.maximum_foraging_distance = maximum_foraging_distance
+        self.weighted_foraging_distance = weighted_foraging_distance
 
     def predator_allocation(self):
         # this function re-scales the maximum kills/killed if this local prey population is over-hunted
@@ -620,7 +632,7 @@ class Local_population:
                 self.source = 0.0
             else:
                 sum_source_change += max(0.0, self.population_leave_history[this_step] - self.population_enter_history[
-                                         this_step])/ self.potential_dispersal_history[this_step]
+                    this_step]) / self.potential_dispersal_history[this_step]
 
         self.average_sink = (1.0 / back_steps) * sum_sink_change
         self.average_source = (1.0 / back_steps) * sum_source_change
@@ -655,13 +667,13 @@ class Local_population:
             self.sink = 0.0
         else:
             self.sink = max(0.0, self.population_enter_history[-1] - self.population_leave_history[-1]
-                              ) / positive_change
+                            ) / positive_change
 
         # source
         if self.potential_dispersal_history[-1] == 0.0:
             self.source = 0.0
         else:
-            self.source = max(0.0, self.population_leave_history[-1] - self.population_enter_history[-1])\
+            self.source = max(0.0, self.population_leave_history[-1] - self.population_enter_history[-1]) \
                           / self.potential_dispersal_history[-1]
 
         # Notes on timeline:
