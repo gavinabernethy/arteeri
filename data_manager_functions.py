@@ -70,6 +70,48 @@ def set_default(obj):
         return obj.tolist()
 
 
+def format_dictionary_string(input_string):
+    # this takes a string obtained from passing a nested dictionary to json.dumps and recreates the indented structure
+    # of the original dictionary in the string, suitable for printing to screen or file
+    modified_string = input_string.replace('},', '}')
+    modified_string = modified_string.replace('} ', '}')
+    open_list = modified_string.split('{')
+    indent_count = 0
+    output_string = ''
+
+    # first split and iterate by { which increases the nesting
+    for element_index, element in enumerate(open_list):
+        base_string = ''
+        indent_count += 1
+        if '}' in element:
+            closed_sublist = element.split('}')
+
+            # within them, split and iterate by } which decreases nesting
+            for sub_element in closed_sublist[0:len(closed_sublist) - 1]:
+                indent_count -= 1
+
+                if len(sub_element) > 0:
+                    base_string += sub_element + '\n' + '    ' * indent_count + '},\n' + '    ' * (indent_count-1)
+                else:
+                    # avoid double line spacing between }}
+                    base_string += sub_element + '},\n' + '    ' * (indent_count - 1)
+
+            # for the final sub-element, do not add an additional new }
+            if element_index == len(open_list) - 1:
+                # for the final element of the whole, do not add an additional {
+                base_string += closed_sublist[-1]
+            else:
+                base_string += closed_sublist[-1] + '{\n' + '    ' * indent_count
+        else:
+            if element_index == len(open_list) - 1:
+                # for the final element, do not add an additional {
+                base_string = element
+            else:
+                base_string = element + '{\n' + '    ' * indent_count
+        output_string += base_string
+    return output_string
+
+
 # -------------------------------- FUNCTIONS FOR SAVING AND LOADING THE ENTIRE SYSTEM -------------------------------- #
 
 def write_parameters_file(parameters, sim, step):

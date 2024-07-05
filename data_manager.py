@@ -136,7 +136,7 @@ def print_key_outputs_to_console(simulation_obj):
         for key, value in simulation_obj.system_state.distance_metrics_store.items():
             output_str = f"METRIC_KEY_{key}: " \
                          f"{json.dumps(value, ensure_ascii=True, default=set_default, skipkeys=True)}\n"
-            print(output_str)
+            print(format_dictionary_string(output_str))
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
     # Restore default configuration.
     np.set_printoptions(threshold=1000)
