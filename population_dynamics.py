@@ -578,11 +578,14 @@ def foraging_calculator(patch_list, time, current_patch_list):
         habitat_reproduction_scores = patch_list[patch_num].this_habitat_species_feeding
         for local_pop in patch_list[patch_num].local_populations.values():
             if local_pop.holding_population > 0.0 and habitat_reproduction_scores[local_pop.species.name] > 0.0:
-                # no predation gain if habitat-feeding score is 0.0
+                # no predation gain if habitat-feeding score is 0.0, and distance-foraging metrics set to -1 for visual
                 if local_pop.species.current_prey_dict is not None and len(local_pop.species.current_prey_dict) != 0:
                     local_pop.calculate_predation(time=time)
                 # g0 is the total prey available for that local population
                 # g1 is the actual number of kills it would make if there are no other competitors to share with
+            else:
+                local_pop.weighted_foraging_distance = -1.0  # default to -1 rather than 0 to distinguish absence or
+                local_pop.maximum_foraging_distance = -1.0  # lack of predation by this species
 
     # competition and prey allocation (g1 -> g2)
     for patch_num in current_patch_list:

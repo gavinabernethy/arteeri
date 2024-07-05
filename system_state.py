@@ -54,7 +54,8 @@ class System_state:
         self.local_biodiversity_history = []
         # other network properties only have changes recorded at initialisation and after a relevant perturbation
         self.habitat_amounts_history = {_: {} for _ in habitat_type_dictionary}  # dict of dict (of time/values)
-        self.habitat_auto_correlation_history = {}
+        self.habitat_spatial_auto_correlation_history = {}  # normalised by the expectation given habitat amounts
+        self.habitat_regular_auto_correlation_history = {}  # plain ratio of same-habitat : any-habitat links
         self.num_perturbations = 0
         self.num_perturbations_history = {0: 0}
         self.patch_centrality_history = {}
@@ -160,6 +161,7 @@ class System_state:
         if num_habitat_types == 1:
             temp_habitat_counts[0] = len(self.current_patch_list)
             spatial_auto_correlation = 0.0
+            regular_auto_correlation = 0.0
         else:
             # more than one habitat type
             for habitat_type_num in self.habitat_type_dictionary:
@@ -178,6 +180,7 @@ class System_state:
             if norm_sum == 0.0:
                 # if norm_sum is zero (i.e.the graph is fully disconnected)
                 spatial_auto_correlation = 0.0
+                regular_auto_correlation = 0.0
             else:
                 # now determine the probabilities and thus the expected and SD of same-habitat links
                 prob_square_sum = 0.0
@@ -189,10 +192,16 @@ class System_state:
                 if st_dev == 0.0:
                     # all patches have the same habitat type despite there being multiple possibilities
                     spatial_auto_correlation = 1.0
+                    regular_auto_correlation = 1.0
                 else:
+                    # regular (non-normalised) habitat auto-correlation:
+                    regular_auto_correlation = auto_cor_sum / norm_sum
+
+                    # normalised by expectation given the habitat probability distribution:
                     spatial_auto_correlation = (auto_cor_sum / norm_sum - expectation) / st_dev
         # Record:
-        self.habitat_auto_correlation_history[self.step] = spatial_auto_correlation
+        self.habitat_regular_auto_correlation_history[self.step] = regular_auto_correlation
+        self.habitat_spatial_auto_correlation_history[self.step] = spatial_auto_correlation
         for habitat_type_num in self.habitat_type_dictionary:
             self.habitat_amounts_history[habitat_type_num][self.step] = temp_habitat_counts[habitat_type_num]
 

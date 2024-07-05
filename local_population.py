@@ -100,8 +100,8 @@ class Local_population:
         self.average_net_internal = 0.0
         self.average_sink = 0.0
         self.average_source = 0.0
-        self.weighted_foraging_distance = 0.0  # Used to understand predator distant-foraging behaviour - the length of
-        self.maximum_foraging_distance = 0  # the actual hunting path (not necessarily shortest species-invariant path).
+        self.weighted_foraging_distance = -1.0  # Used to understand predator distant-foraging behaviour - length of
+        self.maximum_foraging_distance = -1  # actual hunting path (not necessarily shortest species-invariant path).
         self.recent_occupancy_change_frequency = 0  # how many times in averaging period/num_steps did occupancy change?
         self.stored_pop_values = {}  # used for comparisons during perturbation studies
         self.stored_change = {}  # used for comparisons during perturbation studies
@@ -378,10 +378,13 @@ class Local_population:
         prey_sum_shortfall = 0.0
         self.g_values["g2"] = 0.0
 
-        weighted_foraging_distance = 0.0
-        maximum_foraging_distance = 0.0
+        weighted_foraging_distance = -1.0  # default to -1 rather than 0 to distinguish absence of predator / or
+        maximum_foraging_distance = -1.0  # no predation at all by this species (-1) from in-patch foraging (0).
 
         if self.holding_population > 0.0:
+
+            weighted_foraging_distance = 0.0  # as above
+            maximum_foraging_distance = 0.0
 
             total_prey_hunted = 0.0
             total_effort = 0.0

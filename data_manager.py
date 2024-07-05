@@ -99,8 +99,12 @@ def print_key_outputs_to_console(simulation_obj):
     for habitat_num, habitat_history in simulation_obj.system_state.habitat_amounts_history.items():
         print(f"{habitat_num}: {habitat_history[max(x for x in habitat_history)]}")
     print("Posterior habitat spatial auto-correlation (final):")
-    print(simulation_obj.system_state.habitat_auto_correlation_history[
-              max(x for x in simulation_obj.system_state.habitat_auto_correlation_history)])
+    print("Regular:")
+    print(simulation_obj.system_state.habitat_regular_auto_correlation_history[
+              max(x for x in simulation_obj.system_state.habitat_regular_auto_correlation_history)])
+    print("Normalised:")
+    print(simulation_obj.system_state.habitat_spatial_auto_correlation_history[
+              max(x for x in simulation_obj.system_state.habitat_spatial_auto_correlation_history)])
     print("LCCs (final):")
     print("All:", simulation_obj.system_state.patch_lcc_history['all'][
         max(x for x in simulation_obj.system_state.patch_lcc_history['all'])])
@@ -255,8 +259,9 @@ def all_plots(simulation_obj):
                             "shading": False,
                             "is_triple": False},
         "habitat_auto_correlation": {"y_label": "Spatial auto-correlation of habitat types",
-                                     "data": [simulation_obj.system_state.habitat_auto_correlation_history],
-                                     "legend": None,
+                                     "data": [simulation_obj.system_state.habitat_regular_auto_correlation_history,
+                                              simulation_obj.system_state.habitat_spatial_auto_correlation_history],
+                                     "legend": ["Regular", "Normalised against expectation"],
                                      "shading": False,
                                      "is_triple": False},
         "total_network_connections": {"y_label": "Total edges in the spatial network",
