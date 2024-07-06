@@ -840,8 +840,12 @@ class System_state:
                                             spearman_rho, spearman_p = spearmanr(
                                                 species_1_pop_vector, species_2_pop_vector)
                                             is_cc_success = 1
+                                            if pearson_p == float('NaN') or spearman_p == float('NaN'):
+                                                is_cc_success = 0
                                         except ValueError:
                                             is_cc_success = 0
+                                    if is_cc_success == 0:
+                                        pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
                                     corr_coefficients = {
                                         'is_success': is_cc_success,
                                         'pearson_cc': pearson_cc,

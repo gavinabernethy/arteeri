@@ -1,7 +1,7 @@
 from data_manager_functions import *
 import shutil
-
-
+import pprint
+import ast
 # ----------------------------- FUNCTIONS USED IN SYSTEM INITIALISATION ----------------------- #
 
 def generate_simulation_number(minimum=99, save_data=True):
@@ -133,10 +133,17 @@ def print_key_outputs_to_console(simulation_obj):
             print(output_str)
     if simulation_obj.parameters["plot_save_para"]["IS_PRINT_DISTANCE_METRICS_TO_CONSOLE"]:
         print("\n********** SPECIES AND DISTANCE METRIC OUTPUTS **********\n")
-        for key, value in simulation_obj.system_state.distance_metrics_store.items():
-            output_str = f"METRIC_KEY_{key}: " \
-                         f"{json.dumps(value, ensure_ascii=True, default=set_default, skipkeys=True)}\n"
-            print(format_dictionary_string(output_str))
+        print('{')
+        for counter, (key, value) in enumerate(simulation_obj.system_state.distance_metrics_store.items()):
+            output_str = f'"METRIC_KEY_{key}": ' \
+                         f'{json.dumps(value, ensure_ascii=True, default=set_default, skipkeys=True)}'
+            if counter == len(simulation_obj.system_state.distance_metrics_store) - 1:
+                is_final_item = True
+            else:
+                is_final_item = False
+            print(format_dictionary_to_JSON_string(output_str, is_final_item=is_final_item))
+        print('}')
+
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
     # Restore default configuration.
     np.set_printoptions(threshold=1000)

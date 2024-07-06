@@ -70,9 +70,10 @@ def set_default(obj):
         return obj.tolist()
 
 
-def format_dictionary_string(input_string):
+def format_dictionary_to_JSON_string(input_string, is_final_item):
     # this takes a string obtained from passing a nested dictionary to json.dumps and recreates the indented structure
-    # of the original dictionary in the string, suitable for printing to screen or file
+    # of the original dictionary in the string, suitable for printing to screen or file as a human-readable JSON that
+    # can also then be read from file by passing the raw text to json.loads()
     modified_string = input_string.replace('},', '}')
     modified_string = modified_string.replace('} ', '}')
     open_list = modified_string.split('{')
@@ -87,22 +88,33 @@ def format_dictionary_string(input_string):
             closed_sublist = element.split('}')
 
             # within them, split and iterate by } which decreases nesting
-            for sub_element in closed_sublist[0:len(closed_sublist) - 1]:
+            for sub_index, sub_element in enumerate(closed_sublist[0:len(closed_sublist) - 1]):
                 indent_count -= 1
 
-                if len(sub_element) > 0:
+                if len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index+1]) > 0:
                     base_string += sub_element + '\n' + '    ' * indent_count + '},\n' + '    ' * (indent_count-1)
-                else:
-                    # avoid double line spacing between }}
+                elif len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index+1]) == 0:
+                    base_string += sub_element + '\n' + '    ' * indent_count + '}\n' + '    ' * (indent_count - 1)
+                elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index+1]) > 0:
                     base_string += sub_element + '},\n' + '    ' * (indent_count - 1)
+                elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index + 1]) == 0:
+                    if element_index == len(open_list) - 1 and sub_index == len(closed_sublist) - 2:
+                        # no new-line at the very end of the dictionary
+                        if is_final_item:
+                            # only add a final comma if required
+                            base_string += sub_element + '}'
+                        else:
+                            base_string += sub_element + '},'
+                    else:
+                        base_string += sub_element + '}\n' + '    ' * (indent_count - 1)
 
-            # for the final sub-element, do not add an additional new }
             if element_index == len(open_list) - 1:
-                # for the final element of the whole, do not add an additional {
+                # for the final element of the whole, do not add an additional { after the final sub-element
                 base_string += closed_sublist[-1]
             else:
                 base_string += closed_sublist[-1] + '{\n' + '    ' * indent_count
         else:
+            # only one "sub-element" i.e. { ... { with no } in between
             if element_index == len(open_list) - 1:
                 # for the final element, do not add an additional {
                 base_string = element
