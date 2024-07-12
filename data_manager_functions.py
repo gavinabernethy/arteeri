@@ -71,9 +71,15 @@ def set_default(obj):
 
 
 def format_dictionary_to_JSON_string(input_string, is_final_item):
-    # this takes a string obtained from passing a nested dictionary to json.dumps and recreates the indented structure
+    # This takes a string obtained from passing a nested dictionary to json.dumps and recreates the indented structure
     # of the original dictionary in the string, suitable for printing to screen or file as a human-readable JSON that
-    # can also then be read from file by passing the raw text to json.loads()
+    # can also then be read back from the file by passing the raw text to json.loads() to convert to a dictionary.
+    #
+    # The purpose of this is to:
+    # i) print highly-nested dictionary structures better than permitted by pprint()
+    # ii) allow writing and reading of dictionaries as JSON data WITHOUT EVER PRINTING TO AN ACTUAL .JSON FILE, which
+    #       makes it easier to include in the single STOUT > .txt printing in Condor.
+    #
     modified_string = input_string.replace('},', '}')
     modified_string = modified_string.replace('} ', '}')
     open_list = modified_string.split('{')

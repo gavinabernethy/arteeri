@@ -460,8 +460,8 @@ class System_state:
     def update_distance_metrics(self):
         # Call this to conduct extensive population distribution and community state spatial distribution analysis.
         network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
-        shannon_entropy, inter_species_predictions_final, \
-        inter_species_predictions_average = self.distance_metrics()
+            shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, \
+            complexity_final, complexity_average = self.distance_metrics()
         self.distance_metrics_store = {
             "network_analysis_species": network_analysis_species,
             "network_analysis_community_distance": network_analysis_community_distance,
@@ -469,6 +469,8 @@ class System_state:
             "shannon_entropy": shannon_entropy,
             "inter_species_predictions_final": inter_species_predictions_final,
             "inter_species_predictions_average": inter_species_predictions_average,
+            "complexity_final": complexity_final,
+            "complexity_average": complexity_average,
         }
 
     def distance_metrics(self):
@@ -585,7 +587,7 @@ class System_state:
         ordered_state_list = list(extant_state_set)
         ordered_state_list.sort()
         network_analysis_state_probability = {}
-        for state in [0,1,2,3]:  # ordered_state_list
+        for state in [0, 1, 2, 3]:  # ordered_state_list
             state_array = np.zeros(num_patches)
             for patch_index, patch_state in enumerate(community_state_binary):
                 if patch_state == state:
@@ -595,7 +597,7 @@ class System_state:
                 patch_neighbours=patch_neighbours, is_presence=True, is_distribution=False)
             state_species_list = []
             for species_index in range(len(species_list)):
-                if np.mod(state, int(2.0**(species_index+1))) >= int(2.0 ** species_index):
+                if np.mod(state, int(2.0 ** (species_index + 1))) >= int(2.0 ** species_index):
                     state_species_list.append(species_list[species_index])
             network_analysis_state_probability[state]["state_species_list"] = state_species_list
 
@@ -603,12 +605,26 @@ class System_state:
         shannon_entropy = self.shannon_entropy(patch_state_array=community_state_presence_array,
                                                patch_habitat=patch_habitat, patch_binary_vector=community_state_binary)
 
-        # species-species predictions
+        # species-species predictions and information scaling dimensions
         #
+
+        # Prepare keys for each habitat (need this first for consistency)
+        habitat_type_nums = list(self.habitat_type_dictionary.keys())
+        habitat_type_nums.sort()
+
+        # generate sub-networks
+        community_state_sub_networks = self.generate_sub_networks(population_array=community_state_population_array,
+                                                                  patch_habitat=patch_habitat,
+                                                                  habitat_type_nums=habitat_type_nums)
+
+        time_averaged_sub_networks = self.generate_sub_networks(population_array=time_averaged_population_array,
+                                                                patch_habitat=patch_habitat,
+                                                                habitat_type_nums=habitat_type_nums)
+
         # use the non-normalised final population (returns five dictionaries)
         presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
-            self.inter_species_predictions(
-                population_array=community_state_population_array, patch_habitat=patch_habitat)
+            self.inter_species_predictions(sub_networks=community_state_sub_networks,
+                                           habitat_type_nums=habitat_type_nums)
         inter_species_predictions_final = {
             "presence_store": presence_store,
             "similarity_store": similarity_store,
@@ -618,8 +634,7 @@ class System_state:
         }
         # and the time-averaged populations
         presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
-            self.inter_species_predictions(
-                population_array=time_averaged_population_array, patch_habitat=patch_habitat)
+            self.inter_species_predictions(sub_networks=time_averaged_sub_networks, habitat_type_nums=habitat_type_nums)
         inter_species_predictions_average = {
             "presence_store": presence_store,
             "similarity_store": similarity_store,
@@ -628,51 +643,23 @@ class System_state:
             "linear_model_store": linear_model_store,
         }
 
-        return network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
-               shannon_entropy, inter_species_predictions_final, inter_species_predictions_average
+        # Now use both the final and time-averaged community populations to determine SAR, binary and
+        # population-weighted information dimension (community spatial complexity), and species-rank abundance
+        complexity_final = self.complexity_analysis(sub_networks=community_state_sub_networks)
+        complexity_average = self.complexity_analysis(sub_networks=time_averaged_sub_networks)
 
-    def inter_species_predictions(self, population_array, patch_habitat):
+        return network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
+               shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, \
+               complexity_final, complexity_average
+
+    def complexity_analysis(self, sub_networks):
+        return {}
+
+    def generate_sub_networks(self, population_array, patch_habitat, habitat_type_nums):
         # For each subnetwork
         # 	– Determine the adjacency matrix
         #   – Determine the vectors of radius-1 and radius-2 population sizes
         # 	– Determine the network-normalised (by radius-specific local maximum) population vectors
-        # 	    – For each subnetwork (of non-zero size)
-        # 	        – for each (control) species
-        # 		        - for each (control species) radius
-        # 				    - for each (response) species
-        # 					    - for each (response species) radius
-        # 						    A. determine the presence predictions
-        #                           B. similarity
-        #                           C. species A -> species B (product and root calculation)
-        # 							D. correlation coefficients (for co-variance of populations)
-        # 							E. linear model fit
-        #
-
-        # Prepare keys for each habitat
-        species_list = [x.name for x in self.species_set["list"]]
-        habitat_type_nums = list(self.habitat_type_dictionary.keys())
-        habitat_type_nums.sort()
-
-        # Prepare the nested storage structures:
-        inner_species_val = {species_name: {radius: 0.0 for radius in range(3)} for species_name in species_list}
-        outer_species_val = {species_name: {radius: deepcopy(inner_species_val) for radius in range(3)}
-                             for species_name in species_list}
-        inner_species_dict = {species_name: {radius: {} for radius in range(3)} for species_name in species_list}
-        outer_species_dict = {species_name: {radius: deepcopy(inner_species_dict) for radius in range(3)}
-                              for species_name in species_list}
-
-        presence_store = {'all': deepcopy(outer_species_val)}
-        similarity_store = {'all': deepcopy(outer_species_val)}
-        prediction_store = {'all': deepcopy(outer_species_val)}
-        correlation_store = {'all': deepcopy(outer_species_dict)}
-        linear_model_store = {'all': deepcopy(outer_species_dict)}
-
-        for habitat_type_num in habitat_type_nums:
-            presence_store[habitat_type_num] = deepcopy(outer_species_val)
-            similarity_store[habitat_type_num] = deepcopy(outer_species_val)
-            prediction_store[habitat_type_num] = deepcopy(outer_species_val)
-            correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
-            linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
 
         # produce habitat subnetworks first - including adjacency arrays (store them in dict with same network keys)
         sub_networks = {}
@@ -759,6 +746,43 @@ class System_state:
                 })
             else:
                 sub_networks[network_key] = {"num_patches": 0}
+        return sub_networks
+
+    def inter_species_predictions(self, sub_networks, habitat_type_nums):
+        # For each subnetwork (of non-zero size)
+        #   – for each (control) species
+        #       - for each (control species) radius
+        # 		    - for each (response) species
+        # 			    - for each (response species) radius
+        # 			        A. determine the presence predictions
+        #                   B. similarity
+        #                   C. species A -> species B (product and root calculation)
+        # 				    D. correlation coefficients (for co-variance of populations)
+        # 					E. linear model fit
+        #
+
+        species_list = [x.name for x in self.species_set["list"]]
+
+        # Prepare the nested storage structures:
+        inner_species_val = {species_name: {radius: 0.0 for radius in range(3)} for species_name in species_list}
+        outer_species_val = {species_name: {radius: deepcopy(inner_species_val) for radius in range(3)}
+                             for species_name in species_list}
+        inner_species_dict = {species_name: {radius: {} for radius in range(3)} for species_name in species_list}
+        outer_species_dict = {species_name: {radius: deepcopy(inner_species_dict) for radius in range(3)}
+                              for species_name in species_list}
+
+        presence_store = {'all': deepcopy(outer_species_val)}
+        similarity_store = {'all': deepcopy(outer_species_val)}
+        prediction_store = {'all': deepcopy(outer_species_val)}
+        correlation_store = {'all': deepcopy(outer_species_dict)}
+        linear_model_store = {'all': deepcopy(outer_species_dict)}
+
+        for habitat_type_num in habitat_type_nums:
+            presence_store[habitat_type_num] = deepcopy(outer_species_val)
+            similarity_store[habitat_type_num] = deepcopy(outer_species_val)
+            prediction_store[habitat_type_num] = deepcopy(outer_species_val)
+            correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
+            linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
 
         # Now for each subnetwork:
         for network_key in sub_networks.keys():
