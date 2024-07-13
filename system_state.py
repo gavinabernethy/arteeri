@@ -2,113 +2,10 @@ import numpy as np
 from copy import deepcopy
 from collections import Counter
 from degree_distribution import power_law_curve_fit
-from scipy.stats import spearmanr, pearsonr, linregress
+from scipy.stats import spearmanr, pearsonr
 from data_manager_functions import update_local_population_nets
-
-
-def tuple_builder(property_list):
-    if len(property_list) == 0:
-        sd_tuple = (0.0, 0.0, 0.0)
-    else:
-        mean_property = np.mean(property_list)
-        st_dev_property = np.std(property_list)
-        sd_tuple = (mean_property - st_dev_property, mean_property, mean_property + st_dev_property)
-    return sd_tuple
-
-
-def linear_model_report(x_val, y_val):
-    # checks for typical causes of error, then if valid conducts a linear regression and returns all results in a
-    # dictionary structure
-    lm_slope, lm_intercept, lm_r, lm_p, lm_std_err = [0, 0, 0, 0, 0]
-    is_lm_success = 0
-    if len(x_val) == len(y_val) > 1 and not (x_val == float('inf')).any() and not (x_val == float('-inf')).any() and \
-            not (y_val == float('inf')).any() and not (y_val == float('-inf')).any():
-        try:
-            lm_slope, lm_intercept, lm_r, lm_p, lm_std_err = linregress(x_val, y_val)
-            is_lm_success = 1
-        except ValueError:
-            pass
-    linear_model = {
-        "is_success": is_lm_success,
-        "slope": lm_slope,
-        "intercept": lm_intercept,
-        "r": lm_r,
-        "p": lm_p,
-        "std_err": lm_std_err,
-    }
-    return linear_model
-
-
-def generate_cluster(sub_network, size):
-    num_attempts = 0
-    max_attempts = 100
-    adjacency_matrix = sub_network["adjacency_array"]
-    # try to generate and return a connected cluster of the given size from the provided sub_network
-
-    is_success = False
-    cluster = []
-    # is it possible in principle?
-    if size <= sub_network["num_patches"]:
-        while num_attempts < max_attempts and not is_success:
-            is_success = True
-            num_attempts += 1
-            cluster = []  # will store the row-column indices relative to the current sub_network
-            eligible_patch_indices = [x for x in range(sub_network["num_patches"])]
-
-            # initial
-            draw_num = np.random.choice(eligible_patch_indices)
-            cluster.append(draw_num)
-            eligible_patch_indices.remove(draw_num)
-
-            # attempt to draw an element connected to existing elements
-            if size > 1:
-                for num_element in range(size - 1):
-
-                    possible_draw = set()
-                    # find the neighbours of the current cluster members
-                    for potential_element in eligible_patch_indices:
-                        for existing_member in cluster:
-                            if adjacency_matrix[existing_member, potential_element] == 1 or \
-                                    adjacency_matrix[potential_element, existing_member] == 1:
-                                possible_draw.add(potential_element)
-                                break
-                    draw_list = list(possible_draw)
-                    if len(draw_list) > 0:
-                        draw_num = np.random.choice(draw_list)
-                        cluster.append(draw_num)
-                        eligible_patch_indices.remove(draw_num)
-                    else:
-                        is_success = False
-                        cluster = []
-                        break
-    return cluster, is_success
-
-
-def determine_complexity(sub_network, cluster, is_normalised):
-    # sum the state difference value over all patch pairs in the cluster
-    total_difference = 0
-    if sub_network["num_patches"] > 1:
-        for lower_patch_index in range(len(cluster) - 1):
-            for upper_patch_index in range(lower_patch_index + 1, len(cluster)):
-                # compare pair
-                if is_normalised:
-                    # for populations - difference should be |x_i - x_j| / bar{x}
-                    lower_vector = sub_network["normalised_population_arrays"][0][lower_patch_index, :]
-                    upper_vector = sub_network["normalised_population_arrays"][0][lower_patch_index, :]
-                else:
-                    # for binary (occupancy) comparison - difference should be 1 or 0
-                    lower_vector = sub_network["population_arrays"][0][lower_patch_index, :]
-                    upper_vector = sub_network["population_arrays"][0][lower_patch_index, :]
-                difference = 0
-                for species_index in range(len(lower_vector)):
-                    difference += np.abs(lower_vector[species_index] - upper_vector[species_index])
-                total_difference += difference
-        # report the per-patch average (rather than the per-pair average, as this is then
-        # compared with log(cluster size) in the subsequent information dimension calculation)
-        patch_average = total_difference / sub_network["num_patches"]
-    else:
-        patch_average = 0.0
-    return patch_average
+from system_state_functions import tuple_builder, linear_model_report, generate_cluster, \
+    determine_complexity, rank_abundance
 
 
 class System_state:
@@ -556,7 +453,7 @@ class System_state:
         # Call this to conduct extensive population distribution and community state spatial distribution analysis.
         network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
         shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, \
-        complexity_final, complexity_average = self.distance_metrics()
+        complexity_final, complexity_average, rank_abundance_final, rank_abundance_average = self.distance_metrics()
         self.distance_metrics_store = {
             "network_analysis_species": network_analysis_species,
             "network_analysis_community_distance": network_analysis_community_distance,
@@ -566,6 +463,8 @@ class System_state:
             "inter_species_predictions_average": inter_species_predictions_average,
             "complexity_final": complexity_final,
             "complexity_average": complexity_average,
+            "rank_abundance_final": rank_abundance_final,
+            "rank_abundance_average": rank_abundance_average,
         }
 
     def distance_metrics(self):
@@ -749,9 +648,16 @@ class System_state:
         complexity_average = self.complexity_analysis(
             sub_networks=time_averaged_sub_networks, corresponding_binary=None)
 
+        # Species-rank abundance - fit a log-linear model to the curve of relative global abundance vs. species rank
+        #
+        # Calculated from final populations:
+        rank_abundance_final = rank_abundance(sub_networks=community_state_sub_networks)
+        # Calculated from time-averaged populations:
+        rank_abundance_average = rank_abundance(sub_networks=time_averaged_sub_networks)
+
         return network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
                shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, \
-               complexity_final, complexity_average
+               complexity_final, complexity_average, rank_abundance_final, rank_abundance_average
 
     def complexity_analysis(self, sub_networks, corresponding_binary):
         # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
@@ -795,6 +701,14 @@ class System_state:
                             species_diversity[delta - 1] += self.count_diversity(
                                 sub_network=sub_networks[network_key],
                                 cluster=cluster)
+
+                            # ----- Complexity (information dimension) ----- #
+                            #
+                            # For this we compare all unique pairs of patches within the cluster, and sum the total of
+                            # their differences in state (either binary or weighted relative to the
+                            # sub-network-species-normalised populations).
+                            # Then the complexity dimension examines how the rate of complexity increase compares with
+                            # the rate of the increase in cluster size.
 
                             # determine binary complexity within cluster
                             if corresponding_binary is not None:
@@ -846,7 +760,7 @@ class System_state:
             if max_delta > 2 and len(x_val) > 2:
                 # linear regressions
                 #
-                # check for non-zero values of diversity and complexity
+                # ensure only non-zero values of diversity and complexity
                 if not (species_diversity == 0).any():
                     sar_y_val = np.log(species_diversity)
                     lm_sar = linear_model_report(x_val=x_val, y_val=sar_y_val)
