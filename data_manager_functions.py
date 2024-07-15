@@ -97,11 +97,11 @@ def format_dictionary_to_JSON_string(input_string, is_final_item):
             for sub_index, sub_element in enumerate(closed_sublist[0:len(closed_sublist) - 1]):
                 indent_count -= 1
 
-                if len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index+1]) > 0:
-                    base_string += sub_element + '\n' + '    ' * indent_count + '},\n' + '    ' * (indent_count-1)
-                elif len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index+1]) == 0:
+                if len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index + 1]) > 0:
+                    base_string += sub_element + '\n' + '    ' * indent_count + '},\n' + '    ' * (indent_count - 1)
+                elif len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index + 1]) == 0:
                     base_string += sub_element + '\n' + '    ' * indent_count + '}\n' + '    ' * (indent_count - 1)
-                elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index+1]) > 0:
+                elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index + 1]) > 0:
                     base_string += sub_element + '},\n' + '    ' * (indent_count - 1)
                 elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index + 1]) == 0:
                     if element_index == len(open_list) - 1 and sub_index == len(closed_sublist) - 2:
@@ -340,7 +340,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     for patch_num, patch in enumerate(patch_list):
         length = np.sqrt(patch.size)
 
-        position = (patch.position[0]*patch_scaling_factor, patch.position[1]*patch_scaling_factor)
+        position = (patch.position[0] * patch_scaling_factor, patch.position[1] * patch_scaling_factor)
         min_val = np.asarray([min(min_val[0], position[0] - length), min(min_val[1], position[1] - length)])
         max_val = np.asarray([max(max_val[0], position[0] + 2 * length), max(max_val[1], position[1] + 2 * length)])
 
@@ -411,7 +411,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
             # check for wrap
             is_x_wrap = False
             is_y_wrap = False
-            if min_x+1 < max_x and min_y+1 < max_y:
+            if min_x + 1 < max_x and min_y + 1 < max_y:
                 if patch_list[path_tuple[0]].position[0] == patch_list[path_tuple[1]].position[0]:
                     if {min_y, max_y} <= {patch_list[path_tuple[0]].position[1], patch_list[path_tuple[1]].position[1]}:
                         is_y_wrap = True
@@ -422,10 +422,10 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
             start_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
             end_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
             if is_x_wrap or is_y_wrap:
-                patch_one = [patch_list[path_tuple[0]].position[0]*patch_scaling_factor + start_patch_radius,
-                             patch_list[path_tuple[0]].position[1]*patch_scaling_factor + start_patch_radius]
-                patch_two = [patch_list[path_tuple[1]].position[0]*patch_scaling_factor + end_patch_radius,
-                             patch_list[path_tuple[1]].position[1]*patch_scaling_factor + end_patch_radius]
+                patch_one = [patch_list[path_tuple[0]].position[0] * patch_scaling_factor + start_patch_radius,
+                             patch_list[path_tuple[0]].position[1] * patch_scaling_factor + start_patch_radius]
+                patch_two = [patch_list[path_tuple[1]].position[0] * patch_scaling_factor + end_patch_radius,
+                             patch_list[path_tuple[1]].position[1] * patch_scaling_factor + end_patch_radius]
                 both_patches = [patch_one, patch_two]
                 for line_num in range(2):
                     x_start = both_patches[line_num][0]
@@ -433,7 +433,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                         x_end = both_patches[line_num][0] - (both_patches[line_num - 1][0] -
                                                              both_patches[line_num][0]) / (np.sqrt(len(patch_list)))
                     else:
-                        x_end = both_patches[line_num][0] + (both_patches[line_num-1][0] -
+                        x_end = both_patches[line_num][0] + (both_patches[line_num - 1][0] -
                                                              both_patches[line_num][0]) / 2
                     y_start = both_patches[line_num][1]
                     if is_y_wrap:
@@ -518,9 +518,9 @@ def global_species_time_series_properties(
     num_time_steps = step + 1
     for species in species_set["list"]:
         species_global_population, species_global_population_change, species_global_patches_occupied, \
-            species_global_patches_occupied_change, species_internal_population_change, species_dispersal_out, \
-            species_dispersal_in, species_patches_colonised, species_patches_extinct, species_source_average, \
-            species_sink_average = (np.zeros([num_time_steps, 1]) for _ in range(11))
+        species_global_patches_occupied_change, species_internal_population_change, species_dispersal_out, \
+        species_dispersal_in, species_patches_colonised, species_patches_extinct, species_source_average, \
+        species_sink_average = (np.zeros([num_time_steps, 1]) for _ in range(11))
         species_source_index = np.zeros([num_time_steps, 5])
         species_sink_index = np.zeros([num_time_steps, 5])
 
@@ -551,12 +551,12 @@ def global_species_time_series_properties(
                         if float(local_pop.population_history[_]) >= local_pop.species.minimum_population_size:
                             species_global_patches_occupied[_] += 1
 
-                            if _ > 0 and float(local_pop.population_history[_ - 1]) <\
+                            if _ > 0 and float(local_pop.population_history[_ - 1]) < \
                                     local_pop.species.minimum_population_size:
                                 species_patches_colonised[_] += 1
                                 species_global_patches_occupied_change[_] += 1
 
-                        elif _ > 0 and float(local_pop.population_history[_ - 1]) >=\
+                        elif _ > 0 and float(local_pop.population_history[_ - 1]) >= \
                                 local_pop.species.minimum_population_size:
                             species_patches_extinct[_] += 1
                             species_global_patches_occupied_change[_] += 1
@@ -1192,6 +1192,125 @@ def find_connected_sets(patch_list, starting_node, scale, list_of_lists):
     return list_of_lists
 
 
+# ------------------------- PRODUCING DISTANCE, NETWORK, COMPLEXITY LINEAR REGRESSION PLOTS ------------------------- #
+
+def plot_distance_metrics_lm(distance_metrics_store, sim, step):
+    # produce plots of the linear models associated with distance metrics analysis, together with scatter plots of the
+    # data they were fitted to, if this was collected.
+
+    # recursively search the tree of the dictionary
+    list_of_key_paths = recursive_dict_search(nested_dict=distance_metrics_store,
+                                              seek_contains_key="is_linear_model",
+                                              upper_key_path=None)
+    if len(list_of_key_paths) > 0:
+        # results found
+        for path in list_of_key_paths:
+            key_list = path.split("|")
+            target_dict = distance_metrics_store
+            for key in key_list:
+                # iterate through the keys in a given path
+                try:
+                    target_dict = target_dict[key]
+                except KeyError:
+                    # possibly the dictionary key is an integer (habitat type number) and not a string
+                    try:
+                        target_dict = target_dict[int(key)]
+                    except KeyError:
+                        raise Exception("Key failure.")
+            # now target_dict is a linear model output dictionary in standard format
+            if target_dict["is_success"] == 1:
+                model_type = target_dict["model_type_str"]  # identifies if log-log, lin-log, lin-lin, or log-lin
+                slope = target_dict["slope"]
+                intercept = target_dict["intercept"]
+                # plot the linear model, reconstructed to the appropriate base model
+                x_start = target_dict["x_lim"][0]
+                x_end = target_dict["x_lim"][1]
+                num_plot_values = 1000
+                if model_type in ["lin-log", "log-log"]:
+                    # transform fitting x-values back if x-axis was on log scale
+                    x_start = np.exp(x_start)
+                    x_end = np.exp(x_end)
+                plot_x_values = np.linspace(x_start, x_end, num_plot_values)
+                plot_y_values = np.zeros(num_plot_values)
+                for test_val_index in range(num_plot_values):
+                    plot_y_values[test_val_index] = linear_model_function(model_type=model_type,
+                                                                          slope=slope, intercept=intercept,
+                                                                          x_val=plot_x_values[test_val_index])
+                fig = plt.figure()
+                plt.plot(plot_x_values, plot_y_values, c='r')
+
+                # check if x_val and y_val were printed
+                try:
+                    x_values = target_dict["x_val"]
+                    y_values = target_dict["y_val"]
+                    # transform both x- and y- empirical values back to original domains if necessary
+                    if model_type in ["lin-log", "log-log"]:
+                        x_values = np.exp(x_values)
+                    if model_type in ["log-lin", "log-log"]:
+                        y_values = np.exp(y_values)
+                except KeyError:
+                    pass
+                else:
+                    # if so calculate the r-squared
+                    ss_res = 0.0
+                    ss_tot = 0.0
+                    y_actual_mean = np.mean(y_values)
+                    for x_index, x_val in enumerate(x_values):
+                        # observed y_val
+                        y_val = y_values[x_index]
+                        # then what is the fitted y_val for this?
+                        y_plot_val = linear_model_function(model_type, slope, intercept, x_val)
+                        ss_res += (y_val - y_plot_val) ** 2.0
+                        ss_tot += (y_val - y_actual_mean) ** 2.0
+                    if ss_tot == 0.0:
+                        # default to zero if no variation in output - even if this means a perfect y=c line can be fit!
+                        r_str = "0.0"
+                    else:
+                        r_squared = 1.0 - ss_res / ss_tot
+                        r_str = "{0:.3g}".format(r_squared)
+                    # scatter the empirical data points on the same plot
+                    plt.scatter(x_values, y_values)
+                    plt.legend((f'Fit: $R^{2}$ = {r_str}', 'Actual values'))
+                    plt.xlabel('Input')
+                    plt.ylabel('Output')
+                    print_name = path.replace('|', '_')
+                    file_path = f"results/{sim}/{step}/figures/linear_models/{print_name}.png"
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    plt.savefig(file_path, dpi=400)
+                    plt.close(fig)
+
+
+def linear_model_function(model_type, slope, intercept, x_val):
+    if model_type == "lin-lin":
+        y_val = slope * x_val + intercept
+    elif model_type == "log-log":
+        y_val = np.exp(intercept) * x_val ** slope
+    elif model_type == "log-lin":  # (y, x)
+        y_val = np.exp(slope * x_val + intercept)
+    elif model_type == "lin-log":  # (y, x)
+        y_val = slope * np.log(x_val) + intercept
+    else:
+        raise Exception("Invalid type of model underlying linear model fit.")
+    return y_val
+
+
+def recursive_dict_search(nested_dict, seek_contains_key, upper_key_path):
+    # recursively search a nested dictionary for any sub-dictionaries containing the provided "seek key"
+    paths_to_target_dict = []
+    for key, value in nested_dict.items():
+        if upper_key_path is not None:
+            key_path = str(upper_key_path) + '|' + str(key)
+        else:
+            key_path = str(key)
+        if key == seek_contains_key:
+            paths_to_target_dict.append(upper_key_path)
+        elif isinstance(value, dict):
+            next_results = recursive_dict_search(value, seek_contains_key, key_path)
+            for result in next_results:
+                paths_to_target_dict.append(result)
+    return paths_to_target_dict
+
+
 # --------------------------------------- PRODUCING DEGREE DISTRIBUTION --------------------------------------- #
 
 def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_fit_history, sim, step):
@@ -1208,7 +1327,7 @@ def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_
             this_distribution = degree_distribution_history[test_step]  # list of frequencies starting at k=0
             this_power_law = degree_dist_power_law_fit_history[test_step]  # [fit_success, a, b, start_x, covariance]
             break
-    x_dist_data = np.linspace(0, len(this_distribution)-1, len(this_distribution))
+    x_dist_data = np.linspace(0, len(this_distribution) - 1, len(this_distribution))
     y_dist_data = np.asarray(this_distribution)
     # scatter plot
     fig = plt.figure()
@@ -1250,6 +1369,11 @@ def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_
 # --------------------------------------- PRODUCING SPECIES-AREA CURVES (SAR) --------------------------------------- #
 
 def biodiversity_analysis(patch_list, species_set, parameters, sim, step):
+    #
+    # This conducts a slightly more comprehensive SAR investigation, for plotting, than the version included as part of
+    # the network complexity analysis in system_state.complexity_analysis() (that is,
+    # species_diversity += system_state.count_diversity()).
+
     # note that this can take a long time if there is a large number (>200) of patches
     max_patches = parameters["main_para"]["NUM_PATCHES"]
     minimum_tries = parameters["plot_save_para"]["MIN_BIODIVERSITY_ATTEMPTS"]

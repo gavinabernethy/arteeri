@@ -139,6 +139,10 @@ master_para = {
 
             # do we load the hurst module and attempt to calculate Hurst exponents?
             "IS_CALCULATE_HURST": False,
+
+            # When conducting distance metric, network and complexity analyses that include linear regressions, do we
+            # record the vectors of values, to reconstruct the raw data scatter plots against the fitted models later?
+            "IS_RECORD_METRICS_LM_VECTORS": True,
         },
     "plot_save_para":
         {
@@ -146,7 +150,9 @@ master_para = {
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": False,  # do you save ANY data files?
-            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
+            # scatter plots of the base data, if collected - see option in main_para)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.

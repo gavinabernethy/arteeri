@@ -449,11 +449,12 @@ class System_state:
         print(f"Paths built for patch {patch.number}/{len(self.patch_list) - 1}")
 
     # --------------------------- SPECIES / COMMUNITY DISTRIBUTION ANALYSIS ----------------------------------------- #
-    def update_distance_metrics(self):
+    def update_distance_metrics(self, parameters):
         # Call this to conduct extensive population distribution and community state spatial distribution analysis.
-        network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
-        shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, \
-        complexity_final, complexity_average, rank_abundance_final, rank_abundance_average = self.distance_metrics()
+        [network_analysis_species, network_analysis_community_distance, network_analysis_state_probability,
+         shannon_entropy, inter_species_predictions_final, inter_species_predictions_average,
+         complexity_final, complexity_average, rank_abundance_final, rank_abundance_average] = self.distance_metrics(
+            parameters=parameters)
         self.distance_metrics_store = {
             "network_analysis_species": network_analysis_species,
             "network_analysis_community_distance": network_analysis_community_distance,
@@ -467,7 +468,7 @@ class System_state:
             "rank_abundance_average": rank_abundance_average,
         }
 
-    def distance_metrics(self):
+    def distance_metrics(self, parameters):
         # Analysis of species and community distributions:
         #
         #  * inter-species predictions
@@ -504,8 +505,15 @@ class System_state:
         #         * average (of normalised by max local population anywhere in system) difference in population sizes
         #           across links - recorded as an array with the total difference and the counted links (for
         #           all, same, different, and every specific habitat pairing).
-        #
+        # * complexity analysis
+        #       - species-area relation (SAR), as the count of the number of different species (diversity) in clusters
+        #       - complexity information dimension, as the scaling of state complexity (both binary and
+        #           population-weighted versions) with cluster size, where complexity is the summed difference between
+        #           all the patch-pairs in the cluster.
+        # * species rank-abundance
+        #       - the rate of decrease of abundance (total global population) with species' rank by abundance.
 
+        is_record_lm_vectors = parameters["main_para"]["IS_RECORD_METRICS_LM_VECTORS"]
         update_local_population_nets(system_state=self)  # required to update .occupancy attribute of local_populations
         num_patches = len(self.current_patch_list)
         num_species = len(self.species_set["list"])
@@ -526,7 +534,6 @@ class System_state:
         community_state_population_array = np.zeros([num_patches, num_species])
         time_averaged_population_array = np.zeros([num_patches, num_species])  # prediction analysis for ave populations
         for species_index, species_name in enumerate(species_list):
-            total_final_pop = 0.0
             for patch_num in self.current_patch_list:
                 # presence/absence
                 community_state_presence_array[patch_num, species_index] = \
@@ -622,7 +629,8 @@ class System_state:
         # use the non-normalised final population (returns five dictionaries)
         presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
             self.inter_species_predictions(sub_networks=community_state_sub_networks,
-                                           habitat_type_nums=habitat_type_nums)
+                                           habitat_type_nums=habitat_type_nums,
+                                           is_record_lm_vectors=is_record_lm_vectors)
         inter_species_predictions_final = {
             "presence_store": presence_store,
             "similarity_store": similarity_store,
@@ -632,7 +640,9 @@ class System_state:
         }
         # and the time-averaged populations
         presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
-            self.inter_species_predictions(sub_networks=time_averaged_sub_networks, habitat_type_nums=habitat_type_nums)
+            self.inter_species_predictions(sub_networks=time_averaged_sub_networks,
+                                           habitat_type_nums=habitat_type_nums,
+                                           is_record_lm_vectors=is_record_lm_vectors)
         inter_species_predictions_average = {
             "presence_store": presence_store,
             "similarity_store": similarity_store,
@@ -644,412 +654,26 @@ class System_state:
         # Now use both the final and time-averaged community populations to determine SAR, binary and
         # population-weighted information dimension (community spatial complexity), and species-rank abundance
         complexity_final = self.complexity_analysis(
-            sub_networks=community_state_sub_networks, corresponding_binary=community_presence_sub_networks)
+            sub_networks=community_state_sub_networks,
+            corresponding_binary=community_presence_sub_networks,
+            is_record_lm_vectors=is_record_lm_vectors)
         complexity_average = self.complexity_analysis(
-            sub_networks=time_averaged_sub_networks, corresponding_binary=None)
+            sub_networks=time_averaged_sub_networks,
+            corresponding_binary=None,
+            is_record_lm_vectors=is_record_lm_vectors)
 
         # Species-rank abundance - fit a log-linear model to the curve of relative global abundance vs. species rank
         #
         # Calculated from final populations:
-        rank_abundance_final = rank_abundance(sub_networks=community_state_sub_networks)
+        rank_abundance_final = rank_abundance(sub_networks=community_state_sub_networks,
+                                              is_record_lm_vectors=is_record_lm_vectors)
         # Calculated from time-averaged populations:
-        rank_abundance_average = rank_abundance(sub_networks=time_averaged_sub_networks)
+        rank_abundance_average = rank_abundance(sub_networks=time_averaged_sub_networks,
+                                                is_record_lm_vectors=is_record_lm_vectors)
 
-        return network_analysis_species, network_analysis_community_distance, network_analysis_state_probability, \
-               shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, \
-               complexity_final, complexity_average, rank_abundance_final, rank_abundance_average
-
-    def complexity_analysis(self, sub_networks, corresponding_binary):
-        # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
-        # points after random sampling (multiple attempts for each) of several random clusters of connected patches
-        # within the sub_network, conducts a linear regression to analyse:
-        # - the SAR (species abundance relation, i.e. how does species diversity increase with patch size)
-        # - possibly two forms of complexity/information dimension:
-        #       - a binary version based on community states, only calculated if a corresponding_binary matrix is
-        #           passed in, as we assume sub_networks to contain population sizes rather than binary occupancies.
-        #           The expectation is that this is conducted only for the final meta-community snapshot, and not for
-        #            time-averaged versions for which we would also conduct population (rather than binary) analysis.
-        #       - a population-weighted version using the sub_networks' populations, normalised for each sub_network.
-        complexity_report = {}
-
-        # need to treat each sub_network entirely separately
-        for network_key in sub_networks.keys():
-            current_num_patches = sub_networks[network_key]["num_patches"]
-            max_delta = int(min(current_num_patches / 4, np.sqrt(current_num_patches)))
-
-            # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
-            if max_delta > 2:
-
-                # prepare holding arrays
-                successful_clusters = np.zeros(max_delta)
-                species_diversity = np.zeros(max_delta)
-                binary_complexity = np.zeros(max_delta)
-                population_weighted_complexity = np.zeros(max_delta)
-
-                # iterate over cluster radius
-                for delta in range(1, max_delta + 1):
-                    num_clusters = 10
-
-                    # iterate over clusters of this radius
-                    for cluster_attempt in range(num_clusters):
-                        cluster, is_success = generate_cluster(sub_network=sub_networks[network_key], size=delta)
-
-                        if is_success:
-                            successful_clusters[delta - 1] += 1
-
-                            # determine total diversity in cluster
-                            species_diversity[delta - 1] += self.count_diversity(
-                                sub_network=sub_networks[network_key],
-                                cluster=cluster)
-
-                            # ----- Complexity (information dimension) ----- #
-                            #
-                            # For this we compare all unique pairs of patches within the cluster, and sum the total of
-                            # their differences in state (either binary or weighted relative to the
-                            # sub-network-species-normalised populations).
-                            # Then the complexity dimension examines how the rate of complexity increase compares with
-                            # the rate of the increase in cluster size.
-
-                            # determine binary complexity within cluster
-                            if corresponding_binary is not None:
-                                # NOTE: we ONLY conduct this analysis for the final and not the time-averaged version,
-                                # passing in the corresponding final-occupancy-based sub_network
-                                binary_complexity[delta - 1] += determine_complexity(
-                                    sub_network=corresponding_binary[network_key],
-                                    cluster=cluster,
-                                    is_normalised=False)
-
-                            # determine population-weighted complexity within cluster
-                            population_weighted_complexity[delta - 1] += determine_complexity(
-                                sub_network=sub_networks[network_key],
-                                cluster=cluster,
-                                is_normalised=True)
-
-                    # normalise output arrays
-                    if successful_clusters[delta - 1] > 0:
-                        species_diversity[delta - 1] = species_diversity[delta - 1] / successful_clusters[delta - 1]
-                        binary_complexity[delta - 1] = binary_complexity[delta - 1] / successful_clusters[delta - 1]
-                        population_weighted_complexity[delta - 1] = population_weighted_complexity[
-                                                                        delta - 1] / successful_clusters[delta - 1]
-
-                # prepare x-dimension array
-                x_val = np.log(np.arange(1, max_delta + 1))
-
-                # exclude any zero-size elements
-                is_pass = False
-                while len(x_val) > 0 and not is_pass:
-                    is_pass = True
-                    for delta_index in range(len(x_val)):
-                        if successful_clusters[delta_index] == 0:
-                            is_pass = False
-                            # remove this entry from all vectors
-                            x_val = np.delete(x_val, delta_index, axis=0)
-                            successful_clusters = np.delete(successful_clusters, delta_index, axis=0)
-                            species_diversity = np.delete(species_diversity, delta_index, axis=0)
-                            binary_complexity = np.delete(binary_complexity, delta_index, axis=0)
-                            population_weighted_complexity = np.delete(population_weighted_complexity,
-                                                                       delta_index, axis=0)
-                            break
-            else:
-                x_val = np.array([])
-                species_diversity = np.array([])
-                binary_complexity = np.array([])
-                population_weighted_complexity = np.array([])
-
-            # check arrays still have sufficiently-many entries
-            if max_delta > 2 and len(x_val) > 2:
-                # linear regressions
-                #
-                # ensure only non-zero values of diversity and complexity
-                if not (species_diversity == 0).any():
-                    sar_y_val = np.log(species_diversity)
-                    lm_sar = linear_model_report(x_val=x_val, y_val=sar_y_val)
-                    # for the SAR, fitted relationship is diversity = exp(intercept) * size ^ (gradient)
-                else:
-                    lm_sar = {"is_success": 0}
-
-                if not (binary_complexity == 0).any():
-                    bin_comp_y_val = np.log(binary_complexity)
-                    lm_binary_complexity = linear_model_report(x_val=x_val, y_val=bin_comp_y_val)
-                    # complexity dimension is -gradient
-                    lm_binary_complexity["complexity_dimension"] = -lm_binary_complexity["slope"]
-                else:
-                    lm_binary_complexity = {"is_success": 0}
-
-                if not (population_weighted_complexity == 0).any():
-                    pop_weight_y_val = np.log(population_weighted_complexity)
-                    lm_pop_weighted_complexity = linear_model_report(x_val=x_val, y_val=pop_weight_y_val)
-                    # complexity dimension is -gradient
-                    lm_pop_weighted_complexity["complexity_dimension"] = -lm_pop_weighted_complexity["slope"]
-                else:
-                    lm_pop_weighted_complexity = {"is_success": 0}
-
-                # record
-                complexity_report[network_key] = {
-                    "is_success": 1,
-                    "lm_sar": lm_sar,
-                    "lm_binary_complexity": lm_binary_complexity,
-                    "lm_pop_weighted_complexity": lm_pop_weighted_complexity,
-                }
-            else:
-                complexity_report[network_key] = {
-                    "is_success": 0,
-                    "lm_sar": {},
-                    "lm_binary_complexity": {},
-                    "lm_pop_weighted_complexity": {},
-                }
-
-        return complexity_report
-
-    def count_diversity(self, sub_network, cluster):
-        # count the number of species present in the population array of this sub_network, whose relatively-nth patches
-        # are indexed by the list "cluster" - cluster does NOT contain inherent patch numbers (unless the sub_network
-        # is 'all' and zero patches have been deleted.)
-        found_species_set = set()
-        for patch_index in cluster:
-            population_vector = sub_network["population_arrays"][0][patch_index, :]
-            for possible_species_index in range(len(population_vector)):
-                this_species_min = self.species_set["list"][possible_species_index].minimum_population_size
-                if population_vector[possible_species_index] > this_species_min:
-                    found_species_set.add(possible_species_index)
-        diversity = len(found_species_set)
-        return diversity
-
-    def generate_sub_networks(self, population_array, patch_habitat, habitat_type_nums):
-        # For each subnetwork
-        # 	– Determine the adjacency matrix
-        #   – Determine the vectors of radius-1 and radius-2 population sizes
-        # 	– Determine the network-normalised (by radius-specific local maximum) population vectors
-
-        # produce habitat subnetworks first - including adjacency arrays (store them in dict with same network keys)
-        sub_networks = {}
-        sub_network_list = [x for x in habitat_type_nums]
-        sub_network_list.append('all')
-        for network_key in sub_network_list:
-            # need adjacency matrix and population array
-            temp_num_patches = len(self.current_patch_list)
-            temp_adjacency = deepcopy(self.patch_adjacency_matrix)
-            temp_population = deepcopy(population_array)
-            temp_patch_habitat = deepcopy(patch_habitat)
-
-            # if restricting to a single-habitat sub-network, iterate to eliminate unwanted rows and columns
-            if network_key != 'all':
-                is_pass = False
-                while temp_num_patches > 0 and not is_pass:
-                    is_pass = True
-                    for temp_patch_index in range(temp_num_patches):
-                        if temp_patch_habitat[temp_patch_index] != network_key:
-                            # remove
-                            temp_patch_habitat.pop(temp_patch_index)
-                            temp_population = np.delete(temp_population, temp_patch_index, axis=0)
-                            temp_adjacency = np.delete(temp_adjacency, temp_patch_index, axis=0)
-                            temp_adjacency = np.delete(temp_adjacency, temp_patch_index, axis=1)
-                            # failed to cycle uninterrupted
-                            is_pass = False
-                            temp_num_patches -= 1
-                            break
-
-            # check for non-zero size of sub-network:
-            if temp_num_patches > 0:
-                # now generate the radius-averaged population vectors for each species in this habitat sub-network
-                radius_one_population_array = np.zeros(np.shape(temp_population))
-                radius_two_population_array = np.zeros(np.shape(temp_population))
-                for temp_patch_index in range(temp_num_patches):
-                    for ball_radius in range(1, 3):
-                        if ball_radius == 1:
-                            # ball (radius 1)
-                            ball_patch_indices = list(np.where(temp_adjacency[temp_patch_index, :] != 0)[0])
-                            ball_size = len(ball_patch_indices)
-                        elif ball_radius == 2:
-                            # ball (radius 2)
-                            composite_adjacency = np.matmul(temp_adjacency, temp_adjacency)
-                            ball_patch_indices = list(np.where(composite_adjacency[temp_patch_index, :] != 0)[0])
-                            ball_size = len(ball_patch_indices)
-                        else:
-                            raise Exception("Invalid ball radius.")
-                        # now iterate over each species and take the average population over the elements of the ball
-                        for species_index in range(np.shape(temp_population)[1]):
-                            ball_population = 0.0
-                            for ball_index in ball_patch_indices:
-                                ball_population += temp_population[ball_index, species_index]
-                            if ball_radius == 1:
-                                radius_one_population_array[
-                                    temp_patch_index, species_index] = ball_population / ball_size
-                            elif ball_radius == 2:
-                                radius_two_population_array[
-                                    temp_patch_index, species_index] = ball_population / ball_size
-                            else:
-                                raise Exception("Invalid ball radius.")
-
-                # For each radius, identify max local population for each species and create normalised pop. matrix:
-                population_array_dict = {
-                    0: temp_population,
-                    1: radius_one_population_array,
-                    2: radius_two_population_array,
-                }
-                normalised_pop_array_dict = {}
-                for ball_radius in range(3):
-                    normalised_pop_array = np.zeros(np.shape(population_array_dict[ball_radius]))
-                    for species_index in range(np.shape(population_array_dict[ball_radius])[1]):
-                        species_max_population = np.max(population_array_dict[ball_radius][:, species_index])
-                        if species_max_population > 0.0:
-                            normalised_pop_array[:, species_index] = population_array_dict[ball_radius][
-                                                                     :, species_index] / species_max_population
-                    normalised_pop_array_dict[ball_radius] = deepcopy(normalised_pop_array)
-
-                # now store the single-habitat subnetwork
-                sub_networks[network_key] = deepcopy({
-                    "num_patches": temp_num_patches,
-                    "population_arrays": population_array_dict,
-                    "normalised_population_arrays": normalised_pop_array_dict,
-                    "adjacency_array": temp_adjacency,
-                })
-            else:
-                sub_networks[network_key] = {"num_patches": 0}
-        return sub_networks
-
-    def inter_species_predictions(self, sub_networks, habitat_type_nums):
-        # For each subnetwork (of non-zero size)
-        #   – for each (control) species
-        #       - for each (control species) radius
-        # 		    - for each (response) species
-        # 			    - for each (response species) radius
-        # 			        A. determine the presence predictions
-        #                   B. similarity
-        #                   C. species A -> species B (product and root calculation)
-        # 				    D. correlation coefficients (for co-variance of populations)
-        # 					E. linear model fit
-        #
-
-        species_list = [x.name for x in self.species_set["list"]]
-
-        # Prepare the nested storage structures:
-        inner_species_val = {species_name: {radius: 0.0 for radius in range(3)} for species_name in species_list}
-        outer_species_val = {species_name: {radius: deepcopy(inner_species_val) for radius in range(3)}
-                             for species_name in species_list}
-        inner_species_dict = {species_name: {radius: {} for radius in range(3)} for species_name in species_list}
-        outer_species_dict = {species_name: {radius: deepcopy(inner_species_dict) for radius in range(3)}
-                              for species_name in species_list}
-
-        presence_store = {'all': deepcopy(outer_species_val)}
-        similarity_store = {'all': deepcopy(outer_species_val)}
-        prediction_store = {'all': deepcopy(outer_species_val)}
-        correlation_store = {'all': deepcopy(outer_species_dict)}
-        linear_model_store = {'all': deepcopy(outer_species_dict)}
-
-        for habitat_type_num in habitat_type_nums:
-            presence_store[habitat_type_num] = deepcopy(outer_species_val)
-            similarity_store[habitat_type_num] = deepcopy(outer_species_val)
-            prediction_store[habitat_type_num] = deepcopy(outer_species_val)
-            correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
-            linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
-
-        # Now for each subnetwork:
-        for network_key in sub_networks.keys():
-
-            # Check for validity
-            current_num_patches = sub_networks[network_key]["num_patches"]
-            if current_num_patches > 0:
-                current_norm_pop_arrays = sub_networks[network_key]["normalised_population_arrays"]
-
-                # iterate predictor species
-                for species_1_index, species_1_name in enumerate(species_list):
-
-                    # iterate ball radius
-                    for species_1_ball_radius in range(3):
-                        species_1_pop_vector = current_norm_pop_arrays[species_1_ball_radius][:, species_1_index]
-
-                        # check for non-zero predictor population (given this ball size)
-                        if np.sum(species_1_pop_vector) > 0.0:
-
-                            # iterate response species (including self)
-                            for species_2_index, species_2_name in enumerate(species_list):
-
-                                # iterate ball radius
-                                for species_2_ball_radius in range(3):
-                                    species_2_pop_vector = current_norm_pop_arrays[
-                                                               species_2_ball_radius][:, species_2_index]
-
-                                    # ANALYSIS:
-                                    #
-
-                                    # A. Presence prediction
-                                    species_1_pres_vector = np.zeros(current_num_patches)
-                                    species_2_pres_vector = np.zeros(current_num_patches)
-                                    for patch_index in range(current_num_patches):
-                                        species_1_pres_vector[patch_index] = int(
-                                            species_1_pop_vector[patch_index] > 0.0)
-                                        species_2_pres_vector[patch_index] = int(
-                                            species_2_pop_vector[patch_index] > 0.0)
-                                    presence = np.dot(
-                                        species_1_pres_vector, species_2_pres_vector) / np.sum(species_1_pres_vector)
-                                    presence_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = presence
-
-                                    # B. Similarity
-                                    # sum(sqrt(vector element-wise mult))/(sqrt(sum(predictor)*sum(response)))
-                                    if np.sum(species_1_pop_vector) == 0.0 or np.sum(species_2_pop_vector) == 0.0:
-                                        similarity = 0.0
-                                    else:
-                                        similarity = np.sum(np.sqrt(np.multiply(
-                                            species_1_pop_vector, species_2_pop_vector))) / (np.sqrt(
-                                            np.sum(species_1_pop_vector) * np.sum(
-                                                species_2_pop_vector)))
-                                    similarity_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = similarity
-
-                                    # C. Prediction
-                                    # sum(sqrt(vector element-wise mult))/sum(predictor)
-                                    prediction = np.sum(np.sqrt(np.multiply(species_1_pop_vector, species_2_pop_vector))
-                                                        ) / np.sum(species_1_pop_vector)
-                                    prediction_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = prediction
-
-                                    # D. (Two) correlation coefficients
-                                    # must first test for 'nearly constant' vectors to avoid warnings
-                                    species_1_near_constant = np.var(species_1_pop_vector
-                                                                     ) < 1e-13 * abs(np.mean(species_1_pop_vector))
-                                    species_2_near_constant = np.var(species_2_pop_vector
-                                                                     ) < 1e-13 * abs(np.mean(species_2_pop_vector))
-                                    is_cc_auto_fail = (species_1_near_constant or species_2_near_constant or np.var(
-                                        species_1_pop_vector) <= 0.0 or np.var(species_2_pop_vector) <= 0.0 or
-                                                       len(species_1_pop_vector) < 2 or len(species_2_pop_vector) < 2)
-                                    is_cc_success = 0
-                                    pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
-                                    # for correlation coefficients to work, we need two vectors of at least two pairs
-                                    # and at least some variance
-                                    if not is_cc_auto_fail:
-                                        try:
-                                            pearson_cc, pearson_p = pearsonr(species_1_pop_vector, species_2_pop_vector)
-                                            spearman_rho, spearman_p = spearmanr(
-                                                species_1_pop_vector, species_2_pop_vector)
-                                            is_cc_success = 1
-                                            if pearson_p == float('NaN') or spearman_p == float('NaN'):
-                                                is_cc_success = 0
-                                        except ValueError:
-                                            is_cc_success = 0
-                                    if is_cc_success == 0:
-                                        pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
-                                    corr_coefficients = {
-                                        'is_success': is_cc_success,
-                                        'pearson_cc': pearson_cc,
-                                        'pearson_p_value': pearson_p,
-                                        'spearman_rho': spearman_rho,
-                                        'spearman_p_value': spearman_p,
-                                    }
-                                    correlation_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][
-                                        species_2_ball_radius] = corr_coefficients
-
-                                    # E. Linear model
-                                    # note that we could use curve_fit() for a more general model specification here
-                                    linear_model = linear_model_report(
-                                        x_val=species_1_pop_vector, y_val=species_2_pop_vector)
-                                    linear_model_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model
-
-        # output five nested dictionaries of results
-        return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
+        return [network_analysis_species, network_analysis_community_distance, network_analysis_state_probability,
+                shannon_entropy, inter_species_predictions_final, inter_species_predictions_average,
+                complexity_final, complexity_average, rank_abundance_final, rank_abundance_average]
 
     def network_analysis(self, patch_value_array, patch_habitat, patch_neighbours, is_presence, is_distribution):
         # need value, habitat type, and neighbours of each patch for presence, auto_correlation, clustering analysis
@@ -1069,6 +693,8 @@ class System_state:
                               "same": np.array([0.0, 0.0]),
                               "different": np.array([0.0, 0.0]),
                               }
+        template_presence = {}  # define empty dictionaries to clear pre-allocation warnings
+        difference_distribution = {}
         if is_presence:
             template_presence = {"all": np.array([0.0, 0.0])}  # (mean, standard deviation)
         if is_distribution:
@@ -1225,3 +851,401 @@ class System_state:
                                                      ) * np.log(biodiversity_frequency / value['total'])
             shannon_entropy[key] = {'state': -state_entropy_sum, 'biodiversity': -biodiversity_entropy_sum}
         return shannon_entropy
+
+    def inter_species_predictions(self, sub_networks, habitat_type_nums, is_record_lm_vectors):
+        # For each subnetwork (of non-zero size)
+        #   – for each (control) species
+        #       - for each (control species) radius
+        # 		    - for each (response) species
+        # 			    - for each (response species) radius
+        # 			        A. determine the presence predictions
+        #                   B. similarity
+        #                   C. species A -> species B (product and root calculation)
+        # 				    D. correlation coefficients (for co-variance of populations)
+        # 					E. linear model fit
+        #
+
+        species_list = [x.name for x in self.species_set["list"]]
+
+        # Prepare the nested storage structures:
+        inner_species_val = {species_name: {radius: 0.0 for radius in range(3)} for species_name in species_list}
+        outer_species_val = {species_name: {radius: deepcopy(inner_species_val) for radius in range(3)}
+                             for species_name in species_list}
+        inner_species_dict = {species_name: {radius: {} for radius in range(3)} for species_name in species_list}
+        outer_species_dict = {species_name: {radius: deepcopy(inner_species_dict) for radius in range(3)}
+                              for species_name in species_list}
+
+        presence_store = {'all': deepcopy(outer_species_val)}
+        similarity_store = {'all': deepcopy(outer_species_val)}
+        prediction_store = {'all': deepcopy(outer_species_val)}
+        correlation_store = {'all': deepcopy(outer_species_dict)}
+        linear_model_store = {'all': deepcopy(outer_species_dict)}
+
+        for habitat_type_num in habitat_type_nums:
+            presence_store[habitat_type_num] = deepcopy(outer_species_val)
+            similarity_store[habitat_type_num] = deepcopy(outer_species_val)
+            prediction_store[habitat_type_num] = deepcopy(outer_species_val)
+            correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
+            linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
+
+        # Now for each subnetwork:
+        for network_key in sub_networks.keys():
+
+            # Check for validity
+            current_num_patches = sub_networks[network_key]["num_patches"]
+            if current_num_patches > 0:
+                current_norm_pop_arrays = sub_networks[network_key]["normalised_population_arrays"]
+
+                # iterate predictor species
+                for species_1_index, species_1_name in enumerate(species_list):
+
+                    # iterate ball radius
+                    for species_1_ball_radius in range(3):
+                        species_1_pop_vector = current_norm_pop_arrays[species_1_ball_radius][:, species_1_index]
+
+                        # check for non-zero predictor population (given this ball size)
+                        if np.sum(species_1_pop_vector) > 0.0:
+
+                            # iterate response species (including self)
+                            for species_2_index, species_2_name in enumerate(species_list):
+
+                                # iterate ball radius
+                                for species_2_ball_radius in range(3):
+                                    species_2_pop_vector = current_norm_pop_arrays[
+                                                               species_2_ball_radius][:, species_2_index]
+
+                                    # ANALYSIS:
+                                    #
+
+                                    # A. Presence prediction
+                                    species_1_pres_vector = np.zeros(current_num_patches)
+                                    species_2_pres_vector = np.zeros(current_num_patches)
+                                    for patch_index in range(current_num_patches):
+                                        species_1_pres_vector[patch_index] = int(
+                                            species_1_pop_vector[patch_index] > 0.0)
+                                        species_2_pres_vector[patch_index] = int(
+                                            species_2_pop_vector[patch_index] > 0.0)
+                                    presence = np.dot(
+                                        species_1_pres_vector, species_2_pres_vector) / np.sum(species_1_pres_vector)
+                                    presence_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = presence
+
+                                    # B. Similarity
+                                    # sum(sqrt(vector element-wise multiplication))/(sqrt(sum(predictor)*sum(response)))
+                                    if np.sum(species_1_pop_vector) == 0.0 or np.sum(species_2_pop_vector) == 0.0:
+                                        similarity = 0.0
+                                    else:
+                                        similarity = np.sum(np.sqrt(np.multiply(
+                                            species_1_pop_vector, species_2_pop_vector))) / (
+                                                         np.sqrt(np.sum(species_1_pop_vector) * np.sum(
+                                                             species_2_pop_vector)))
+                                    similarity_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = similarity
+
+                                    # C. Prediction
+                                    # sum(sqrt(vector element-wise multiplication))/sum(predictor)
+                                    prediction = np.sum(np.sqrt(np.multiply(species_1_pop_vector, species_2_pop_vector))
+                                                        ) / np.sum(species_1_pop_vector)
+                                    prediction_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = prediction
+
+                                    # D. (Two) correlation coefficients
+                                    # must first test for 'nearly constant' vectors to avoid warnings
+                                    species_1_near_constant = np.var(species_1_pop_vector
+                                                                     ) < 1e-13 * abs(np.mean(species_1_pop_vector))
+                                    species_2_near_constant = np.var(species_2_pop_vector
+                                                                     ) < 1e-13 * abs(np.mean(species_2_pop_vector))
+                                    is_cc_auto_fail = (species_1_near_constant or species_2_near_constant or np.var(
+                                        species_1_pop_vector) <= 0.0 or np.var(species_2_pop_vector) <= 0.0 or
+                                                       len(species_1_pop_vector) < 2 or len(species_2_pop_vector) < 2)
+                                    is_cc_success = 0
+                                    pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
+                                    # for correlation coefficients to work, we need two vectors of at least two pairs
+                                    # and at least some variance
+                                    if not is_cc_auto_fail:
+                                        try:
+                                            pearson_cc, pearson_p = pearsonr(species_1_pop_vector, species_2_pop_vector)
+                                            spearman_rho, spearman_p = spearmanr(
+                                                species_1_pop_vector, species_2_pop_vector)
+                                            is_cc_success = 1
+                                            if pearson_p == float('NaN') or spearman_p == float('NaN'):
+                                                is_cc_success = 0
+                                        except ValueError:
+                                            is_cc_success = 0
+                                    if is_cc_success == 0:
+                                        pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
+                                    corr_coefficients = {
+                                        'is_success': is_cc_success,
+                                        'pearson_cc': pearson_cc,
+                                        'pearson_p_value': pearson_p,
+                                        'spearman_rho': spearman_rho,
+                                        'spearman_p_value': spearman_p,
+                                    }
+                                    correlation_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][
+                                        species_2_ball_radius] = corr_coefficients
+
+                                    # E. Linear model
+                                    # note that we could use curve_fit() for a more general model specification here
+                                    linear_model = linear_model_report(
+                                        x_val=species_1_pop_vector, y_val=species_2_pop_vector,
+                                        is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
+                                    linear_model_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model
+
+        # output five nested dictionaries of results
+        return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
+
+    def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors):
+        # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
+        # points after random sampling (multiple attempts for each) of several random clusters of connected patches
+        # within the sub_network, conducts a linear regression to analyse:
+        # - the SAR (species abundance relation, i.e. how does species diversity increase with patch size)
+        # - possibly two forms of complexity/information dimension:
+        #       - a binary version based on community states, only calculated if a corresponding_binary matrix is
+        #           passed in, as we assume sub_networks to contain population sizes rather than binary occupancies.
+        #           The expectation is that this is conducted only for the final meta-community snapshot, and not for
+        #            time-averaged versions for which we would also conduct population (rather than binary) analysis.
+        #       - a population-weighted version using the sub_networks' populations, normalised for each sub_network.
+        complexity_report = {}
+
+        # need to treat each sub_network entirely separately
+        for network_key in sub_networks.keys():
+            current_num_patches = sub_networks[network_key]["num_patches"]
+            max_delta = int(min(current_num_patches / 4, np.sqrt(current_num_patches)))
+
+            # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
+            if max_delta > 2:
+
+                # prepare holding arrays
+                successful_clusters = np.zeros(max_delta)
+                species_diversity = np.zeros(max_delta)
+                binary_complexity = np.zeros(max_delta)
+                population_weighted_complexity = np.zeros(max_delta)
+
+                # iterate over cluster radius
+                for delta in range(1, max_delta + 1):
+                    num_clusters = 10
+
+                    # iterate over clusters of this radius
+                    for cluster_attempt in range(num_clusters):
+                        cluster, is_success = generate_cluster(sub_network=sub_networks[network_key], size=delta)
+
+                        if is_success:
+                            successful_clusters[delta - 1] += 1
+
+                            # determine total diversity in cluster
+                            species_diversity[delta - 1] += self.count_diversity(
+                                sub_network=sub_networks[network_key],
+                                cluster=cluster)
+
+                            # ----- Complexity (information dimension) ----- #
+                            #
+                            # For this we compare all unique pairs of patches within the cluster, and sum the total of
+                            # their differences in state (either binary or weighted relative to the
+                            # sub-network-species-normalised populations).
+                            # Then the complexity dimension examines how the rate of complexity increase compares with
+                            # the rate of the increase in cluster size.
+
+                            # determine binary complexity within cluster
+                            if corresponding_binary is not None:
+                                # NOTE: we ONLY conduct this analysis for the final and not the time-averaged version,
+                                # passing in the corresponding final-occupancy-based sub_network
+                                binary_complexity[delta - 1] += determine_complexity(
+                                    sub_network=corresponding_binary[network_key],
+                                    cluster=cluster,
+                                    is_normalised=False)
+
+                            # determine population-weighted complexity within cluster
+                            population_weighted_complexity[delta - 1] += determine_complexity(
+                                sub_network=sub_networks[network_key],
+                                cluster=cluster,
+                                is_normalised=True)
+
+                    # normalise output arrays
+                    if successful_clusters[delta - 1] > 0:
+                        species_diversity[delta - 1] = species_diversity[delta - 1] / successful_clusters[delta - 1]
+                        binary_complexity[delta - 1] = binary_complexity[delta - 1] / successful_clusters[delta - 1]
+                        population_weighted_complexity[delta - 1] = population_weighted_complexity[
+                                                                        delta - 1] / successful_clusters[delta - 1]
+
+                # prepare x-dimension array
+                x_val = np.log(np.arange(1, max_delta + 1))
+
+                # exclude any zero-size elements
+                is_pass = False
+                while len(x_val) > 0 and not is_pass:
+                    is_pass = True
+                    for delta_index in range(len(x_val)):
+                        if successful_clusters[delta_index] == 0:
+                            is_pass = False
+                            # remove this entry from all vectors
+                            x_val = np.delete(x_val, delta_index, axis=0)
+                            successful_clusters = np.delete(successful_clusters, delta_index, axis=0)
+                            species_diversity = np.delete(species_diversity, delta_index, axis=0)
+                            binary_complexity = np.delete(binary_complexity, delta_index, axis=0)
+                            population_weighted_complexity = np.delete(population_weighted_complexity,
+                                                                       delta_index, axis=0)
+                            break
+            else:
+                x_val = np.array([])
+                species_diversity = np.array([])
+                binary_complexity = np.array([])
+                population_weighted_complexity = np.array([])
+
+            # check arrays still have sufficiently-many entries
+            if max_delta > 2 and len(x_val) > 2:
+                # linear regressions
+                #
+                # ensure only non-zero values of diversity and complexity
+                if not (species_diversity == 0).any():
+                    sar_y_val = np.log(species_diversity)
+                    lm_sar = linear_model_report(x_val=x_val, y_val=sar_y_val,
+                                                 is_record_vectors=is_record_lm_vectors, model_type_str="log-log")
+                    # for the SAR, fitted relationship is diversity = exp(intercept) * size ^ (gradient)
+                else:
+                    lm_sar = {"is_success": 0}
+
+                if not (binary_complexity == 0).any():
+                    bin_comp_y_val = np.log(binary_complexity)
+                    lm_binary_complexity = linear_model_report(x_val=x_val, y_val=bin_comp_y_val,
+                                                               is_record_vectors=is_record_lm_vectors,
+                                                               model_type_str="log-log")
+                    # complexity dimension is -gradient
+                    lm_binary_complexity["complexity_dimension"] = -lm_binary_complexity["slope"]
+                else:
+                    lm_binary_complexity = {"is_success": 0}
+
+                if not (population_weighted_complexity == 0).any():
+                    pop_weight_y_val = np.log(population_weighted_complexity)
+                    lm_pop_weighted_complexity = linear_model_report(x_val=x_val, y_val=pop_weight_y_val,
+                                                                     is_record_vectors=is_record_lm_vectors,
+                                                                     model_type_str="log-log")
+                    # complexity dimension is -gradient
+                    lm_pop_weighted_complexity["complexity_dimension"] = -lm_pop_weighted_complexity["slope"]
+                else:
+                    lm_pop_weighted_complexity = {"is_success": 0}
+
+                # record
+                complexity_report[network_key] = {
+                    "is_success": 1,
+                    "lm_sar": lm_sar,
+                    "lm_binary_complexity": lm_binary_complexity,
+                    "lm_pop_weighted_complexity": lm_pop_weighted_complexity,
+                }
+            else:
+                complexity_report[network_key] = {
+                    "is_success": 0,
+                    "lm_sar": {},
+                    "lm_binary_complexity": {},
+                    "lm_pop_weighted_complexity": {},
+                }
+
+        return complexity_report
+
+    def count_diversity(self, sub_network, cluster):
+        # count the number of species present in the population array of this sub_network, whose relatively-nth patches
+        # are indexed by the list "cluster" - cluster does NOT contain inherent patch numbers (unless the sub_network
+        # is 'all' and zero patches have been deleted.)
+        found_species_set = set()
+        for patch_index in cluster:
+            population_vector = sub_network["population_arrays"][0][patch_index, :]
+            for possible_species_index in range(len(population_vector)):
+                this_species_min = self.species_set["list"][possible_species_index].minimum_population_size
+                if population_vector[possible_species_index] > this_species_min:
+                    found_species_set.add(possible_species_index)
+        diversity = len(found_species_set)
+        return diversity
+
+    def generate_sub_networks(self, population_array, patch_habitat, habitat_type_nums):
+        # For each subnetwork
+        # 	– Determine the adjacency matrix
+        #   – Determine the vectors of radius-1 and radius-2 population sizes
+        # 	– Determine the network-normalised (by radius-specific local maximum) population vectors
+
+        # produce habitat subnetworks first - including adjacency arrays (store them in dict with same network keys)
+        sub_networks = {}
+        sub_network_list = [x for x in habitat_type_nums]
+        sub_network_list.append('all')
+        for network_key in sub_network_list:
+            # need adjacency matrix and population array
+            temp_num_patches = len(self.current_patch_list)
+            temp_adjacency = deepcopy(self.patch_adjacency_matrix)
+            temp_population = deepcopy(population_array)
+            temp_patch_habitat = deepcopy(patch_habitat)
+
+            # if restricting to a single-habitat sub-network, iterate to eliminate unwanted rows and columns
+            if network_key != 'all':
+                is_pass = False
+                while temp_num_patches > 0 and not is_pass:
+                    is_pass = True
+                    for temp_patch_index in range(temp_num_patches):
+                        if temp_patch_habitat[temp_patch_index] != network_key:
+                            # remove
+                            temp_patch_habitat.pop(temp_patch_index)
+                            temp_population = np.delete(temp_population, temp_patch_index, axis=0)
+                            temp_adjacency = np.delete(temp_adjacency, temp_patch_index, axis=0)
+                            temp_adjacency = np.delete(temp_adjacency, temp_patch_index, axis=1)
+                            # failed to cycle uninterrupted
+                            is_pass = False
+                            temp_num_patches -= 1
+                            break
+
+            # check for non-zero size of sub-network:
+            if temp_num_patches > 0:
+                # now generate the radius-averaged population vectors for each species in this habitat sub-network
+                radius_one_population_array = np.zeros(np.shape(temp_population))
+                radius_two_population_array = np.zeros(np.shape(temp_population))
+                for temp_patch_index in range(temp_num_patches):
+                    for ball_radius in range(1, 3):
+                        if ball_radius == 1:
+                            # ball (radius 1)
+                            ball_patch_indices = list(np.where(temp_adjacency[temp_patch_index, :] != 0)[0])
+                            ball_size = len(ball_patch_indices)
+                        elif ball_radius == 2:
+                            # ball (radius 2)
+                            composite_adjacency = np.matmul(temp_adjacency, temp_adjacency)
+                            ball_patch_indices = list(np.where(composite_adjacency[temp_patch_index, :] != 0)[0])
+                            ball_size = len(ball_patch_indices)
+                        else:
+                            raise Exception("Invalid ball radius.")
+                        # now iterate over each species and take the average population over the elements of the ball
+                        for species_index in range(np.shape(temp_population)[1]):
+                            ball_population = 0.0
+                            for ball_index in ball_patch_indices:
+                                ball_population += temp_population[ball_index, species_index]
+                            if ball_radius == 1:
+                                radius_one_population_array[
+                                    temp_patch_index, species_index] = ball_population / ball_size
+                            elif ball_radius == 2:
+                                radius_two_population_array[
+                                    temp_patch_index, species_index] = ball_population / ball_size
+                            else:
+                                raise Exception("Invalid ball radius.")
+
+                # For each radius, identify max local population for each species and create normalised pop. matrix:
+                population_array_dict = {
+                    0: temp_population,
+                    1: radius_one_population_array,
+                    2: radius_two_population_array,
+                }
+                normalised_pop_array_dict = {}
+                for ball_radius in range(3):
+                    normalised_pop_array = np.zeros(np.shape(population_array_dict[ball_radius]))
+                    for species_index in range(np.shape(population_array_dict[ball_radius])[1]):
+                        species_max_population = np.max(population_array_dict[ball_radius][:, species_index])
+                        if species_max_population > 0.0:
+                            normalised_pop_array[:, species_index] = population_array_dict[ball_radius][
+                                                                     :, species_index] / species_max_population
+                    normalised_pop_array_dict[ball_radius] = deepcopy(normalised_pop_array)
+
+                # now store the single-habitat subnetwork
+                sub_networks[network_key] = deepcopy({
+                    "num_patches": temp_num_patches,
+                    "population_arrays": population_array_dict,
+                    "normalised_population_arrays": normalised_pop_array_dict,
+                    "adjacency_array": temp_adjacency,
+                })
+            else:
+                sub_networks[network_key] = {"num_patches": 0}
+        return sub_networks

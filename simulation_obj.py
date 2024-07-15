@@ -452,7 +452,7 @@ class Simulation_obj:
         # -----------------------------------------------------------------------------------------------------------#
 
         # Analyse the final and averaged population distributions:
-        self.system_state.update_distance_metrics()
+        self.system_state.update_distance_metrics(parameters=self.parameters)
 
         # return the resulting spatial distribution of species and average population sizes
         results = []
