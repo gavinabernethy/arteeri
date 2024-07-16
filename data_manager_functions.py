@@ -70,7 +70,7 @@ def set_default(obj):
         return obj.tolist()
 
 
-def format_dictionary_to_JSON_string(input_string, is_final_item):
+def format_dictionary_to_JSON_string(input_string, is_final_item, is_indenting):
     # This takes a string obtained from passing a nested dictionary to json.dumps and recreates the indented structure
     # of the original dictionary in the string, suitable for printing to screen or file as a human-readable JSON that
     # can also then be read back from the file by passing the raw text to json.loads() to convert to a dictionary.
@@ -85,6 +85,10 @@ def format_dictionary_to_JSON_string(input_string, is_final_item):
     open_list = modified_string.split('{')
     indent_count = 0
     output_string = ''
+    if is_indenting:
+        indent_str = '    '
+    else:
+        indent_str = ''
 
     # first split and iterate by { which increases the nesting
     for element_index, element in enumerate(open_list):
@@ -98,11 +102,13 @@ def format_dictionary_to_JSON_string(input_string, is_final_item):
                 indent_count -= 1
 
                 if len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index + 1]) > 0:
-                    base_string += sub_element + '\n' + '    ' * indent_count + '},\n' + '    ' * (indent_count - 1)
+                    base_string += sub_element + '\n' + indent_str * indent_count + '},\n' \
+                                   + indent_str * (indent_count - 1)
                 elif len(closed_sublist[sub_index]) > 0 and len(closed_sublist[sub_index + 1]) == 0:
-                    base_string += sub_element + '\n' + '    ' * indent_count + '}\n' + '    ' * (indent_count - 1)
+                    base_string += sub_element + '\n' + indent_str * indent_count + '}\n' \
+                                   + indent_str * (indent_count - 1)
                 elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index + 1]) > 0:
-                    base_string += sub_element + '},\n' + '    ' * (indent_count - 1)
+                    base_string += sub_element + '},\n' + indent_str * (indent_count - 1)
                 elif len(closed_sublist[sub_index]) == 0 and len(closed_sublist[sub_index + 1]) == 0:
                     if element_index == len(open_list) - 1 and sub_index == len(closed_sublist) - 2:
                         # no new-line at the very end of the dictionary
@@ -112,20 +118,20 @@ def format_dictionary_to_JSON_string(input_string, is_final_item):
                         else:
                             base_string += sub_element + '},'
                     else:
-                        base_string += sub_element + '}\n' + '    ' * (indent_count - 1)
+                        base_string += sub_element + '}\n' + indent_str * (indent_count - 1)
 
             if element_index == len(open_list) - 1:
                 # for the final element of the whole, do not add an additional { after the final sub-element
                 base_string += closed_sublist[-1]
             else:
-                base_string += closed_sublist[-1] + '{\n' + '    ' * indent_count
+                base_string += closed_sublist[-1] + '{\n' + indent_str * indent_count
         else:
             # only one "sub-element" i.e. { ... { with no } in between
             if element_index == len(open_list) - 1:
                 # for the final element, do not add an additional {
                 base_string = element
             else:
-                base_string = element + '{\n' + '    ' * indent_count
+                base_string = element + '{\n' + indent_str * indent_count
         output_string += base_string
     return output_string
 
@@ -664,7 +670,8 @@ def global_species_time_series_properties(
         }
         for _ in global_property_dict:
             if is_save_plots:
-                file_path = f"results/{sim}/{step}/figures/species_global_ts_{species.name}_" + _ + ".png"
+                file_path = f"results/{sim}/{step}/figures/species_global_time_series/" \
+                            f"species_global_ts_{species.name}_" + _ + ".png"
                 create_time_series_plot(data=[global_property_dict[_]["data"]],
                                         parameters=parameters,
                                         y_label=global_property_dict[_]["y_label"],
@@ -722,7 +729,8 @@ def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_lo
             # plot entire-species:
             for _ in range(len(species_set["list"])):
                 legend_list = [patch.number for patch in patch_list]
-                file_path = f"results/{sim}/{step}/figures/species_local_ts_{species_set['list'][_].name}_" \
+                file_path = f"results/{sim}/{step}/figures/species_time_series/" \
+                            f"species_local_ts_{species_set['list'][_].name}_" \
                             f"{prop_dict['attribute_filename']}_all.png"
                 create_time_series_plot(data=time_series_array[:, _], parameters=parameters,
                                         y_label=prop_dict["attribute_y_label"],
@@ -753,9 +761,10 @@ def plot_current_local_population_attribute(patch_list, sim, attribute_name, ste
                 attribute_matrix[patch.number, 0] = value
                 break
     if sub_attr is not None:
-        file_path = f"results/{sim}/{step}/figures/species_{attribute_name}_{sub_attr}_{species.name}.png"
+        file_path = f"results/{sim}/{step}/figures/species_attributes/" \
+                    f"species_{attribute_name}_{sub_attr}_{species.name}.png"
     else:
-        file_path = f"results/{sim}/{step}/figures/species_{attribute_name}_{species.name}.png"
+        file_path = f"results/{sim}/{step}/figures/species_attributes/species_{attribute_name}_{species.name}.png"
     create_patches_plot(patch_list=patch_list, color_property=attribute_matrix,
                         file_path=file_path, use_color_bar=True)
 
@@ -886,7 +895,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
                     patch_attribute = getattr(patch, properties[prop]["attribute_id"])[sub_attr]
                 color_matrix[patch.number, 0] = patch_attribute
 
-            file_path = f"results/{sim}/{step}/figures/{prop}{file_suffix}.png"
+            file_path = f"results/{sim}/{step}/figures/network_properties/{prop}{file_suffix}.png"
             create_patches_plot(patch_list=patch_list, color_property=color_matrix, file_path=file_path,
                                 use_color_bar=properties[prop]["use_color_bar"],
                                 label_patches=properties[prop]["label_patches"],
@@ -1145,7 +1154,7 @@ def plot_accessible_sub_graphs(patch_list, parameters, species, sim, step):
                 unclassified_patches.remove(patch_num)
 
     # now print
-    file_path = f"results/{sim}/{step}/figures/species_{species.name}_subgraph.png"
+    file_path = f"results/{sim}/{step}/figures/species_subgraph/species_{species.name}_subgraph.png"
     create_patches_plot(patch_list=patch_list, color_property=color_classification,
                         file_path=file_path, use_colors=True)
 

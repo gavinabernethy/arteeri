@@ -141,7 +141,7 @@ def print_key_outputs_to_console(simulation_obj):
                 is_final_item = True
             else:
                 is_final_item = False
-            print(format_dictionary_to_JSON_string(output_str, is_final_item=is_final_item))
+            print(format_dictionary_to_JSON_string(output_str, is_final_item=is_final_item, is_indenting=False))
         print('}')
 
     print("\n******************** SIMULATION OUTPUTS: END ********************\n")
@@ -246,7 +246,7 @@ def all_plots(simulation_obj):
                         "shading": False},
     }
     for prop_name, prop in every_step_dict.items():
-        file_path = f"results/{sim}/{step}/figures/ts_{prop_name}.png"
+        file_path = f"results/{sim}/{step}/figures/network_time_series/ts_{prop_name}.png"
         create_time_series_plot(data=prop["data"], parameters=parameters,
                                 file_path=file_path, y_label=prop["y_label"], is_shading=prop["shading"])
     # The following properties are only recorded when they are changed, due to a perturbation. This therefore requires
@@ -305,7 +305,7 @@ def all_plots(simulation_obj):
 
     # iterate through the different properties
     for prop_name, prop in change_step_dict.items():
-        file_path = f"results/{sim}/{step}/figures/ts_{prop_name}.png"
+        file_path = f"results/{sim}/{step}/figures/network_time_series/ts_{prop_name}.png"
         time_series_data = []
         # iterate over the dictionaries contained in a list, will be multiple if multiple series to go on same plot
         for series in prop["data"]:

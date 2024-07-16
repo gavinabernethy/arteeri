@@ -63,7 +63,7 @@ master_para = {
         },
     "main_para":
         {
-            "NUM_TRANSIENT_STEPS": 10,
+            "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 100,
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
             "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
@@ -92,7 +92,7 @@ master_para = {
                 1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
-            "NUM_PATCHES": 30,
+            "NUM_PATCHES": 49,
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
