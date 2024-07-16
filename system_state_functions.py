@@ -97,16 +97,18 @@ def determine_complexity(sub_network, cluster, is_normalised):
     total_difference = 0
     if sub_network["num_patches"] > 1:
         for lower_patch_index in range(len(cluster) - 1):
+            lower_patch_num = cluster[lower_patch_index]
             for upper_patch_index in range(lower_patch_index + 1, len(cluster)):
+                upper_patch_num = cluster[upper_patch_index]
                 # compare pair
                 if is_normalised:
                     # for populations - difference should be |x_i - x_j| / bar{x}
-                    lower_vector = sub_network["normalised_population_arrays"][0][lower_patch_index, :]
-                    upper_vector = sub_network["normalised_population_arrays"][0][lower_patch_index, :]
+                    lower_vector = sub_network["normalised_population_arrays"][0][lower_patch_num, :]
+                    upper_vector = sub_network["normalised_population_arrays"][0][upper_patch_num, :]
                 else:
                     # for binary (occupancy) comparison - difference should be 1 or 0
-                    lower_vector = sub_network["population_arrays"][0][lower_patch_index, :]
-                    upper_vector = sub_network["population_arrays"][0][lower_patch_index, :]
+                    lower_vector = sub_network["population_arrays"][0][lower_patch_num, :]
+                    upper_vector = sub_network["population_arrays"][0][upper_patch_num, :]
                 difference = 0
                 for species_index in range(len(lower_vector)):
                     difference += np.abs(lower_vector[species_index] - upper_vector[species_index])

@@ -1106,9 +1106,10 @@ class System_state:
                 else:
                     lm_sar = {"is_success": 0}
 
-                if not (binary_complexity == 0).any():
-                    bin_comp_y_val = np.log(binary_complexity)
-                    lm_binary_complexity = linear_model_report(x_val=x_val, y_val=bin_comp_y_val,
+                # ignore first entry (patch size 0 - useful for diversity, but meaningless for intra-cluster complexity)
+                if not (binary_complexity[1:] == 0).any():
+                    bin_comp_y_val = np.log(binary_complexity[1:])
+                    lm_binary_complexity = linear_model_report(x_val=x_val[1:], y_val=bin_comp_y_val,
                                                                is_record_vectors=is_record_lm_vectors,
                                                                model_type_str="log-log")
                     # complexity dimension is -gradient
@@ -1116,9 +1117,9 @@ class System_state:
                 else:
                     lm_binary_complexity = {"is_success": 0}
 
-                if not (population_weighted_complexity == 0).any():
-                    pop_weight_y_val = np.log(population_weighted_complexity)
-                    lm_pop_weighted_complexity = linear_model_report(x_val=x_val, y_val=pop_weight_y_val,
+                if not (population_weighted_complexity[1:] == 0).any():
+                    pop_weight_y_val = np.log(population_weighted_complexity[1:])
+                    lm_pop_weighted_complexity = linear_model_report(x_val=x_val[1:], y_val=pop_weight_y_val,
                                                                      is_record_vectors=is_record_lm_vectors,
                                                                      model_type_str="log-log")
                     # complexity dimension is -gradient
@@ -1128,14 +1129,14 @@ class System_state:
 
                 # record
                 complexity_report[network_key] = {
-                    "is_success": 1,
+                    "is_cluster_success": 1,
                     "lm_sar": lm_sar,
                     "lm_binary_complexity": lm_binary_complexity,
                     "lm_pop_weighted_complexity": lm_pop_weighted_complexity,
                 }
             else:
                 complexity_report[network_key] = {
-                    "is_success": 0,
+                    "is_cluster_success": 0,
                     "lm_sar": {},
                     "lm_binary_complexity": {},
                     "lm_pop_weighted_complexity": {},
