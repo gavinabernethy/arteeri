@@ -251,13 +251,13 @@ class Local_population:
     def foraging(self, this_patch_species_feeding):
         # -------------------------- PREDATION -------------------------- #
         # Predation by this population
-        if self.species.current_prey_dict is not None and len(self.species.current_prey_dict) == 0:
-            prey_gain = 0.0
-        else:
+        if self.species.current_prey_dict is not None and len(self.species.current_prey_dict) > 0:
             # In the latest model iteration, prey gain (from both local and non-local foraging) is scaled by the
             # habitat feeding score for the species in its home patch
             prey_gain = this_patch_species_feeding * self.species.predation_para["ECOLOGICAL_EFFICIENCY"] * \
                         sum([x for x in self.kills["g3"].values()])
+        else:
+            prey_gain = 0.0
 
         # Predation upon this population
         if len(self.species.predator_list) == 0:

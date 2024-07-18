@@ -335,8 +335,8 @@ ARTEMIS_01_MASTER = {
                 },
                 "IS_NONLOCAL_FORAGING": False,
                 "MINIMUM_LINK_STRENGTH_FORAGING": {
-                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.0,
+                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -346,8 +346,8 @@ ARTEMIS_01_MASTER = {
                 },
                 "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": False,
                 "MAX_FORAGING_PATH_LENGTH": {
-                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0,
+                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -356,8 +356,8 @@ ARTEMIS_01_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_MOBILITY": {
-                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.0,
+                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -366,8 +366,8 @@ ARTEMIS_01_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
-                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.0,
+                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -376,8 +376,8 @@ ARTEMIS_01_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "PREDATION_RATE": {
-                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.0,
+                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -395,8 +395,8 @@ ARTEMIS_01_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
                 "PREDATION_FOCUS": {
-                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 1.0,  # should be non-negative
+                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,  # should be non-negative
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -404,7 +404,7 @@ ARTEMIS_01_MASTER = {
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
-                "ECOLOGICAL_EFFICIENCY": 0.0,
+                "ECOLOGICAL_EFFICIENCY": None,
                 "IS_PREDATION_ONLY_PREVENTS_DEATH": False,  # cant gain new members due to pred. (only to r)
             },
         "DISPERSAL_PARA":
@@ -474,7 +474,7 @@ ARTEMIS_01_MASTER = {
         "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
         "PURE_DIRECT_IMPACT_PARA":
             {
-                "TYPE": "vector",
+                "TYPE": None,
                 "IMPACT": None,
                 "PROBABILITY": None,
                 "DIRECT_VECTOR": [],
@@ -490,7 +490,7 @@ ARTEMIS_01_MASTER = {
         "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
         "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
         "PERTURBATION_PARA": {
-            "TO_IMPACT": ['same'],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
+            "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
             "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
                 # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
                 # dependent upon the density, that is x = local population / carrying_capacity
@@ -516,10 +516,10 @@ ARTEMIS_01_MASTER = {
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "gaussian",
-            "IS_ENSURE_MINIMUM_POPULATION": False,
+            "IS_ENSURE_MINIMUM_POPULATION": True,
             "CONSTANT_VALUE": None,
-            "GAUSSIAN_MEAN": 0.001,
-            "GAUSSIAN_ST_DEV": 0.5,
+            "GAUSSIAN_MEAN": 0.01,
+            "GAUSSIAN_ST_DEV": 0.001,
             "BINOMIAL_MAXIMUM_MULTIPLIER": None,
             "BINOMIAL_PROBABILITY": None,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
@@ -695,7 +695,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "BINOMIAL_EXTRA_INDIVIDUAL": 0.0,
                 "COEFFICIENTS_LISTS": {
-                    "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
+                    "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": None,
                     "period": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
@@ -705,7 +705,7 @@ ARTEMIS_01_MASTER = {
         "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
         "PURE_DIRECT_IMPACT_PARA":
             {
-                "TYPE": "vector",
+                "TYPE": None,
                 "IMPACT": None,
                 "PROBABILITY": None,
                 "DIRECT_VECTOR": [],

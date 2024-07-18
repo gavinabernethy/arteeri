@@ -423,10 +423,17 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                 local_pop_to_score = 1.0
                             else:
                                 # normally, within-patch score is now master_mu * species_mu * this_habitat_traversal
-                                local_pop_score = \
-                                    local_pop.species.current_foraging_mobility * this_patch_species_traversal
-                                local_pop_to_score = \
-                                    local_pop_to.species.current_foraging_mobility * patch_to_species_traversal
+                                if local_pop.species.current_foraging_mobility is None:
+                                    local_pop_score = None
+                                else:
+                                    local_pop_score = \
+                                        local_pop.species.current_foraging_mobility * this_patch_species_traversal
+
+                                if local_pop_to.species.current_foraging_mobility is None:
+                                    local_pop_to_score = None
+                                else:
+                                    local_pop_to_score = \
+                                        local_pop_to.species.current_foraging_mobility * patch_to_species_traversal
                         else:
                             if local_pop.species.is_nonlocal_foraging:
                                 # score dictionary for THIS species' local population to THAT patch

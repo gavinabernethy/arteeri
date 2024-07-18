@@ -34,7 +34,7 @@ master_para = {
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
             "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 20: 1},  # set this to None or empty dict, unless you want
+            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -45,7 +45,7 @@ master_para = {
             # Patch quality (scales the reproductive rate (r-parameter) for all local populations):
             "QUALITY_TYPE": "gradient",  # quality types are: 'manual', 'random', 'auto_correlation', 'gradient'
             "QUALITY_MANUAL_SPEC": None,  # should be None if we want to generate quality by other means
-            "QUALITY_SPATIAL_AUTO_CORRELATION": 0.5,  # in range [-1, 1]
+            "QUALITY_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
             "MIN_QUALITY": 1.0,
             "MAX_QUALITY": 1.0,
             "QUALITY_FLUCTUATION": 0.0,
@@ -100,7 +100,6 @@ master_para = {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
                 1: 'habitat_type_1',
-                2: 'habitat_type_2',
             },
             "GENERATED_SPEC": {
                 #
@@ -114,9 +113,8 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [1.0, 0.0],
-                                       1: [0.0, 1.0],
-                                       2: [0.5, 0.5]},
+                    "HABITAT_SCORES": {0: [0.4, 0.8],
+                                       1: [0.8, 0.4]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
@@ -124,8 +122,7 @@ master_para = {
                     "MIN_SCORE": 0.9,
                     "MAX_SCORE": 1.0,
                     "HABITAT_SCORES": {0: [1.0, 1.0],
-                                       1: [1.0, 1.0],
-                                       2: [1.0, 1.0]},
+                                       1: [1.0, 1.0]},
                 },
             },
 
@@ -136,7 +133,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1, 2},
+            "INITIAL_HABITAT_SET": {0, 1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -149,12 +146,12 @@ master_para = {
         },
     "plot_save_para":
         {
-            "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
+            "IS_ALLOW_FILE_CREATION": False,  # prevents creation of any files for running on remote clusters
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": False,  # do you save ANY data files?
-            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
+            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, if collected - see option in main_para)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
