@@ -1,31 +1,75 @@
+import os
+
 from data_manager_functions import *
 import shutil
 
 
 # ----------------------------- FUNCTIONS USED IN SYSTEM INITIALISATION ----------------------- #
 
-def generate_simulation_number(minimum=99, save_data=True):
+def generate_simulation_number(minimum=99, save_data=True, is_sub_folders=False, sub_folder_capacity=100):
     # finds the next simulation number, and generates the required folder structure
-    sim_number = minimum
-    is_folder_used = True
-    while is_folder_used:
-        sim_number += 1
-        folder_path = f'results/{sim_number}'
-        if not os.path.exists(folder_path):
-            is_folder_used = False
-            if save_data:
-                os.makedirs(folder_path)
-    return sim_number
+
+    sim_path = 'results'  # over-written default to avoid "possibly unassigned" warning
+    sim_number = 100  # over-written default to avoid "possibly unassigned" warning
+    if is_sub_folders:
+        current_parent_folder_num = 0
+        next_parent_folder_num = 1
+        is_next_parent_folder_exists = True
+
+        # check if the first parent folder par_0/ exists already
+        if os.path.exists(f'results/par_0'):
+
+            # does the next iteration of parent folder exist?
+            while is_next_parent_folder_exists:
+                next_parent_folder_num = current_parent_folder_num + 1
+                next_parent_folder_path = f'results/par_{next_parent_folder_num}'
+                if not os.path.exists(next_parent_folder_path):
+                    is_next_parent_folder_exists = False
+                else:
+                    current_parent_folder_num = next_parent_folder_num
+
+            # now identify the highest folder of this highest sub_folder
+            folder_list = os.listdir(f'results/par_{current_parent_folder_num}')
+            folder_no_hidden = [f for f in folder_list if not f.startswith('.')]  # remove hidden files
+            folder_int_list = [int(folder_str) for folder_str in folder_no_hidden]
+            sim_number = max(folder_int_list) + 1
+
+            # now check if it has met (or exceeded) capacity
+            if len(folder_int_list) >= sub_folder_capacity:
+                # if so, need to create the path to the next (not currently-existing) sub_folder
+                sim_path = f'results/par_{next_parent_folder_num}/{sim_number}'
+            else:
+                # there is capacity, so just put it in this current sub_folder
+                sim_path = f'results/par_{current_parent_folder_num}/{sim_number}'
+
+        else:
+            # if no parent folders exist, just default to par_0/100
+            sim_path = f'results/par_0/{minimum+1}'
+
+    else:
+        # No sub_folder system, just the folder located straight in the root result/ directory
+        sim_number = minimum
+        is_folder_used = True
+        while is_folder_used:
+            sim_number += 1
+            sim_path = f'results/{sim_number}'
+            if not os.path.exists(sim_path):
+                is_folder_used = False
+
+    if save_data:
+        os.makedirs(sim_path)
+
+    return sim_number, sim_path
 
 
-def write_initial_files(parameters, metadata, sim, parameters_filename):
-    parameters_file = f"results/{sim}/parameters.json"
+def write_initial_files(parameters, metadata, sim_path, parameters_filename):
+    parameters_file = f"{sim_path}/parameters.json"
     dump_json(data=parameters, filename=parameters_file)
-    metadata_file = f"results/{sim}/metadata.json"
+    metadata_file = f"{sim_path}/metadata.json"
     metadata["write_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     dump_json(data=metadata, filename=metadata_file)
     # now copy the entire parameter scripts to ensure that we really have everything for reproducibility
-    output_directory = f"results/{sim}"
+    output_directory = sim_path
     shutil.copy(parameters_filename, output_directory)
     shutil.copy("parameters_species_repository.py", output_directory)
 
@@ -155,7 +199,7 @@ def save_all_data(simulation_obj):
     species_set = simulation_obj.system_state.species_set
     patch_list = simulation_obj.system_state.patch_list
     parameters = simulation_obj.parameters
-    sim = simulation_obj.sim_number
+    sim_path = simulation_obj.sim_path
     step = simulation_obj.system_state.step
     perturbation_history = simulation_obj.system_state.perturbation_history
     current_num_patches_history = simulation_obj.system_state.current_num_patches_history
@@ -166,35 +210,36 @@ def save_all_data(simulation_obj):
     # ---- Then enact the saving procedure: ---- #
     #
     # Core files:
-    write_parameters_file(parameters=parameters, sim=sim, step=step)
-    write_metadata_file(metadata=metadata, sim=sim, step=step)
+    write_parameters_file(parameters=parameters, sim_path=sim_path, step=step)
+    write_metadata_file(metadata=metadata, sim_path=sim_path, step=step)
     # Low-detail output on species behaviours:
-    write_average_population_data(patch_list=patch_list, sim=sim, step=step)
-    write_perturbation_history_data(perturbation_history=perturbation_history, sim=sim, step=step)
+    write_average_population_data(patch_list=patch_list, sim_path=sim_path, step=step)
+    write_perturbation_history_data(perturbation_history=perturbation_history, sim_path=sim_path, step=step)
     global_species_time_series_properties(patch_list=patch_list, species_set=species_set, parameters=parameters,
-                                          sim=sim, step=step, current_num_patches_history=current_num_patches_history,
+                                          sim_path=sim_path, step=step,
+                                          current_num_patches_history=current_num_patches_history,
                                           is_save_plots=False, is_save_data=True)
     # All species full local population size, internal change, and dispersal in .CSVs for each local_pop object:
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_LOCAL_POP_HISTORY_CSV"]:
-        write_population_history_data(patch_list=patch_list, sim=sim, step=step)
+        write_population_history_data(patch_list=patch_list, sim_path=sim_path, step=step)
     # JSON file of system_state with distance-metrics and histories of network-average properties (e.g. local
     # biodiversity, patch size and quality) and perturbation history:
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_SYSTEM_STATE_DATA"]:
-        write_system_state(system_state=simulation_obj.system_state, sim=sim, step=step)
+        write_system_state(system_state=simulation_obj.system_state, sim_path=sim_path, step=step)
     # JSON files with the full history of each patch and additional JSON per local population:
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_PATCH_DATA"]:
-        write_patch_list_local_populations(patch_list=patch_list, sim=sim, step=step,
+        write_patch_list_local_populations(patch_list=patch_list, sim_path=sim_path, step=step,
                                            is_save_local_populations=simulation_obj.parameters[
                                                "plot_save_para"]["IS_SAVE_PATCH_LOCAL_POP_DATA"])
     if simulation_obj.parameters["plot_save_para"]["IS_PICKLE_SAVE"]:
         # Pickle save of the Python objects
-        pickle_save(simulation_obj=simulation_obj, sim=sim, step=step)
+        pickle_save(simulation_obj=simulation_obj, sim_path=sim_path, step=step)
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_DISTANCE_METRICS"]:
         # produce JSON of species and community distribution analysis
-        distance_metrics_save(simulation_obj=simulation_obj, sim=sim, step=step)
+        distance_metrics_save(simulation_obj=simulation_obj, sim_path=sim_path, step=step)
     if simulation_obj.parameters["plot_save_para"]["IS_SAVE_CURRENT_MOVE_SCORES"]:
         # save a JSON file per patch containing the SMS of each species to each other patch
-        write_current_species_movement_scores(patch_list=patch_list, sim=sim, step=step)
+        write_current_species_movement_scores(patch_list=patch_list, sim_path=sim_path, step=step)
 
 
 # ----------------------------- SAVING PLOTS AT THE END OF THE SIMULATION ----------------------- #
@@ -209,7 +254,7 @@ def all_plots(simulation_obj):
     species_set = simulation_obj.system_state.species_set
     patch_list = simulation_obj.system_state.patch_list
     parameters = simulation_obj.parameters
-    sim = simulation_obj.sim_number
+    sim_path = simulation_obj.sim_path
     step = simulation_obj.system_state.step
     current_num_patches_history = simulation_obj.system_state.current_num_patches_history
 
@@ -220,7 +265,8 @@ def all_plots(simulation_obj):
     adjacency_path_list = create_adjacency_path_list(
         patch_list=patch_list,
         patch_adjacency_matrix=simulation_obj.system_state.patch_adjacency_matrix)
-    plot_network_properties(patch_list=patch_list, sim=sim, step=step, adjacency_path_list=adjacency_path_list,
+    plot_network_properties(patch_list=patch_list, sim_path=sim_path, step=step,
+                            adjacency_path_list=adjacency_path_list,
                             is_biodiversity=True, is_reserves=True, is_retro=False)
 
     # ---- TYPE II: Time-series of non-species-specific properties of the spatial network ---- #
@@ -246,7 +292,7 @@ def all_plots(simulation_obj):
                         "shading": False},
     }
     for prop_name, prop in every_step_dict.items():
-        file_path = f"results/{sim}/{step}/figures/network_time_series/ts_{prop_name}.png"
+        file_path = f"{sim_path}/{step}/figures/network_time_series/ts_{prop_name}.png"
         create_time_series_plot(data=prop["data"], parameters=parameters,
                                 file_path=file_path, y_label=prop["y_label"], is_shading=prop["shading"])
     # The following properties are only recorded when they are changed, due to a perturbation. This therefore requires
@@ -305,7 +351,7 @@ def all_plots(simulation_obj):
 
     # iterate through the different properties
     for prop_name, prop in change_step_dict.items():
-        file_path = f"results/{sim}/{step}/figures/network_time_series/ts_{prop_name}.png"
+        file_path = f"{sim_path}/{step}/figures/network_time_series/ts_{prop_name}.png"
         time_series_data = []
         # iterate over the dictionaries contained in a list, will be multiple if multiple series to go on same plot
         for series in prop["data"]:
@@ -344,68 +390,70 @@ def all_plots(simulation_obj):
                              "population_period_weak", "population_period_med", "population_period_strong",
                              "recent_occupancy_change_frequency"]
         for attr in attribute_to_plot:
-            plot_current_local_population_attribute(species=species, patch_list=patch_list, sim=sim,
+            plot_current_local_population_attribute(species=species, patch_list=patch_list, sim_path=sim_path,
                                                     attribute_name=attr, step=step)
         if parameters["plot_save_para"]["IS_PLOT_ACCESSIBLE_SUB_GRAPHS"]:
             # patch plots showing the fully-connected network sub-graphs from the POV of each species
             plot_accessible_sub_graphs(patch_list=patch_list, parameters=parameters,
-                                       species=species, sim=sim, step=step)
+                                       species=species, sim_path=sim_path, step=step)
 
     # ---- Type IV: Species-specific time-series ---- #
     global_species_time_series_properties(patch_list=patch_list, species_set=species_set, parameters=parameters,
-                                          sim=sim, step=step, current_num_patches_history=current_num_patches_history,
+                                          sim_path=sim_path, step=step,
+                                          current_num_patches_history=current_num_patches_history,
                                           is_save_plots=True, is_save_data=False)
     is_local_plots = parameters["plot_save_para"]["LOCAL_PLOTS"]  # individual plot files per patch?
     if parameters["plot_save_para"]["IS_PLOT_LOCAL_TIME_SERIES"]:
         plot_local_time_series(patch_list=patch_list, species_set=species_set, parameters=parameters,
-                               sim=sim, step=step, is_local_plots=is_local_plots)
+                               sim_path=sim_path, step=step, is_local_plots=is_local_plots)
 
     # ---- Type V: Optional extras ---- #
     if parameters["plot_save_para"]["IS_PLOT_UNRESTRICTED_PATHS"]:
         # plots all reachable foraging/direct dispersal paths per species WITHOUT threshold and path-length restriction
-        plot_unrestricted_shortest_paths(patch_list=patch_list, species_set=species_set, sim=sim, step=step)
+        plot_unrestricted_shortest_paths(patch_list=patch_list, species_set=species_set, sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_BIODIVERSITY_ANALYSIS"]:
         # species-area curves (SAR analysis)
-        biodiversity_analysis(patch_list=patch_list, species_set=species_set, parameters=parameters, sim=sim, step=step)
+        biodiversity_analysis(patch_list=patch_list, species_set=species_set, parameters=parameters,
+                              sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_ADJACENCY_SUB_GRAPHS"]:
         # plots the undirected adjacency-based sub-graphs, regardless of any species ability to traverse them
-        plot_adjacency_sub_graphs(system_state=simulation_obj.system_state, sim=sim)
+        plot_adjacency_sub_graphs(system_state=simulation_obj.system_state, sim_path=sim_path)
     if parameters["plot_save_para"]["IS_PLOT_INTERACTIONS"]:
-        plot_interactions(patch_list=patch_list, adjacency_path_list=adjacency_path_list, sim=sim, step=step)
+        plot_interactions(patch_list=patch_list, adjacency_path_list=adjacency_path_list, sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_DEGREE_DISTRIBUTION"]:
         plot_degree_distribution(
             degree_distribution_history=simulation_obj.system_state.degree_distribution_history,
             degree_dist_power_law_fit_history=simulation_obj.system_state.degree_dist_power_law_fit_history,
-            sim=sim, step=step)
+            sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_DISTANCE_METRICS_LM"]:
         plot_distance_metrics_lm(distance_metrics_store=simulation_obj.system_state.distance_metrics_store,
-                                 sim=sim, step=step)
+                                 sim_path=sim_path, step=step)
     print("Completed all_plots().")
 
 
 # ---------------------------------- SNAPSHOTS (FOR BEFORE/AFTER PERTURBATIONS) ---------------------------------- #
 
-def population_snapshot(system_state, sim, update_stored, output_figures):
+def population_snapshot(system_state, sim_path, update_stored, output_figures):
     update_local_population_nets(system_state=system_state)
     if update_stored:
         update_stored_populations(patch_list=system_state.patch_list, step=system_state.step)
 
     # population recording
-    save_current_local_population_attribute(patch_list=system_state.patch_list, sim=sim,
+    save_current_local_population_attribute(patch_list=system_state.patch_list, sim_path=sim_path,
                                             attribute_name="population", step=system_state.step)
     if output_figures:
         # population visualisation
         for species in system_state.species_set["list"]:
             plot_current_local_population_attribute(
                 patch_list=system_state.patch_list,
-                sim=sim,
+                sim_path=sim_path,
                 attribute_name="population",
                 step=system_state.step,
                 species=species
             )
 
 
-def change_snapshot(system_state, sim, output_figures):
+def change_snapshot(system_state, sim_path, output_figures):
     update_local_population_nets(system_state=system_state)
     for patch in system_state.patch_list:
         for local_pop in patch.local_populations.values():
@@ -420,13 +468,13 @@ def change_snapshot(system_state, sim, output_figures):
 
     # change recording
     save_current_local_population_attribute(patch_list=system_state.patch_list,
-                                            sim=sim,
+                                            sim_path=sim_path,
                                             attribute_name="stored_change",
                                             step=system_state.step,
                                             sub_attr="absolute"
                                             )
     save_current_local_population_attribute(patch_list=system_state.patch_list,
-                                            sim=sim,
+                                            sim_path=sim_path,
                                             attribute_name="stored_change",
                                             step=system_state.step,
                                             sub_attr="relative",
@@ -435,14 +483,14 @@ def change_snapshot(system_state, sim, output_figures):
         # change visualisation
         for species in system_state.species_set["list"]:
             plot_current_local_population_attribute(patch_list=system_state.patch_list,
-                                                    sim=sim,
+                                                    sim_path=sim_path,
                                                     attribute_name="stored_change",
                                                     step=system_state.step,
                                                     species=species,
                                                     sub_attr="absolute"
                                                     )
             plot_current_local_population_attribute(patch_list=system_state.patch_list,
-                                                    sim=sim,
+                                                    sim_path=sim_path,
                                                     attribute_name="stored_change",
                                                     step=system_state.step,
                                                     species=species,

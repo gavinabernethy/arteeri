@@ -35,11 +35,15 @@ class Simulation_obj:
         self.is_print_key_outputs_to_console = parameters["plot_save_para"]["IS_PRINT_KEY_OUTPUTS_TO_CONSOLE"]
         self.total_steps = self.parameters["main_para"]["NUM_TRANSIENT_STEPS"] + self.parameters[
             "main_para"]["NUM_RECORD_STEPS"]
-        self.sim_number = generate_simulation_number(save_data=self.is_allow_file_creation)
+        self.sim_number, self.sim_path = generate_simulation_number(
+            save_data=self.is_allow_file_creation,
+            is_sub_folders=parameters["plot_save_para"]["IS_SUB_FOLDERS"],
+            sub_folder_capacity=parameters["plot_save_para"]["SUB_FOLDER_CAPACITY"]
+        )
         self.system_state = self.construction()
         self.parameters_filename = parameters_filename
         if self.is_allow_file_creation:
-            write_initial_files(parameters=self.parameters, metadata=self.metadata, sim=self.sim_number,
+            write_initial_files(parameters=self.parameters, metadata=self.metadata, sim_path=self.sim_path,
                                 parameters_filename=self.parameters_filename)
         print(f"Beginning simulation number {self.sim_number}.")
 
@@ -73,16 +77,16 @@ class Simulation_obj:
             # A test set has been successfully loaded - but we must check that it is suitable for this parameter setup.
             # Otherwise - halt. It will not work and the user probably forgot to check their spatial test setting.
             if patch_quality_array.shape[0] != self.parameters["main_para"][
-                "NUM_PATCHES"] or habitat_species_traversal_array.shape[0] != len(
-                habitat_type_dictionary) or habitat_species_traversal_array.shape[1] != len(
-                    self.parameters["main_para"]["SPECIES_TYPES"]):
+                "NUM_PATCHES"] or habitat_species_traversal_array.shape[0] != \
+                    len(habitat_type_dictionary) or habitat_species_traversal_array.shape[1] != \
+                    len(self.parameters["main_para"]["SPECIES_TYPES"]):
                 raise Exception(f"Existing spatial test set {test_set} not commensurate with specified number"
                                 f" of patches, habitats and/or species. Change these parameters or allow creation of"
                                 f" a replacement spatial test set.")
         except FileNotFoundError:
             # if (any) of the spatial network files do not exist, we MUST now create them here
             patch_position_array, patch_adjacency_array, patch_size_array, patch_quality_array, \
-                patch_habitat_type_array, habitat_species_feeding_array, habitat_species_traversal_array = \
+            patch_habitat_type_array, habitat_species_feeding_array, habitat_species_traversal_array = \
                 run_sample_spatial_data(parameters=self.parameters,
                                         is_output_files=self.is_allow_file_creation)
             # flatten the Nx1 arrays to N vectors
@@ -347,7 +351,7 @@ class Simulation_obj:
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
-                plot_network_properties(patch_list=self.system_state.patch_list, sim=self.sim_number, step=-1,
+                plot_network_properties(patch_list=self.system_state.patch_list, sim_path=self.sim_path, step=-1,
                                         adjacency_path_list=adjacency_path_list, is_biodiversity=True,
                                         is_reserves=True, is_retro=False)
 
@@ -363,19 +367,19 @@ class Simulation_obj:
                 pert_paras = self.parameters["perturbation_para"]["PERT_ARCHETYPE_DICTIONARY"][pert_archetype]
                 if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
                     save_all_data(simulation_obj=self)
-                    population_snapshot(system_state=self.system_state, sim=self.sim_number, update_stored=True,
+                    population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                 # then enact the perturbation and reset the lists
                 perturbation(system_state=self.system_state, parameters=self.parameters, pert_paras=pert_paras)
 
             # immediately after the perturbation and one iteration:
             if step - 1 in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
-                population_snapshot(system_state=self.system_state, sim=self.sim_number, update_stored=True,
+                population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                     output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                 if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
                     save_all_data(simulation_obj=self)
                     # call a function to calculate the resulting change due to the perturbation
-                    change_snapshot(system_state=self.system_state, sim=self.sim_number,
+                    change_snapshot(system_state=self.system_state, sim_path=self.sim_path,
                                     output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
 
             # ---- Call the main update of all local populations ---- #
@@ -408,7 +412,7 @@ class Simulation_obj:
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
-                plot_network_properties(patch_list=self.system_state.patch_list, sim=self.sim_number, step=step,
+                plot_network_properties(patch_list=self.system_state.patch_list, sim_path=self.sim_path, step=step,
                                         adjacency_path_list=adjacency_path_list, is_biodiversity=True,
                                         is_reserves=True, is_retro=False)
 

@@ -138,36 +138,36 @@ def format_dictionary_to_JSON_string(input_string, is_final_item, is_indenting):
 
 # -------------------------------- FUNCTIONS FOR SAVING AND LOADING THE ENTIRE SYSTEM -------------------------------- #
 
-def write_parameters_file(parameters, sim, step):
-    parameters_file = f"results/{sim}/{step}/parameters.json"
+def write_parameters_file(parameters, sim_path, step):
+    parameters_file = f"{sim_path}/{step}/parameters.json"
     dump_json(data=parameters, filename=parameters_file)
 
 
-def write_metadata_file(metadata, sim, step):
-    metadata_file = f"results/{sim}/{step}/metadata.json"
+def write_metadata_file(metadata, sim_path, step):
+    metadata_file = f"{sim_path}/{step}/metadata.json"
     metadata["write_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     dump_json(data=metadata, filename=metadata_file)
 
 
-def write_perturbation_history_data(perturbation_history, sim, step):
-    pert_history_file = f"results/{sim}/{step}/perturbation_history.json"
+def write_perturbation_history_data(perturbation_history, sim_path, step):
+    pert_history_file = f"{sim_path}/{step}/perturbation_history.json"
     dump_json(data=perturbation_history, filename=pert_history_file)
 
 
-def write_current_species_movement_scores(patch_list, sim, step):
+def write_current_species_movement_scores(patch_list, sim_path, step):
     for patch in patch_list:
-        species_movement_scores_file = f"results/{sim}/{step}/data/species_movement_scores/sms_{patch.number}.json"
+        species_movement_scores_file = f"{sim_path}/{step}/data/species_movement_scores/sms_{patch.number}.json"
         dump_json(data=patch.species_movement_scores, filename=species_movement_scores_file)
     # recall that in previous versions these were stored as an array, and thus had to be converted to a
     # nested dictionary first
 
 
-def write_average_population_data(patch_list, sim, step):
+def write_average_population_data(patch_list, sim_path, step):
     print("Saving text and JSON file of all patches averaged pop.s, internal change, dispersal for each local_pop.")
     # build a dictionary
     average_population = {}
     # Text file is more readable but less easy to analyse:
-    txt_file_name = f"results/{sim}/{step}/data/average_populations.txt"
+    txt_file_name = f"{sim_path}/{step}/data/average_populations.txt"
     with safe_open_w(txt_file_name) as f:
         for patch in patch_list:
             this_patch = {}
@@ -187,15 +187,15 @@ def write_average_population_data(patch_list, sim, step):
                         f"{local_pop.recent_occupancy_change_frequency};\n")
             average_population[patch.number] = this_patch
     # then also write the dictionary to a JSON
-    json_file_name = f"results/{sim}/{step}/data/average_populations.json"
+    json_file_name = f"{sim_path}/{step}/data/average_populations.json"
     dump_json(data=average_population, filename=json_file_name)
 
 
-def write_population_history_data(patch_list, sim, step):
+def write_population_history_data(patch_list, sim_path, step):
     print("Saving full local_population history (pop. size, internal change, dispersal) in individual .csv files.")
     for patch in patch_list:
         for local_pop in patch.local_populations.values():
-            file_name = f"results/{sim}/{step}/data/local_pop_csv/patch_{patch.number}_{local_pop.name}.csv"
+            file_name = f"{sim_path}/{step}/data/local_pop_csv/patch_{patch.number}_{local_pop.name}.csv"
             with safe_open_w(file_name) as f:
                 pop_history_array = np.asarray(local_pop.population_history)
                 internal_change_array = np.asarray(local_pop.internal_change_history)
@@ -207,37 +207,37 @@ def write_population_history_data(patch_list, sim, step):
                 np.savetxt(f, combined_array, newline='\n', fmt='%.20f')
 
 
-def write_system_state(system_state, sim, step):
+def write_system_state(system_state, sim_path, step):
     print("Saving system_state object in JSON file.")
-    json_file_name = f"results/{sim}/{step}/data/system_state.json"
+    json_file_name = f"{sim_path}/{step}/data/system_state.json"
     dump_json(data=system_state.__dict__, filename=json_file_name)
 
 
-def write_patch_list_local_populations(patch_list, sim, step, is_save_local_populations):
+def write_patch_list_local_populations(patch_list, sim_path, step, is_save_local_populations):
     print("Saving patch objects in JSON files.")
     for patch in patch_list:
-        json_file_name = f"results/{sim}/{step}/data/patch_data/patch_{patch.number}.json"
+        json_file_name = f"{sim_path}/{step}/data/patch_data/patch_{patch.number}.json"
         dump_json(data=patch.__dict__, filename=json_file_name)
         if is_save_local_populations:
             for species_name, local_pop in patch.local_populations.items():
-                json_local_file_name = f"results/{sim}/{step}/data/local_pop_json/patch" \
+                json_local_file_name = f"{sim_path}/{step}/data/local_pop_json/patch" \
                                        f"_{patch.number}_{species_name}.json"
                 dump_json(data=local_pop.__dict__, filename=json_local_file_name)
 
 
-def distance_metrics_save(simulation_obj, sim, step):
+def distance_metrics_save(simulation_obj, sim_path, step):
     print("Saving distance metrics in JSON file.")
-    json__file_name = f"results/{sim}/{step}/data/distance_metrics.json"
+    json__file_name = f"{sim_path}/{step}/data/distance_metrics.json"
     dump_json(data=simulation_obj.system_state.distance_metrics_store, filename=json__file_name)
 
 
-def pickle_save(simulation_obj, sim, step):
-    pickle_file_name = f"results/{sim}/{step}/data/simulation_obj.pkl"
+def pickle_save(simulation_obj, sim_path, step):
+    pickle_file_name = f"{sim_path}/{step}/data/simulation_obj.pkl"
     save_object(simulation_obj, pickle_file_name)
 
 
-def pickle_load(sim, step):
-    pickle_file_name = f"results/{sim}/{step}/data/simulation_obj.pkl"
+def pickle_load(sim_path, step):
+    pickle_file_name = f"{sim_path}/{step}/data/simulation_obj.pkl"
     file = open(pickle_file_name, "rb")
     simulation_obj = pickle.load(file)
     file.close()
@@ -263,7 +263,7 @@ def update_stored_populations(patch_list, step):
     #                                         step=step, species=species, sub_attr=STEP_TO_PRINT)
 
 
-def save_current_local_population_attribute(patch_list, sim, attribute_name, step, sub_attr=None):
+def save_current_local_population_attribute(patch_list, sim_path, attribute_name, step, sub_attr=None):
     attribute_dictionary = {}
     for patch in patch_list:
         patch_sub_dictionary = {}
@@ -274,9 +274,9 @@ def save_current_local_population_attribute(patch_list, sim, attribute_name, ste
             patch_sub_dictionary[local_pop.name] = value
         attribute_dictionary[patch.number] = patch_sub_dictionary
     if sub_attr is not None:
-        json_file_name = f"results/{sim}/{step}/data/{attribute_name}_{sub_attr}.json"
+        json_file_name = f"{sim_path}/{step}/data/{attribute_name}_{sub_attr}.json"
     else:
-        json_file_name = f"results/{sim}/{step}/data/{attribute_name}.json"
+        json_file_name = f"{sim_path}/{step}/data/{attribute_name}.json"
     dump_json(data=attribute_dictionary, filename=json_file_name)
 
 
@@ -517,7 +517,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
 # ------------------------------------- MAIN FUNCTIONS FOR PLOTTING TIME-SERIES ------------------------------------- #
 
 def global_species_time_series_properties(
-        patch_list, species_set, parameters, sim, step, current_num_patches_history, is_save_data, is_save_plots):
+        patch_list, species_set, parameters, sim_path, step, current_num_patches_history, is_save_data, is_save_plots):
     # This is used to prepare global time-series of species-specific data streams. Depending on the arguments passed,
     # it may produce the outputs as .csv, or as plots, or both. These options enabling separate handling by the
     # all_plots() and save_all_data() functions, although it will be inefficient if we are using both.
@@ -670,7 +670,7 @@ def global_species_time_series_properties(
         }
         for _ in global_property_dict:
             if is_save_plots:
-                file_path = f"results/{sim}/{step}/figures/species_global_time_series/" \
+                file_path = f"{sim_path}/{step}/figures/species_global_time_series/" \
                             f"species_global_ts_{species.name}_" + _ + ".png"
                 create_time_series_plot(data=[global_property_dict[_]["data"]],
                                         parameters=parameters,
@@ -679,13 +679,13 @@ def global_species_time_series_properties(
                                         end_time=step + 1,
                                         file_path=file_path)
             if is_save_data:
-                file_path = f"results/{sim}/{step}/data/species_global_ts_{species.name}_" + _ + ".csv"
+                file_path = f"{sim_path}/{step}/data/species_global_ts_{species.name}_" + _ + ".csv"
                 with safe_open_w(file_path) as f:
                     # noinspection PyTypeChecker
                     np.savetxt(f, global_property_dict[_]["data"], delimiter=', ', newline='\n', fmt='%.20f')
 
 
-def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_local_plots):
+def plot_local_time_series(patch_list, species_set, parameters, sim_path, step, is_local_plots):
     local_properties_to_plot = [
         {"attribute_y_label": "Population",
          "attribute_filename": "population",
@@ -719,7 +719,7 @@ def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_lo
 
                             # plot
                             if is_local_plots:
-                                file_path = f"results/{sim}/{step}/figures/local_time_series/species_specific/" \
+                                file_path = f"{sim_path}/{step}/figures/local_time_series/species_specific/" \
                                             f"species_local_ts_{species.name}_{patch.number}_" \
                                             f"{prop_dict['attribute_filename']}.png"
                                 create_time_series_plot(data=[time_series_array[patch.number, species_number, :]],
@@ -729,9 +729,8 @@ def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_lo
             # plot entire-species:
             for _ in range(len(species_set["list"])):
                 legend_list = [patch.number for patch in patch_list]
-                file_path = f"results/{sim}/{step}/figures/species_time_series/" \
-                            f"species_local_ts_{species_set['list'][_].name}_" \
-                            f"{prop_dict['attribute_filename']}_all.png"
+                file_path = f"{sim_path}/{step}/figures/species_time_series/species_local" \
+                            f"_ts_{species_set['list'][_].name}_{prop_dict['attribute_filename']}_all.png"
                 create_time_series_plot(data=time_series_array[:, _], parameters=parameters,
                                         y_label=prop_dict["attribute_y_label"],
                                         legend_list=legend_list, end_time=ra_end_time, file_path=file_path)
@@ -739,7 +738,7 @@ def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_lo
             if is_local_plots:
                 for _, patch in enumerate(patch_list):
                     legend_list = [species.name for species in species_set["list"]]
-                    file_path = f"results/{sim}/{step}/figures/local_time_series/all_species/" \
+                    file_path = f"{sim_path}/{step}/figures/local_time_series/all_species/" \
                                 f"species_local_ts_all_species_{patch.number}_{prop_dict['attribute_filename']}.png"
                     create_time_series_plot(data=time_series_array[_, :], parameters=parameters,
                                             y_label=prop_dict["attribute_y_label"], legend_list=legend_list,
@@ -749,7 +748,7 @@ def plot_local_time_series(patch_list, species_set, parameters, sim, step, is_lo
                   f" ra_end_time = {ra_end_time}.")
 
 
-def plot_current_local_population_attribute(patch_list, sim, attribute_name, step, species, sub_attr=None):
+def plot_current_local_population_attribute(patch_list, sim_path, attribute_name, step, species, sub_attr=None):
     attribute_matrix = np.zeros([len(patch_list), 1])
     for patch in patch_list:
         # locate the species
@@ -761,17 +760,18 @@ def plot_current_local_population_attribute(patch_list, sim, attribute_name, ste
                 attribute_matrix[patch.number, 0] = value
                 break
     if sub_attr is not None:
-        file_path = f"results/{sim}/{step}/figures/species_attributes/" \
+        file_path = f"{sim_path}/{step}/figures/species_attributes/" \
                     f"species_{attribute_name}_{sub_attr}_{species.name}.png"
     else:
-        file_path = f"results/{sim}/{step}/figures/species_attributes/species_{attribute_name}_{species.name}.png"
+        file_path = f"{sim_path}/{step}/figures/species_attributes/species_{attribute_name}_{species.name}.png"
     create_patches_plot(patch_list=patch_list, color_property=attribute_matrix,
                         file_path=file_path, use_color_bar=True)
 
 
 # ---------------------------------------------- CREATING PATCH PLOTS ---------------------------------------------- #
 
-def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodiversity, is_reserves, is_retro=False):
+def plot_network_properties(patch_list, sim_path, step, adjacency_path_list,
+                            is_biodiversity, is_reserves, is_retro=False):
     properties = {
         'habitat_type':
             {'attribute_id': 'habitat_type_num',
@@ -895,7 +895,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
                     patch_attribute = getattr(patch, properties[prop]["attribute_id"])[sub_attr]
                 color_matrix[patch.number, 0] = patch_attribute
 
-            file_path = f"results/{sim}/{step}/figures/network_properties/{prop}{file_suffix}.png"
+            file_path = f"{sim_path}/{step}/figures/network_properties/{prop}{file_suffix}.png"
             create_patches_plot(patch_list=patch_list, color_property=color_matrix, file_path=file_path,
                                 use_color_bar=properties[prop]["use_color_bar"],
                                 label_patches=properties[prop]["label_patches"],
@@ -907,7 +907,7 @@ def plot_network_properties(patch_list, sim, step, adjacency_path_list, is_biodi
                                 )
 
 
-def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_patch_adjacency_matrix, sim, step):
+def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_patch_adjacency_matrix, sim_path, step):
     # this function is currently unused, but the idea is that it could be called after a reload or re-analysis
     # and then used to plot the abiotic properties of the spatial network at any given time (i.e. after various
     # perturbations) without having to re-run the simulation, since we save both the initial state of the network
@@ -950,14 +950,14 @@ def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_p
     # now build the list of adjacency paths to draw on, based on this matrix
     adjacency_path_list = create_adjacency_path_list(patch_list=modified_patch_list,
                                                      patch_adjacency_matrix=mod_patch_adjacency_matrix)
-    plot_network_properties(patch_list=modified_patch_list, sim=sim, step=step,
+    plot_network_properties(patch_list=modified_patch_list, sim_path=sim_path, step=step,
                             adjacency_path_list=adjacency_path_list,
                             is_biodiversity=False, is_reserves=False, is_retro=True)
 
 
 # --------------------------------------- SPECIALIST PATCH PLOTTING FUNCTIONS --------------------------------------- #
 
-def plot_interactions(patch_list, adjacency_path_list, sim, step):
+def plot_interactions(patch_list, adjacency_path_list, sim_path, step):
     # This is a tool to allow you to actually see the range and spatial feeding relationships impacting a given local
     # population, and the dispersal that is actually occurring at this particular time-step.
     # You can't see the amounts by which these individually contribute to prey-gain (see JSON files for net of this),
@@ -1026,7 +1026,7 @@ def plot_interactions(patch_list, adjacency_path_list, sim, step):
 
             for path_list_dict in path_lists.values():
                 if path_list_dict["data"] is not None and len(path_list_dict["data"]) > 0:
-                    file_path = f"results/{sim}/{step}/figures/interactions/" \
+                    file_path = f"{sim_path}/{step}/figures/interactions/" \
                                 f"local_population_{patch.number}_{local_pop.name}_{path_list_dict['name']}.png"
                     create_patches_plot(patch_list=patch_list,
                                         file_path=file_path,
@@ -1038,7 +1038,7 @@ def plot_interactions(patch_list, adjacency_path_list, sim, step):
                                         )
 
 
-def plot_unrestricted_shortest_paths(patch_list, species_set, sim, step):
+def plot_unrestricted_shortest_paths(patch_list, species_set, sim_path, step):
     # this plots all of the reachable foraging/direct migration paths for each species WITHOUT the restrictions on
     # threshold and path length (these actual interactions are shown in the individual "interaction" plots)
     #
@@ -1062,12 +1062,12 @@ def plot_unrestricted_shortest_paths(patch_list, species_set, sim, step):
                     reachable_patch_score = patch.species_movement_scores[
                         species.name][reachable_patch_num]["best"][2]
                     path_list.append((patch.number, reachable_patch_num, reachable_patch_score, []))
-        file_path = f"results/{sim}/{step}/figures/unrestricted_best_patch_paths_{species.name}.png"
+        file_path = f"{sim_path}/{step}/figures/unrestricted_best_patch_paths_{species.name}.png"
         create_patches_plot(patch_list=patch_list, color_property=habitat_matrix,
                             file_path=file_path, path_list=path_list, label_paths=True, use_color_bar=False)
 
 
-def plot_adjacency_sub_graphs(system_state, sim):
+def plot_adjacency_sub_graphs(system_state, sim_path):
     # This visualises the undirected adjacency-based sub-graphs, regardless of any species actual ability to
     # traverse them. Since adjacency can, in principle, be one-way, it is not necessarily the case that
     # all sub-graphs produced are fully-connected. However, the only alternative is to bias by some rule (such as
@@ -1103,12 +1103,12 @@ def plot_adjacency_sub_graphs(system_state, sim):
             color_classification[patch_num] = next_classifier
             unclassified_patches.remove(patch_num)
 
-    file_path = f"results/{sim}/{system_state.step}/figures/adjacency_subgraph.png"
+    file_path = f"{sim_path}/{system_state.step}/figures/adjacency_subgraph.png"
     create_patches_plot(patch_list=system_state.patch_list, color_property=color_classification,
                         file_path=file_path, use_colors=True, label_patches=True, patch_label_color='black')
 
 
-def plot_accessible_sub_graphs(patch_list, parameters, species, sim, step):
+def plot_accessible_sub_graphs(patch_list, parameters, species, sim_path, step):
     # Visualising the subsets of all patches that are accessible to the given species;
     # Separate colors for each disconnected subgraph in the spatial network that they can eventually fully-explore.
     #
@@ -1154,7 +1154,7 @@ def plot_accessible_sub_graphs(patch_list, parameters, species, sim, step):
                 unclassified_patches.remove(patch_num)
 
     # now print
-    file_path = f"results/{sim}/{step}/figures/species_subgraph/species_{species.name}_subgraph.png"
+    file_path = f"{sim_path}/{step}/figures/species_subgraph/species_{species.name}_subgraph.png"
     create_patches_plot(patch_list=patch_list, color_property=color_classification,
                         file_path=file_path, use_colors=True)
 
@@ -1203,7 +1203,7 @@ def find_connected_sets(patch_list, starting_node, scale, list_of_lists):
 
 # ------------------------- PRODUCING DISTANCE, NETWORK, COMPLEXITY LINEAR REGRESSION PLOTS ------------------------- #
 
-def plot_distance_metrics_lm(distance_metrics_store, sim, step):
+def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
     # produce plots of the linear models associated with distance metrics analysis, together with scatter plots of the
     # data they were fitted to, if this was collected.
 
@@ -1283,7 +1283,7 @@ def plot_distance_metrics_lm(distance_metrics_store, sim, step):
                     plt.xlabel('Input')
                     plt.ylabel('Output')
                     print_name = path.replace('|', '_')
-                    file_path = f"results/{sim}/{step}/figures/linear_models/{print_name}.png"
+                    file_path = f"{sim_path}/{step}/figures/linear_models/{print_name}.png"
                     os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     plt.savefig(file_path, dpi=400)
                     plt.close(fig)
@@ -1322,7 +1322,7 @@ def recursive_dict_search(nested_dict, seek_contains_key, upper_key_path):
 
 # --------------------------------------- PRODUCING DEGREE DISTRIBUTION --------------------------------------- #
 
-def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_fit_history, sim, step):
+def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_fit_history, sim_path, step):
     # scatter the most recent degree distribution and plot the overlaid power law fit at the present step
     #
     # default to the initial system
@@ -1369,7 +1369,7 @@ def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_
         plt.legend(('Actual values', f'Fit: $R^{2}$ = {r_str}'))
     plt.xlabel('Degree')
     plt.ylabel('Frequency')
-    file_path = f"results/{sim}/{step}/figures/network_degree_distribution.png"
+    file_path = f"{sim_path}/{step}/figures/network_degree_distribution.png"
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     plt.savefig(file_path, dpi=400)
     plt.close(fig)
@@ -1377,7 +1377,7 @@ def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_
 
 # --------------------------------------- PRODUCING SPECIES-AREA CURVES (SAR) --------------------------------------- #
 
-def biodiversity_analysis(patch_list, species_set, parameters, sim, step):
+def biodiversity_analysis(patch_list, species_set, parameters, sim_path, step):
     #
     # This conducts a slightly more comprehensive SAR investigation, for plotting, than the version included as part of
     # the network complexity analysis in system_state.complexity_analysis() (that is,
@@ -1457,7 +1457,7 @@ def biodiversity_analysis(patch_list, species_set, parameters, sim, step):
     ax2_color = 'red'
     ax2.plot(x_data, y_data, color=ax2_color)
     ax2.set_ylabel('Average biodiversity', color=ax2_color)
-    file_path = f"results/{sim}/{step}/figures/species_area_curve.png"
+    file_path = f"{sim_path}/{step}/figures/species_area_curve.png"
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     plt.savefig(file_path, dpi=400)
     plt.close(fig)

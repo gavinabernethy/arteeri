@@ -9,7 +9,7 @@ default_species = {
     "PREDATOR_LIST": [],  # What species are predators of this species?
     "INITIAL_POPULATION_PARA": {
         "INITIAL_POPULATION_MECHANISM": "random_binomial",
-        "IS_ENSURE_MINIMUM_POPULATION": False,
+        "IS_ENSURE_MINIMUM_POPULATION": False,  # note that this overwrites even an explicit patch_vector
         "CONSTANT_VALUE": None,
         "GAUSSIAN_MEAN": None,
         "GAUSSIAN_ST_DEV": None,
@@ -433,7 +433,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.05,
+                    "constant_value": 0.025,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -515,15 +515,15 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "gaussian",
-            "IS_ENSURE_MINIMUM_POPULATION": True,
+            "INITIAL_POPULATION_MECHANISM": "patch_vector",
+            "IS_ENSURE_MINIMUM_POPULATION": False,  # note that this applies even for an explicit patch_vector
             "CONSTANT_VALUE": None,
             "GAUSSIAN_MEAN": 0.01,
             "GAUSSIAN_ST_DEV": 0.001,
             "BINOMIAL_MAXIMUM_MULTIPLIER": None,
             "BINOMIAL_PROBABILITY": None,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-            "PATCH_VECTOR": None,
+            "PATCH_VECTOR": [0.0 for x in range(12)] + [0.1] + [0.0 for x in range(12)],
         },
         "SEASONAL_PERIOD": 0,
         "GROWTH_PARA":
@@ -639,7 +639,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": True,
+                "IS_DISPERSAL": False,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "diffusion",
@@ -663,7 +663,7 @@ ARTEMIS_01_MASTER = {
                 "DISPERSAL_MOBILITY": {
                     # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.05,
+                    "constant_value": 0.025,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,

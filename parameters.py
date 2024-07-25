@@ -3,7 +3,9 @@ from parameters_species_repository import *
 meta_para = {
     "IS_NEW_PROGRAM": True,
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
-    "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
+    "REPEAT_PROGRAM_PATH": None,  # what is the output path of the simulation to be repeated? We need to know where to
+    # find their meta_data and parameter files in the results/sub_folder/folder structure.
+    "NUM_REPEATS": 30,  # how many simulations should be executed with the current parameter set?
     "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
@@ -34,7 +36,7 @@ master_para = {
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
             "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
+            "HABITAT_TYPE_MANUAL_OVERWRITE": {},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -64,9 +66,9 @@ master_para = {
     "main_para":
         {
             # ---------- CONTROL PARAMETERS: ---------- #
-            "NUM_TRANSIENT_STEPS": 10000,
-            "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 400,
+            "NUM_TRANSIENT_STEPS": 100,
+            "NUM_RECORD_STEPS": 100,
+            "NUM_PATCHES": 25,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -99,7 +101,6 @@ master_para = {
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
-                1: 'habitat_type_1',
             },
             "GENERATED_SPEC": {
                 #
@@ -113,16 +114,14 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.4, 0.8],
-                                       1: [0.8, 0.4]},
+                    "HABITAT_SCORES": {0: [0.75, 0.75]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": 0.9,
                     "MAX_SCORE": 1.0,
-                    "HABITAT_SCORES": {0: [1.0, 1.0],
-                                       1: [1.0, 1.0]},
+                    "HABITAT_SCORES": {0: [1.0, 1.0]},
                 },
             },
 
@@ -133,7 +132,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1},
+            "INITIAL_HABITAT_SET": {0},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -146,11 +145,13 @@ master_para = {
         },
     "plot_save_para":
         {
-            "IS_ALLOW_FILE_CREATION": False,  # prevents creation of any files for running on remote clusters
+            "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
+            "IS_SUB_FOLDERS": False,  # do we nest the results folders in sub-folders?
+            "SUB_FOLDER_CAPACITY": 3,  # if so, what should the maximum capacity of these be?
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
-            "IS_SAVE": False,  # do you save ANY data files?
-            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_SAVE": True,  # do you save ANY data files?
+            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, if collected - see option in main_para)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
