@@ -177,7 +177,8 @@ def write_average_population_data(patch_list, sim_path, step):
                                               local_pop.average_source, local_pop.average_sink,
                                               local_pop.st_dev_population, local_pop.max_abs_population,
                                               local_pop.population_period_weak, local_pop.population_period_med,
-                                              local_pop.population_period_strong]
+                                              local_pop.population_period_strong,
+                                              local_pop.recent_occupancy_change_frequency]
                 f.write(f"{patch.number}, {local_pop.name}, {local_pop.average_population}, "
                         f"{local_pop.average_internal_change}, {local_pop.average_population_enter}, "
                         f"{local_pop.average_population_leave}, {local_pop.average_source}, {local_pop.average_sink}, "
