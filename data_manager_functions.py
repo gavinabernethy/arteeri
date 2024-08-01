@@ -772,13 +772,13 @@ def plot_current_local_population_attribute(patch_list, sim_path, attribute_name
 # ---------------------------------------------- CREATING PATCH PLOTS ---------------------------------------------- #
 
 def plot_network_properties(patch_list, sim_path, step, adjacency_path_list,
-                            is_biodiversity, is_reserves, is_retro=False):
+                            is_biodiversity, is_reserves, is_label_habitat_patches=True, is_retro=False):
     properties = {
         'habitat_type':
             {'attribute_id': 'habitat_type_num',
              "sub_attribute_list": [None],  # this should be a list containing None
              'use_color_bar': True,
-             'label_patches': True,
+             'label_patches': is_label_habitat_patches,
              'patch_label_attr': None,
              'path_list': adjacency_path_list,
              'path_color': [0.7, 0.7, 0.7],

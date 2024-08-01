@@ -266,8 +266,8 @@ def all_plots(simulation_obj):
         patch_list=patch_list,
         patch_adjacency_matrix=simulation_obj.system_state.patch_adjacency_matrix)
     plot_network_properties(patch_list=patch_list, sim_path=sim_path, step=step,
-                            adjacency_path_list=adjacency_path_list,
-                            is_biodiversity=True, is_reserves=True, is_retro=False)
+                            adjacency_path_list=adjacency_path_list, is_biodiversity=True,
+                            is_reserves=True, is_label_habitat_patches=True, is_retro=False)
 
     # ---- TYPE II: Time-series of non-species-specific properties of the spatial network ---- #
     #

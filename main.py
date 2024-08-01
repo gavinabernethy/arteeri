@@ -55,6 +55,7 @@ def call_program(parameters, metadata, parameters_basename):
                                 adjacency_path_list=adjacency_path_list,
                                 is_biodiversity=False,
                                 is_reserves=True,
+                                is_label_habitat_patches=False,
                                 is_retro=False)
     if parameters["main_para"]["IS_SIMULATION"]:
         simulation_obj.full_simulation()
