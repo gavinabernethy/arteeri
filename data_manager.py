@@ -403,6 +403,7 @@ def all_plots(simulation_obj):
                              "recent_occupancy_change_frequency"]
         for attr in attribute_to_plot:
             plot_current_local_population_attribute(species=species, patch_list=patch_list, sim_path=sim_path,
+                                                    adjacency_path_list=adjacency_path_list,
                                                     attribute_name=attr, step=step)
         if parameters["plot_save_para"]["IS_PLOT_ACCESSIBLE_SUB_GRAPHS"]:
             # patch plots showing the fully-connected network sub-graphs from the POV of each species
@@ -454,10 +455,14 @@ def population_snapshot(system_state, sim_path, update_stored, output_figures):
     save_current_local_population_attribute(patch_list=system_state.patch_list, sim_path=sim_path,
                                             attribute_name="population", step=system_state.step)
     if output_figures:
+        adjacency_path_list = create_adjacency_path_list(
+            patch_list=system_state.patch_list,
+            patch_adjacency_matrix=system_state.patch_adjacency_matrix)
         # population visualisation
         for species in system_state.species_set["list"]:
             plot_current_local_population_attribute(
                 patch_list=system_state.patch_list,
+                adjacency_path_list=adjacency_path_list,
                 sim_path=sim_path,
                 attribute_name="population",
                 step=system_state.step,
@@ -493,8 +498,12 @@ def change_snapshot(system_state, sim_path, output_figures):
                                             )
     if output_figures:
         # change visualisation
+        adjacency_path_list = create_adjacency_path_list(
+            patch_list=system_state.patch_list,
+            patch_adjacency_matrix=system_state.patch_adjacency_matrix)
         for species in system_state.species_set["list"]:
             plot_current_local_population_attribute(patch_list=system_state.patch_list,
+                                                    adjacency_path_list=adjacency_path_list,
                                                     sim_path=sim_path,
                                                     attribute_name="stored_change",
                                                     step=system_state.step,
@@ -502,6 +511,7 @@ def change_snapshot(system_state, sim_path, output_figures):
                                                     sub_attr="absolute"
                                                     )
             plot_current_local_population_attribute(patch_list=system_state.patch_list,
+                                                    adjacency_path_list=adjacency_path_list,
                                                     sim_path=sim_path,
                                                     attribute_name="stored_change",
                                                     step=system_state.step,

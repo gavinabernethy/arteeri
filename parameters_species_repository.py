@@ -515,15 +515,15 @@ ARTEMIS_01_MASTER = {
         "LIFESPAN": 100,
         "PREDATOR_LIST": [],
         "INITIAL_POPULATION_PARA": {
-            "INITIAL_POPULATION_MECHANISM": "patch_vector",
-            "IS_ENSURE_MINIMUM_POPULATION": False,  # note that this applies even for an explicit patch_vector
+            "INITIAL_POPULATION_MECHANISM": "gaussian",
+            "IS_ENSURE_MINIMUM_POPULATION": True,  # note that this applies even for an explicit patch_vector
             "CONSTANT_VALUE": None,
             "GAUSSIAN_MEAN": 0.01,
             "GAUSSIAN_ST_DEV": 0.001,
             "BINOMIAL_MAXIMUM_MULTIPLIER": None,
             "BINOMIAL_PROBABILITY": None,
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-            "PATCH_VECTOR": [0.0 for x in range(12)] + [0.1] + [0.0 for x in range(12)],
+            "PATCH_VECTOR": None,
         },
         "SEASONAL_PERIOD": 0,
         "GROWTH_PARA":
@@ -595,7 +595,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 0.0,
+                    "constant_value": 1.0,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -626,7 +626,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "PREDATION_FOCUS": {
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp'}
-                    "constant_value": 2.5,  # should be non-negative
+                    "constant_value": 1.0,  # should be non-negative
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -639,7 +639,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": False,
+                "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "diffusion",

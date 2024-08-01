@@ -345,6 +345,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
         color_offset = 0.15  # for cyclic color maps (e.g. hsv) [0] and [1] are the same, so need an offset
 
     # Now the primary iteration of each patch to determine its position, value and color
+    line_width = min(1.0, 20.0 / np.sqrt(len(patch_list)))  # both borders and paths
     for patch_num, patch in enumerate(patch_list):
         length = np.sqrt(patch.size)
 
@@ -378,7 +379,6 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
         #     elif float(color_property[patch_num]) not in [x[0] for x in custom_map]:
         #         custom_map.append((float(color_property[patch_num]), c))
 
-        line_width = min(1.0, 20.0 / np.sqrt(len(patch_list)))  # both borders and paths
         rectangle = patches.Rectangle(position, length, length, linewidth=line_width, edgecolor='black',
                                       facecolor=c, zorder=1.5)
         ax.add_patch(rectangle)
@@ -756,7 +756,8 @@ def plot_local_time_series(patch_list, species_set, parameters, sim_path, step, 
                   f" ra_end_time = {ra_end_time}.")
 
 
-def plot_current_local_population_attribute(patch_list, sim_path, attribute_name, step, species, sub_attr=None):
+def plot_current_local_population_attribute(patch_list, sim_path, attribute_name, step, species,
+                                            adjacency_path_list, sub_attr=None):
     attribute_matrix = np.zeros([len(patch_list), 1])
     for patch in patch_list:
         # locate the species
@@ -772,8 +773,8 @@ def plot_current_local_population_attribute(patch_list, sim_path, attribute_name
                     f"species_{attribute_name}_{sub_attr}_{species.name}.png"
     else:
         file_path = f"{sim_path}/{step}/figures/species_attributes/species_{attribute_name}_{species.name}.png"
-    create_patches_plot(patch_list=patch_list, color_property=attribute_matrix,
-                        file_path=file_path, use_color_bar=True)
+    create_patches_plot(patch_list=patch_list, color_property=attribute_matrix, path_list=adjacency_path_list,
+                        path_color=[0.7, 0.7, 0.7], file_path=file_path, use_color_bar=True)
 
 
 # ---------------------------------------------- CREATING PATCH PLOTS ---------------------------------------------- #

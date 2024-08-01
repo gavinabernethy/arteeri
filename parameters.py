@@ -35,8 +35,8 @@ master_para = {
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": -1.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 1250: 1},  # set this to None or empty dict, unless you want
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -58,18 +58,18 @@ master_para = {
                 "QUALITY_CHANGE_PROBABILITY": None,
                 "QUALITY_CHANGE_SCALE": None,  # should be in range (0, 1] - how much do we move towards the target?
                 "QUALITY_DESIRED": None,
-                "IS_HABITAT_CHANGE": True,
-                "HABITAT_CHANGE_PROBABILITY": 0.01,
-                "HABITAT_TYPE_NUM_DESIRED": 0,
+                "IS_HABITAT_CHANGE": False,
+                "HABITAT_CHANGE_PROBABILITY": None,
+                "HABITAT_TYPE_NUM_DESIRED": None,
             },
         },
     "main_para":
         {
             # ---------- CONTROL PARAMETERS: ---------- #
-            "IS_SIMULATION": False,  # if False then we init Simulation_obj but do not execute .full_simulation()
-            "NUM_TRANSIENT_STEPS": 100,
-            "NUM_RECORD_STEPS": 100,
-            "NUM_PATCHES": 2500,
+            "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
+            "NUM_TRANSIENT_STEPS": 10000,
+            "NUM_RECORD_STEPS": 1000,
+            "NUM_PATCHES": 400,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -116,8 +116,8 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.75, 0.75],
-                                       1: [0.75, 0.75]},
+                    "HABITAT_SCORES": {0: [0.8, 0.2],
+                                       1: [0.2, 0.8]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
@@ -156,7 +156,7 @@ master_para = {
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
+            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, if collected - see option in main_para)?
             "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
@@ -165,12 +165,12 @@ master_para = {
             # including the initial distributions of the species populations.
             #
             # Data control options (requires IS_SAVE to be true):
-            "IS_SAVE_LOCAL_POP_HISTORY_CSV": False,  # produce individual .csv file with only the core time series
+            "IS_SAVE_LOCAL_POP_HISTORY_CSV": True,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
-            "IS_SAVE_SYSTEM_STATE_DATA": False,  # produce JSON of system state, including, for example, histories of
+            "IS_SAVE_SYSTEM_STATE_DATA": True,  # produce JSON of system state, including, for example, histories of
             # perturbation, biodiversity, and the mean and s.d. of quality and size of patches present at that time in
             # the network, and the full set of network distance-metric analysis.
-            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
+            "IS_SAVE_PATCH_DATA": True,  # produce JSON file of every patch object (including, for example,
             # the full history per-patch of different local clustering values).
             "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
             # note that this requires IS_SAVE_PATCH_DATA to be true first.
