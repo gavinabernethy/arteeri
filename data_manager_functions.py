@@ -334,7 +334,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     max_color_value = np.max(color_property)
 
     # space them out slightly so that size=1 patches can still be distinguished
-    patch_scaling_factor = 1.2
+    patch_scaling_factor = 1.5
 
     # Some set up for the colorings
     color_offset = 0.0
@@ -343,6 +343,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
         is_one_color = True
     elif use_colors:
         color_offset = 0.15  # for cyclic color maps (e.g. hsv) [0] and [1] are the same, so need an offset
+
     # Now the primary iteration of each patch to determine its position, value and color
     for patch_num, patch in enumerate(patch_list):
         length = np.sqrt(patch.size)
@@ -377,7 +378,9 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
         #     elif float(color_property[patch_num]) not in [x[0] for x in custom_map]:
         #         custom_map.append((float(color_property[patch_num]), c))
 
-        rectangle = patches.Rectangle(position, length, length, linewidth=1, edgecolor='black', facecolor=c)
+        line_width = min(1.0, 20.0 / np.sqrt(len(patch_list)))  # both borders and paths
+        rectangle = patches.Rectangle(position, length, length, linewidth=line_width, edgecolor='black',
+                                      facecolor=c, zorder=1.5)
         ax.add_patch(rectangle)
         if label_patches:
             # annotate the centre of the rectangle with value
@@ -403,9 +406,10 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                 else:
                     color = patch_label_color
                 ax.annotate(data_str, (rx + length / 2, ry + length / 2),
-                            color=color, fontsize=5, ha='center', va='center')
+                            color=color, fontsize=5, ha='center', va='center', zorder=1.9)  # highest z-order for labels
 
-    # draw paths (showing traversable links) if required:
+    # draw paths (showing traversable links) if required (with a lower z-order than the patches):
+    #
     if path_list is not None and len(path_list) > 0:
 
         min_x = min([element.position[0] for element in patch_list])
@@ -450,11 +454,12 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                         y_end = both_patches[line_num][1] + (both_patches[line_num - 1][1] -
                                                              both_patches[line_num][1]) / 2
                     if type(path_tuple[3]) is list and len(path_tuple[3]) == 3:
-                        ax.plot([x_start, x_end], [y_start, y_end], color=path_tuple[3])
+                        ax.plot([x_start, x_end], [y_start, y_end], color=path_tuple[3],
+                                linewidth=line_width, zorder=1.1)
                     elif path_color is None:
-                        ax.plot([x_start, x_end], [y_start, y_end])
+                        ax.plot([x_start, x_end], [y_start, y_end], linewidth=line_width, zorder=1.1)
                     else:
-                        ax.plot([x_start, x_end], [y_start, y_end], color=path_color)
+                        ax.plot([x_start, x_end], [y_start, y_end], color=path_color, linewidth=line_width, zorder=1.1)
 
             else:
                 # not a wrap - just a direct path
@@ -467,16 +472,18 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
 
                 if type(path_tuple[3]) is list and len(path_tuple[3]) == 3:
                     # is color specified for this path?
-                    line = ax.plot([start_x, end_x], [start_y, end_y], color=path_tuple[3])
+                    line = ax.plot([start_x, end_x], [start_y, end_y], color=path_tuple[3],
+                                   linewidth=line_width, zorder=1.1)
                 else:
                     # otherwise the general coloring schemes
                     if path_color is None:
-                        line = ax.plot([start_x, end_x], [start_y, end_y])
+                        line = ax.plot([start_x, end_x], [start_y, end_y], linewidth=line_width, zorder=1.1)
                     else:
-                        line = ax.plot([start_x, end_x], [start_y, end_y], color=path_color)
+                        line = ax.plot([start_x, end_x], [start_y, end_y], color=path_color,
+                                       linewidth=line_width, zorder=1.1)
 
                 if label_paths:
-                    # annotate with link strength
+                    # annotate with link strength - labels should have the highest z-order
                     line_color = line[-1].get_color()
                     if path_tuple[2] is not None:
                         if type(path_tuple[2]) == str:
@@ -486,7 +493,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                         else:
                             raise Exception("Don't recognise TYPE of path label.")
                         ax.annotate(data_str, (mid_x, mid_y), color=line_color, fontsize=6, ha='center', va='center',
-                                    path_effects=[pe.withStroke(linewidth=1, foreground="black")])
+                                    path_effects=[pe.withStroke(linewidth=1, foreground="black")], zorder=1.9)
     plt.xlim([min_val[0], max_val[0]])
     plt.ylim([min_val[1], max_val[1]])
     if use_color_bar:

@@ -36,7 +36,7 @@ master_para = {
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
             "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 5000: 1},  # set this to None or empty dict, unless you want
+            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 1250: 1},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -69,7 +69,7 @@ master_para = {
             "IS_SIMULATION": False,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 100,
             "NUM_RECORD_STEPS": 100,
-            "NUM_PATCHES": 10000,
+            "NUM_PATCHES": 2500,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
