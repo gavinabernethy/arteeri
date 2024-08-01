@@ -5,7 +5,7 @@ meta_para = {
     "REPEAT_PROGRAM_CODE": None,  # what is the simulation number to be repeated?
     "REPEAT_PROGRAM_PATH": None,  # what is the output path of the simulation to be repeated? We need to know where to
     # find their meta_data and parameter files in the results/sub_folder/folder structure.
-    "NUM_REPEATS": 30,  # how many simulations should be executed with the current parameter set?
+    "NUM_REPEATS": 1,  # how many simulations should be executed with the current parameter set?
     "IS_RUN_SAMPLE_SPATIAL_DATA_FIRST": True,  # should we execute sample_spatial_data() before running the batch set?
     # if false then we will try to load the SPATIAL_TEST_SET below. So if you want to do several batches with the same
     # spatial set then generate it separately by executing sample_spatial_data.py then run the batches with this FALSE.
@@ -66,6 +66,7 @@ master_para = {
     "main_para":
         {
             # ---------- CONTROL PARAMETERS: ---------- #
+            "IS_SIMULATION": False,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 100,
             "NUM_RECORD_STEPS": 100,
             "NUM_PATCHES": 25,
@@ -154,9 +155,11 @@ master_para = {
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, if collected - see option in main_para)?
+            "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
-            # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever.
+            # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever,
+            # including the initial distributions of the species populations.
             #
             # Data control options (requires IS_SAVE to be true):
             "IS_SAVE_LOCAL_POP_HISTORY_CSV": False,  # produce individual .csv file with only the core time series

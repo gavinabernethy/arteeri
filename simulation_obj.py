@@ -45,7 +45,7 @@ class Simulation_obj:
         if self.is_allow_file_creation:
             write_initial_files(parameters=self.parameters, metadata=self.metadata, sim_path=self.sim_path,
                                 parameters_filename=self.parameters_filename)
-        print(f"Beginning simulation number {self.sim_number}.")
+        print(f"Constructed simulation object for number {self.sim_number}.")
 
     def construction(self):
         # import all habitat and spatial network data from files
@@ -234,12 +234,18 @@ class Simulation_obj:
                                     dimensions=dimensions,
                                     )
 
+        return system_state
+
+    ######################################################################################################
+
+    def species_pathing(self):
         # generate shortest path cost for each species using Dijkstra's algorithm, and list of reachable patches
         is_generate_fresh = True
         if self.parameters["main_para"]["IS_LOAD_ADJ_VARIABLES"]:
             print("Attempting to load pre-existing adjacency variables.")
             try:
-                load_adj_variables(patch_list=patch_list, spatial_set_number=test_set)
+                load_adj_variables(patch_list=self.system_state.patch_list,
+                                   spatial_set_number=self.parameters["graph_para"]["SPATIAL_TEST_SET"])
                 is_generate_fresh = False
                 print("Successfully loaded pre-existing adjacency variables.")
             except (FileNotFoundError, json.decoder.JSONDecodeError):
@@ -249,22 +255,23 @@ class Simulation_obj:
         if is_generate_fresh:
             # build fresh
             print("Generating new adjacency variables.")
-            system_state.build_all_patches_species_paths_and_adjacency(parameters=self.parameters)
-            print("Adjacency variables successfully generated.")
+            self.system_state.build_all_patches_species_paths_and_adjacency(parameters=self.parameters)
+            print("Adjacency variables successfully generated.\n")
         if self.is_allow_file_creation and self.parameters["main_para"]["IS_SAVE_ADJ_VARIABLES"]:
-            save_adj_variables(patch_list=patch_list, spatial_set_number=test_set)
-            print("Adjacency variables saved.")
-
-        return system_state
+            save_adj_variables(patch_list=self.system_state.patch_list,
+                               spatial_set_number=self.parameters["graph_para"]["SPATIAL_TEST_SET"])
+            print("Adjacency variables saved.\n")
 
     ######################################################################################################
 
     def full_simulation(self):
+        print(f"Initialising simulation number {self.sim_number}.\n")
+        self.species_pathing()
         self.simulation()
         self.metadata["simulation_end_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if self.is_allow_file_creation:
             if self.is_save:
-                print(f"{self.sim_number}: Beginning data saves.")
+                print(f"\n{self.sim_number}: Beginning data saves.")
                 save_all_data(simulation_obj=self)
                 print(f"{self.sim_number}: Completed data saves.")
             if self.is_plot:
