@@ -35,7 +35,7 @@ master_para = {
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": -1.0,  # in range [-1, 1]
             "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 1250: 1},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.

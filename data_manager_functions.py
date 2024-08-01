@@ -1469,3 +1469,39 @@ def biodiversity_analysis(patch_list, species_set, parameters, sim_path, step):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     plt.savefig(file_path, dpi=400)
     plt.close(fig)
+
+
+# ----------------------------------- RECORDING BASIC SPATIAL NETWORK PROPERTIES ----------------------------------- #
+
+def save_network_properties(system_state, sim_path, step):
+    # save .txt file with the essential spatial network properties - useful to use at the beginning of the program
+    # alongside plot_network_properties() to describe the abiotic system
+    txt_file_name = f"{sim_path}/{step}/data/network_properties.txt"
+    with safe_open_w(txt_file_name) as f:
+        f.write("Habitat amounts:\n")
+        for habitat_num, habitat_history in system_state.habitat_amounts_history.items():
+            f.write(f"{habitat_num}: {habitat_history[max(x for x in habitat_history)]}\n")
+        f.write("\nPosterior habitat spatial auto-correlation:\n")
+        f.write("Regular:\n")
+        f.write(str(system_state.habitat_regular_auto_correlation_history[
+                    max(x for x in system_state.habitat_regular_auto_correlation_history)])+'\n')
+        f.write("Normalised:\n")
+        f.write(str(system_state.habitat_spatial_auto_correlation_history[
+                    max(x for x in system_state.habitat_spatial_auto_correlation_history)])+'\n')
+        f.write("\nLCCs:\n")
+        f.write("All:\n")
+        f.write(str(system_state.patch_lcc_history['all'][max(x for x in system_state.patch_lcc_history['all'])])+'\n')
+        f.write("Same:\n")
+        f.write(str(system_state.patch_lcc_history['same'][
+                        max(x for x in system_state.patch_lcc_history['same'])])+'\n')
+        f.write("Different:\n")
+        f.write(str(system_state.patch_lcc_history['different'][
+                    max(x for x in system_state.patch_lcc_history['different'])])+'\n')
+        f.write("\nDegree:\n")
+        f.write(str(system_state.patch_degree_history[max(x for x in system_state.patch_degree_history)])+'\n')
+        f.write("\nSize:\n")
+        f.write(str(system_state.patch_size_history[max(x for x in system_state.patch_size_history)])+'\n')
+        f.write("\nQuality:\n")
+        f.write(str(system_state.patch_quality_history[max(x for x in system_state.patch_quality_history)])+'\n')
+        f.write("\nCentrality:\n")
+        f.write(str(system_state.patch_centrality_history[max(x for x in system_state.patch_centrality_history)])+'\n')

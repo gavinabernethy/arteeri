@@ -156,6 +156,18 @@ def print_key_outputs_to_console(simulation_obj):
         max(x for x in simulation_obj.system_state.patch_lcc_history['same'])])
     print("Different:", simulation_obj.system_state.patch_lcc_history['different'][
         max(x for x in simulation_obj.system_state.patch_lcc_history['different'])])
+    print("Degree (final):")
+    print(simulation_obj.system_state.patch_degree_history[
+              max(x for x in simulation_obj.system_state.patch_degree_history)])
+    print("Size:")
+    print(simulation_obj.system_state.patch_size_history[
+              max(x for x in simulation_obj.system_state.patch_size_history)])
+    print("Quality:")
+    print(simulation_obj.system_state.patch_quality_history[
+              max(x for x in simulation_obj.system_state.patch_quality_history)])
+    print("Centrality:")
+    print(simulation_obj.system_state.patch_centrality_history[
+              max(x for x in simulation_obj.system_state.patch_centrality_history)])
     print("Patch adjacency matrix (final):")
     print(simulation_obj.system_state.patch_adjacency_matrix)
     print("\n********** LOCAL POPULATION OUTPUTS **********\n")
