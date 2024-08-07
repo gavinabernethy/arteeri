@@ -267,7 +267,7 @@ def pre_dispersal_of_local_population(
 
 def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobility_scaling_attr,
                             heaviside_threshold_attr, is_heaviside_manual, heaviside_manual_value,
-                            home_patch_traversal_score, is_scaled_target_size):
+                            home_patch_traversal_score):
     # used by both build_actual_dispersal_targets() and build_interacting_populations_list() to determine the
     # local_population's access to distant patches given their CURRENT mobility scores and path length restrictions
     #
@@ -308,11 +308,8 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
         # add search cost in target patch
         filtered_cost += target["target_patch_size"] / target["target_patch_traversal"]
 
-        # scale by mobility attribute (and target_size if appropriate) and return
+        # scale by mobility attribute and return
         score = getattr(local_pop.species, mobility_scaling_attr) * filtered_cost ** (-1.0)
-
-        if is_scaled_target_size:
-            score = score * target["target_patch_size"]
 
     return score, path_length
 
@@ -366,10 +363,12 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                                 heaviside_manual_value=0.0,
                                 heaviside_threshold_attr=None,
                                 home_patch_traversal_score=this_patch_species_traversal,
-                                is_scaled_target_size=True,
                             )
                             if target_score >= local_pop.species.current_minimum_link_strength_dispersal:
-                                temp_dict[reachable_patch_num] = target_score
+                                # for uniformity with foraging (which scales by population size), we scale by the
+                                # target patch size (as it is directly proportional to amount of suitable nest sites)
+                                # AFTER applying the cut-off threshold:
+                                temp_dict[reachable_patch_num] = target_score * z["target_patch_size"]
                 local_pop.actual_dispersal_targets = temp_dict
 
 
@@ -459,7 +458,6 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                     heaviside_manual_value=None,
                                     heaviside_threshold_attr="current_foraging_kappa",
                                     home_patch_traversal_score=this_patch_species_traversal,
-                                    is_scaled_target_size=False,
                                 )
                                 if local_pop_score < local_pop.species.current_minimum_link_strength_foraging:
                                     local_pop_score = 0.0
@@ -476,7 +474,6 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                     heaviside_manual_value=None,
                                     heaviside_threshold_attr="current_foraging_kappa",
                                     home_patch_traversal_score=patch_to_species_traversal,
-                                    is_scaled_target_size=False,
                                 )
                                 if local_pop_to_score < local_pop_to.species.current_minimum_link_strength_foraging:
                                     local_pop_to_score = 0.0
