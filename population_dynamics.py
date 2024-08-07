@@ -267,18 +267,22 @@ def pre_dispersal_of_local_population(
 
 def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobility_scaling_attr,
                             heaviside_threshold_attr, is_heaviside_manual, heaviside_manual_value,
-                            home_patch_traversal_score):
+                            home_patch_traversal_score, is_scaled_target_size):
     # used by both build_actual_dispersal_targets() and build_interacting_populations_list() to determine the
     # local_population's access to distant patches given their CURRENT mobility scores and path length restrictions
+    #
+    # We already have the potential travel COSTs, so we choose the best available one, then add search cost (for prey
+    # or nest sites) in the target patch, take reciprocal and scale by mobility (and size if required).
     path_length = 0
     if home_patch_traversal_score == 0.0:
+        # this is not strictly needed as a separate consideration, but it speeds up the calculation
         score = 0.0
     else:
         if getattr(local_pop.species, query_attr):
             # path length restricted, but is the best one within the allowed range anyway?
-            if target["best"][0] <= getattr(local_pop.species, max_path_attr):
-                cost = target["best"][1]
-                path_length = target["best"][0]
+            if target["routes"]["best"][0] <= getattr(local_pop.species, max_path_attr):
+                cost = target["routes"]["best"][1]
+                path_length = target["routes"]["best"][0]
             else:
                 cost = float('inf')
                 # otherwise look for best reachable
@@ -288,8 +292,8 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
                         path_length = try_path_length
         else:
             # path unrestricted so just return the best overall cost
-            cost = target["best"][1]
-            path_length = target["best"][0]
+            cost = target["routes"]["best"][1]
+            path_length = target["routes"]["best"][0]
 
         # now pass into Heaviside step function
         if is_heaviside_manual:
@@ -300,9 +304,16 @@ def find_best_actual_scores(local_pop, target, query_attr, max_path_attr, mobili
             filtered_cost = 0.0
         else:
             filtered_cost = cost - heaviside_threshold
-        # scale by mobility attribute and return
-        score = getattr(local_pop.species, mobility_scaling_attr) * (
-                1.0 / home_patch_traversal_score + filtered_cost) ** (-1.0)
+
+        # add search cost in target patch
+        filtered_cost += target["target_patch_size"] / target["target_patch_traversal"]
+
+        # scale by mobility attribute (and target_size if appropriate) and return
+        score = getattr(local_pop.species, mobility_scaling_attr) * filtered_cost ** (-1.0)
+
+        if is_scaled_target_size:
+            score = score * target["target_patch_size"]
+
     return score, path_length
 
 
@@ -355,6 +366,7 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                                 heaviside_manual_value=0.0,
                                 heaviside_threshold_attr=None,
                                 home_patch_traversal_score=this_patch_species_traversal,
+                                is_scaled_target_size=True,
                             )
                             if target_score >= local_pop.species.current_minimum_link_strength_dispersal:
                                 temp_dict[reachable_patch_num] = target_score
@@ -447,6 +459,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                     heaviside_manual_value=None,
                                     heaviside_threshold_attr="current_foraging_kappa",
                                     home_patch_traversal_score=this_patch_species_traversal,
+                                    is_scaled_target_size=False,
                                 )
                                 if local_pop_score < local_pop.species.current_minimum_link_strength_foraging:
                                     local_pop_score = 0.0
@@ -463,6 +476,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                                     heaviside_manual_value=None,
                                     heaviside_threshold_attr="current_foraging_kappa",
                                     home_patch_traversal_score=patch_to_species_traversal,
+                                    is_scaled_target_size=False,
                                 )
                                 if local_pop_to_score < local_pop_to.species.current_minimum_link_strength_foraging:
                                     local_pop_to_score = 0.0

@@ -24,18 +24,18 @@ master_para = {
             "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
+            "LATTICE_GRAPH_CONNECTIVITY": 0.75,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
-            "RANDOM_GRAPH_CONNECTIVITY": 0.05,
-            "SMALL_WORLD_NUM_NEIGHBOURS": 2,  # if num_patches > 2, this need to be at least 2 or graph fails
-            "SMALL_WORLD_SHORTCUT_PROBABILITY": 0.1,
-            "CLUSTER_NUM_NEIGHBOURS": 3,
-            "CLUSTER_PROBABILITY": 0.9,
+            "RANDOM_GRAPH_CONNECTIVITY": None,
+            "SMALL_WORLD_NUM_NEIGHBOURS": None,  # if num_patches > 2, this need to be at least 2 or graph fails
+            "SMALL_WORLD_SHORTCUT_PROBABILITY": None,
+            "CLUSTER_NUM_NEIGHBOURS": None,
+            "CLUSTER_PROBABILITY": None,
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": -1.0,  # in range [-1, 1]
             "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
@@ -96,7 +96,8 @@ master_para = {
                 # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
                 # name loaded (below) from the parameters_species_repository.py:
                 0: "prey",
-                1: "predator",
+                1: "predator_one",
+                2: "predator_two",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
             "HABITAT_TYPES": {
@@ -111,28 +112,28 @@ master_para = {
                 "FEEDING": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
-                    "MIN_SCORE": 0.0,
-                    "MAX_SCORE": 1.0,
+                    "MIN_SCORE": None,
+                    "MAX_SCORE": None,
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.8, 0.2],
-                                       1: [0.2, 0.8]},
+                    "HABITAT_SCORES": {0: [0.8, 0.4, 0.4],
+                                       1: [0.4, 0.8, 0.8]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
-                    "MIN_SCORE": 0.9,
-                    "MAX_SCORE": 1.0,
-                    "HABITAT_SCORES": {0: [1.0, 1.0],
-                                       1: [1.0, 1.0]},
+                    "MIN_SCORE": None,
+                    "MAX_SCORE": None,
+                    "HABITAT_SCORES": {0: [1.0, 1.0, 1.0],
+                                       1: [1.0, 1.0, 1.0]},
                 },
             },
 
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0, 1, 2},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
@@ -145,7 +146,7 @@ master_para = {
 
             # When conducting distance metric, network and complexity analyses that include linear regressions, do we
             # record the vectors of values, to reconstruct the raw data scatter plots against the fitted models later?
-            "IS_RECORD_METRICS_LM_VECTORS": True,
+            "IS_RECORD_METRICS_LM_VECTORS": False,
         },
     "plot_save_para":
         {
@@ -156,8 +157,8 @@ master_para = {
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
-            # scatter plots of the base data, if collected - see option in main_para)?
+            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
+            # scatter plots of the base data, IF COLLECTED - see option in main_para)?
             "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
@@ -170,7 +171,7 @@ master_para = {
             "IS_SAVE_SYSTEM_STATE_DATA": True,  # produce JSON of system state, including, for example, histories of
             # perturbation, biodiversity, and the mean and s.d. of quality and size of patches present at that time in
             # the network, and the full set of network distance-metric analysis.
-            "IS_SAVE_PATCH_DATA": True,  # produce JSON file of every patch object (including, for example,
+            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
             # the full history per-patch of different local clustering values).
             "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
             # note that this requires IS_SAVE_PATCH_DATA to be true first.

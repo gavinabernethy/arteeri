@@ -345,8 +345,8 @@ class System_state:
                     self.habitat_species_traversal[patch.habitat_type_num, species_number]
 
     def build_species_paths_and_adjacency(self, patch, parameters):
-        # Sets a list of dictionaries containing the shortest path cost for each species to travel from the current
-        # patch to each other patch.
+        # Sets a list of dictionaries containing the shortest path COST (not SCORE) for each species to travel from the
+        # current patch to each other patch.
         # The value of this is stored in patch.species_movement_scores dictionary, where species name is the key.
         patch.species_movement_scores = {}
         #
@@ -355,6 +355,10 @@ class System_state:
         # path-length restrictions here.
         # These are accounted for later, in (along with prey preferences and distance foraging strategy efficiency)
         # the "interacting populations" and "actual_dispersal_targets" methods.
+        #
+        # Really what we calculate here, and store in the .species_movement_scores, are a set of potential (subject to
+        # maximum path length and kappa - for foraging) TRAVEL COSTS to which search cost will later be added, and
+        # then conversion to foraging or dispersal score will take place.
         patch.adjacency_lists = {}
         patch.stepping_stone_list = []
         stepping_stone_set = set()
@@ -364,37 +368,41 @@ class System_state:
 
             # use Dijkstra's algorithm for weighted undirected graphs
             # create dictionary of final patch costs for different path step-lengths [from this current patch]
-            patch_costs = {x: {"best": (float('inf'), float('inf'), 0.0, [])} for x in range(len(self.patch_list))}
+            routes_template = {"routes": {"best": (float('inf'), float('inf'), 0.0, [])}}
+            patch_costs = {x: deepcopy(routes_template) for x in range(len(self.patch_list))}
 
             # zero cost to travel to self (i.e. this patch) for any species
-            patch_costs[patch.number]["best"] = (0, 0.0, [])  # 0 steps, 0.0 cost, no intermediate steps
-            patch_costs[patch.number][0] = (0.0, [])
+            patch_costs[patch.number]["routes"]["best"] = (0, 0.0, [])  # 0 steps, 0.0 cost, no intermediate steps
+            patch_costs[patch.number]["routes"][0] = (0.0, [])
 
             # list of patches whose shortest path has been found
             visited = []
             not_visited = [x for x in range(len(self.patch_list))]
 
             while len(not_visited) > 0:
+
                 # identify the shortest tentative cost/distance to reach a currently-unvisited (in this cycle) node
                 best_tentative_cost = float('inf')
                 best_tentative_length = float('inf')
                 best_tentative_path = []
                 next_vertex_num = 0
                 for possible_next_patch_num in not_visited:
-                    tentative_length = patch_costs[possible_next_patch_num]["best"][0]
-                    tentative_cost = patch_costs[possible_next_patch_num]["best"][1]
-                    tentative_path = patch_costs[possible_next_patch_num]["best"][2]
+                    tentative_length = patch_costs[possible_next_patch_num]["routes"]["best"][0]
+                    tentative_cost = patch_costs[possible_next_patch_num]["routes"]["best"][1]
+                    tentative_path = patch_costs[possible_next_patch_num]["routes"]["best"][2]
                     if tentative_cost < best_tentative_cost:
                         next_vertex_num = possible_next_patch_num
                         best_tentative_length = tentative_length
                         best_tentative_cost = tentative_cost
                         best_tentative_path = tentative_path
+
                 # if this cost is still infinity, then quit algorithm as the graph is disconnected
                 if best_tentative_cost == float('inf'):
                     break
                 else:
                     visited.append(next_vertex_num)
                     not_visited.remove(next_vertex_num)
+                    next_patch = self.patch_list[next_vertex_num]
                     # now see if a better score to other patches can be achieved through this one
                     for other_patch_num, other_patch in enumerate(self.patch_list):
                         if next_vertex_num != other_patch_num:
@@ -407,24 +415,29 @@ class System_state:
                             else:
                                 new_path_length = best_tentative_length + 1
                                 new_path = best_tentative_path + [next_vertex_num]
-                                # single-path-cost = 1 / ( habitat-species-traversal * adjacency-border * patch-size)
-                                new_path_cost = best_tentative_cost + (
-                                        1.0 / other_patch.this_habitat_species_traversal[species_name]
-                                ) * (1.0 / self.patch_adjacency_matrix[next_vertex_num, other_patch_num]
-                                     ) / other_patch.size
+                                # single-path-cost = patch-size / ( habitat-species-traversal * adjacency-border)
+                                new_path_cost = best_tentative_cost + next_patch.size / (
+                                        next_patch.this_habitat_species_traversal[
+                                            species_name] * self.patch_adjacency_matrix[
+                                            next_vertex_num, other_patch_num])
                                 # Note: patch_adjacency_matrix is currently binary, so if this branch is reached
                                 # then part of this function will be 1/1;
                                 # However it is included because in the future we may wish to alter this matrix
                                 # such that there are non-uniform size of borders between patch pairs (separately
-                                # from the role of patch size, which linearly reduces the distance cost to access).
+                                # from the role of patch size).
 
                             # is best overall?
-                            if new_path_cost < patch_costs[other_patch_num]["best"][1]:
-                                patch_costs[other_patch_num]["best"] = (new_path_length, new_path_cost, new_path)
+                            if new_path_cost < patch_costs[other_patch_num]["routes"]["best"][1]:
+                                patch_costs[other_patch_num]["routes"]["best"] = (
+                                    new_path_length, new_path_cost, new_path)
                             # is best for this length?
-                            if new_path_length not in patch_costs[other_patch_num] or \
-                                    new_path_cost < patch_costs[other_patch_num][new_path_length][0]:
-                                patch_costs[other_patch_num][new_path_length] = (new_path_cost, new_path)
+                            if new_path_length not in patch_costs[other_patch_num]["routes"] or \
+                                    new_path_cost < patch_costs[other_patch_num]["routes"][new_path_length][0]:
+                                patch_costs[other_patch_num]["routes"][new_path_length] = (new_path_cost, new_path)
+                            # store the target patch size and traversal score for this species
+                            patch_costs[other_patch_num]["target_patch_size"] = other_patch.size
+                            patch_costs[other_patch_num][
+                                "target_patch_traversal"] = other_patch.this_habitat_species_traversal[species_name]
 
             # save
             patch.species_movement_scores[species_name] = patch_costs
@@ -434,11 +447,12 @@ class System_state:
             # traverse certain habitats remains unchanged.
             reachable_patch_nums = []
             for patch_num in patch.species_movement_scores[species_name]:
-                if patch.species_movement_scores[species_name][patch_num]["best"][1] < float('inf'):
+                if patch.species_movement_scores[species_name][patch_num]["routes"]["best"][1] < float('inf'):
                     reachable_patch_nums.append(patch_num)
             patch.adjacency_lists[species_name] = reachable_patch_nums
             # gather a set of the patches used as stepping stones AND the reachable patches (inc. endpoints) using them
-            for target, possible_routes in patch_costs.items():
+            for target, target_costs in patch_costs.items():
+                possible_routes = target_costs["routes"]
                 if len(possible_routes["best"][-1]) > 0:
                     for route in possible_routes.values():
                         path_list = route[-1]
