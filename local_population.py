@@ -160,6 +160,18 @@ class Local_population:
                                 f'of species {self.species} in patch {patch.number}.')
             else:
                 self.population = patch_vector[patch.number]
+        elif self.species.initial_population_mechanism == "patch_vector_gaussian":
+            # Here, the initial population of this local population (per patch) is taken from the patch_vector
+            # specification and then scaled by normal distribution which is drawn FOR EACH LOCAL POPULATION
+            patch_vector = self.species.initial_population_para["PATCH_VECTOR"]
+            # check for errors
+            if len(patch_vector) != len(current_patch_list) or patch.number not in range(len(patch_vector)):
+                raise Exception(f'Error with the length of the initial population patch vector '
+                                f'of species {self.species} in patch {patch.number}.')
+            else:
+                self.population = patch_vector[patch.number] * np.random.normal(
+                    loc=self.species.initial_population_para["GAUSSIAN_MEAN"],
+                    scale=self.species.initial_population_para["GAUSSIAN_ST_DEV"])
         else:
             raise Exception(f'Unrecognised (or not given) mechanism for initial population '
                             f'of species {self.species} in patch {patch.number}.')
