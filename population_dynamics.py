@@ -35,7 +35,7 @@ def reset_dispersal_values(patch_list):
             local_pop.population_enter = 0.0
 
 
-def temporal_function(parameter, time):
+def temporal_function(parameter, previous_value, time):
     # retrieves the current value of a potentially temporally-varying species-specific parameter
     if parameter["type"] is None:
         value = None
@@ -55,6 +55,15 @@ def temporal_function(parameter, time):
         key = max(filter(lambda x: x <= index, parameter["vector_imp"].keys()))
         # pass this back to the dictionary of values
         value = parameter["vector_imp"][key]
+    elif parameter["type"] == "logistic_map":
+        if previous_value is None:
+            previous_value = parameter["logistic_initial"]
+        # obtain previous value rescaled to [0, 1]
+        re_scaled_previous_value = min(1.0, max(0.0, previous_value / parameter["logistic_max"]))
+        # calculate next value (in [0, 1]) from the logistic map sequence
+        normalised_value = parameter["logistic_r"] * re_scaled_previous_value * (1.0 - re_scaled_previous_value)
+        # rescale this output
+        value = parameter["logistic_max"] * normalised_value
     else:
         raise Exception("Type not recognised.")  # Note that we accept 'None' as valid!
     return value
@@ -122,7 +131,7 @@ def dispersal_scheme_adaptive(species_from, movement_score, parameters):
     # ecological_iterate (feeding and reproduction, after the last dispersal was completed), and scaled by
     # the species-and-habitat-specific traversal score and their movement speed and the overall movement parameter
     non_dispersal_change = species_from.local_growth + species_from.direct_impact_value + \
-                            species_from.prey_gain - species_from.predation_loss
+                           species_from.prey_gain - species_from.predation_loss
     current_pop = species_from.holding_population  # current population has been saved this step following ODE/growth.
     previous_pop = species_from.holding_population - non_dispersal_change
     # did foraging/reproduction/being predated upon result in a net decline for this local population?
@@ -325,17 +334,17 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                         species.current_max_dispersal_path_length, species.current_minimum_link_strength_dispersal,
                         species.current_dispersal_direction, species.current_coefficients_lists]:
                 species.current_dispersal_mechanism = temporal_function(
-                    species.dispersal_para["DISPERSAL_MECHANISM"], time)
+                    species.dispersal_para["DISPERSAL_MECHANISM"], None, time)
                 species.current_dispersal_mobility = temporal_function(
-                    species.dispersal_para["DISPERSAL_MOBILITY"], time)
+                    species.dispersal_para["DISPERSAL_MOBILITY"], None, time)
                 species.current_max_dispersal_path_length = temporal_function(
-                    species.dispersal_para["MAX_DISPERSAL_PATH_LENGTH"], time)
+                    species.dispersal_para["MAX_DISPERSAL_PATH_LENGTH"], None, time)
                 species.current_minimum_link_strength_dispersal = temporal_function(
-                    species.dispersal_para["MINIMUM_LINK_STRENGTH_DISPERSAL"], time)
+                    species.dispersal_para["MINIMUM_LINK_STRENGTH_DISPERSAL"], None, time)
                 species.current_dispersal_direction = temporal_function(
-                    species.dispersal_para['DISPERSAL_DIRECTION'], time)
+                    species.dispersal_para['DISPERSAL_DIRECTION'], None, time)
                 species.current_coefficients_lists = temporal_function(
-                    species.dispersal_para['COEFFICIENTS_LISTS'], time)
+                    species.dispersal_para['COEFFICIENTS_LISTS'], None, time)
         for patch in patch_list:
             for local_pop in patch.local_populations.values():
                 # reset them
@@ -383,18 +392,19 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                     species.current_max_foraging_path_length, species.current_minimum_link_strength_foraging,
                     species.current_predation_rate, species.current_predation_efficiency,
                     species.current_predation_focus]:
-            species.current_prey_dict = temporal_function(species.predation_para["PREY_DICT"], time)
-            species.current_foraging_mobility = temporal_function(species.predation_para['FORAGING_MOBILITY'], time)
-            species.current_foraging_kappa = temporal_function(species.predation_para["FORAGING_KAPPA"], time)
+            species.current_prey_dict = temporal_function(species.predation_para["PREY_DICT"], None, time)
+            species.current_foraging_mobility = temporal_function(
+                species.predation_para['FORAGING_MOBILITY'], None, time)
+            species.current_foraging_kappa = temporal_function(species.predation_para["FORAGING_KAPPA"], None, time)
             species.current_max_foraging_path_length = temporal_function(
-                species.predation_para["MAX_FORAGING_PATH_LENGTH"], time)
+                species.predation_para["MAX_FORAGING_PATH_LENGTH"], None, time)
             species.current_minimum_link_strength_foraging = temporal_function(
-                species.predation_para["MINIMUM_LINK_STRENGTH_FORAGING"], time)
+                species.predation_para["MINIMUM_LINK_STRENGTH_FORAGING"], None, time)
             species.current_predation_efficiency = temporal_function(
-                species.predation_para["PREDATION_EFFICIENCY"], time)
+                species.predation_para["PREDATION_EFFICIENCY"], None, time)
             species.current_predation_focus = temporal_function(
-                species.predation_para["PREDATION_FOCUS"], time)
-            species.current_predation_rate = temporal_function(species.predation_para["PREDATION_RATE"], time)
+                species.predation_para["PREDATION_FOCUS"], None, time)
+            species.current_predation_rate = temporal_function(species.predation_para["PREDATION_RATE"], None, time)
 
     # reset interacting population lists
     for patch in patch_list:
@@ -515,48 +525,45 @@ def checker(output_attribute, input_temporal, is_change):
     return input_temporal, is_change
 
 
+def update_and_check_func(species, time, update_and_check_list, is_change):
+    for _ in update_and_check_list:
+        if _[2] is not None:
+            # i.e. if we need to access a dictionary-nested attribute
+            previous_value = getattr(species, _[0])
+            result, is_change = checker(
+                previous_value, temporal_function(getattr(species, _[1])[_[2]], previous_value, time), is_change)
+        else:
+            # or if we can access the attribute for comparison directly
+            previous_value = getattr(species, _[0])
+            result, is_change = checker(
+                previous_value, temporal_function(getattr(species, _[1]), previous_value, time), is_change)
+        setattr(species, _[0], result)
+    return is_change
+
+
 def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonlocal_foraging, is_local_foraging_ensured):
     # this function deals with the temporal variation of species parameters.
     #
     # update temporary values of species properties and check if anything has changed
-    is_change = False
+
+    # variables that do not impact path scores:
     for species in species_list:
-        # check if any species-dependent properties have changed due to temporal variation.
-        # if so, update the current values and mark a change so that the lists can be rebuilt
-        # for each entry: [to update, base attribute, nested attribute (if needed)]
         update_and_check = [
             ['current_r_value', 'growth_para', 'R'],
-            ['current_prey_dict', 'predation_para', 'PREY_DICT'],
             ['current_predation_efficiency', 'predation_para', 'PREDATION_EFFICIENCY'],
             ['current_predation_focus', 'predation_para', 'PREDATION_FOCUS'],
             ['current_predation_rate', 'predation_para', 'PREDATION_RATE'],
-            ['current_foraging_mobility', 'predation_para', 'FORAGING_MOBILITY'],
-            ['current_foraging_kappa', 'predation_para', 'FORAGING_KAPPA'],
-            ['current_minimum_link_strength_foraging', 'predation_para', 'MINIMUM_LINK_STRENGTH_FORAGING'],
-            ['current_max_foraging_path_length', 'predation_para', 'MAX_FORAGING_PATH_LENGTH'],
         ]
-        # don't bother checking dispersal parameters if dispersal is not enabled (remember that is_dispersal is NOT
-        # allowed to vary with time!
         if species.is_dispersal:
             update_and_check = update_and_check + [
-                ['current_dispersal_mobility', 'dispersal_para', 'DISPERSAL_MOBILITY'],
                 ['current_dispersal_direction', 'dispersal_para', 'DISPERSAL_DIRECTION'],
                 ['current_dispersal_mechanism', 'dispersal_para', 'DISPERSAL_MECHANISM'],
                 ['current_coefficients_lists', 'dispersal_para', 'COEFFICIENTS_LISTS'],
-                ['current_minimum_link_strength_dispersal', 'dispersal_para', 'MINIMUM_LINK_STRENGTH_DISPERSAL'],
-                ['current_max_dispersal_path_length', 'dispersal_para', 'MAX_DISPERSAL_PATH_LENGTH']
             ]
-        for _ in update_and_check:
-            if _[2] is not None:
-                # i.e. if we need to access a dictionary-nested attribute
-                result, is_change = checker(getattr(species, _[0]),
-                                            temporal_function(getattr(species, _[1])[_[2]], time), is_change)
-            else:
-                # or if we can access the attribute for comparison directly
-                result, is_change = checker(getattr(species, _[0]),
-                                            temporal_function(getattr(species, _[1]), time), is_change)
-            setattr(species, _[0], result)
-
+        update_and_check_func(update_and_check_list=update_and_check,
+                              species=species,
+                              time=time,
+                              is_change=False)
         # check predation efficiency and focus are suitable only when set (instead of for every predation loop)
         if species.current_predation_efficiency is not None and (
                 species.current_predation_efficiency < 0.0 or species.current_predation_efficiency > 1.0):
@@ -565,27 +572,67 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
         if species.current_predation_focus is not None and species.current_predation_focus < 0.0:
             raise Exception("ERROR: species predation_focus should be non-negative or None")
 
-    if is_change or step == 0:
-        # something changed (or we are at the start of the simulation) - need to rebuild the lists!
-        # IMPORTANT: this is okay, only so long as we do not change any of:
-        # - the fundamental ability of a given species to pass through a given habitat type,
-        # - the spatial topology and adjacency of the patch network,
-        # - the size or habitat type of any patch.
-        # Such alterations would instead be handled by "perturbation.py" and require us to re-determine the possible
-        # pathing structure in a more fundamental manner by executing the (very intensive) function:
-        # system_state.build_all_patches_species_paths_and_adjacency()
-        #
-        # You must also be aware that this occurs by TIME (i.e. day) rather than step - thus, for example, changes that
-        # are specified to change daily by sine function will only update every 10 steps if main_para:steps_to_days=10.
-        # This gives us some modulo control over how often to expend computational time updating.
-        print(f" ...Step {step}: species behaviour change identified.")
-        build_actual_dispersal_targets(
-            patch_list=patch_list, species_list=species_list,
-            is_dispersal=is_dispersal, time=time)
+    # foraging scores
+    is_foraging_variables_change = False
+    for species in species_list:
+        # check if any species-dependent properties have changed due to temporal variation.
+        # if so, update the current values and mark a change so that the lists can be rebuilt
+        # for each entry: [to update, base attribute, nested attribute (if needed)]
+        update_and_check = [
+            ['current_prey_dict', 'predation_para', 'PREY_DICT'],
+            ['current_foraging_mobility', 'predation_para', 'FORAGING_MOBILITY'],
+            ['current_foraging_kappa', 'predation_para', 'FORAGING_KAPPA'],
+            ['current_minimum_link_strength_foraging', 'predation_para', 'MINIMUM_LINK_STRENGTH_FORAGING'],
+            ['current_max_foraging_path_length', 'predation_para', 'MAX_FORAGING_PATH_LENGTH'],
+        ]
+        is_foraging_variables_change = update_and_check_func(
+            update_and_check_list=update_and_check,
+            species=species,
+            time=time,
+            is_change=is_foraging_variables_change,
+        )
+
+    # dispersal scores
+    is_dispersal_variables_change = False
+    for species in species_list:
+        # don't bother checking dispersal parameters if dispersal is not enabled (remember that is_dispersal is NOT
+        # allowed to vary with time!
+        if species.is_dispersal:
+            update_and_check = [
+                ['current_dispersal_mobility', 'dispersal_para', 'DISPERSAL_MOBILITY'],
+                ['current_minimum_link_strength_dispersal', 'dispersal_para', 'MINIMUM_LINK_STRENGTH_DISPERSAL'],
+                ['current_max_dispersal_path_length', 'dispersal_para', 'MAX_DISPERSAL_PATH_LENGTH']
+            ]
+            is_dispersal_variables_change = update_and_check_func(
+                update_and_check_list=update_and_check,
+                species=species,
+                time=time,
+                is_change=is_dispersal_variables_change,
+            )
+
+    # Did something change (or we are at the start of the simulation)? - need to rebuild the lists!
+    # IMPORTANT: this is okay, only so long as we do not change any of:
+    # - the fundamental ability of a given species to pass through a given habitat type,
+    # - the spatial topology and adjacency of the patch network,
+    # - the size or habitat type of any patch.
+    # Such alterations would instead be handled by "perturbation.py" and require us to re-determine the possible
+    # pathing structure in a more fundamental manner by executing the (very intensive) function:
+    # system_state.build_all_patches_species_paths_and_adjacency()
+    #
+    # You must also be aware that this occurs by TIME (i.e. day) rather than step - thus, for example, changes that
+    # are specified to change daily by sine function will only update every 10 steps if main_para:steps_to_days=10.
+    # This gives us some modulo control over how often to expend computational time updating.
+    if is_foraging_variables_change or step == 0:
+        print(f" ...Step {step}: species foraging behaviour change identified.")
         build_interacting_populations_list(
             patch_list=patch_list, species_list=species_list,
             is_nonlocal_foraging=is_nonlocal_foraging, is_local_foraging_ensured=is_local_foraging_ensured,
             time=time)
+    if is_dispersal_variables_change or step == 0:
+        print(f" ...Step {step}: species dispersal behaviour change identified.")
+        build_actual_dispersal_targets(
+            patch_list=patch_list, species_list=species_list,
+            is_dispersal=is_dispersal, time=time)
 
 
 def foraging_calculator(patch_list, time, current_patch_list):

@@ -24,7 +24,7 @@ master_para = {
             "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 0.75,
+            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": None,
@@ -36,7 +36,7 @@ master_para = {
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
             "HABITAT_SPATIAL_AUTO_CORRELATION": -1.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
+            "HABITAT_TYPE_MANUAL_OVERWRITE": {},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -67,9 +67,9 @@ master_para = {
         {
             # ---------- CONTROL PARAMETERS: ---------- #
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
-            "NUM_TRANSIENT_STEPS": 10000,
-            "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 400,
+            "NUM_TRANSIENT_STEPS": 100,
+            "NUM_RECORD_STEPS": 100,
+            "NUM_PATCHES": 1,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -96,14 +96,11 @@ master_para = {
                 # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
                 # name loaded (below) from the parameters_species_repository.py:
                 0: "prey",
-                1: "predator_one",
-                2: "predator_two",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
-                1: 'habitat_type_1',
             },
             "GENERATED_SPEC": {
                 #
@@ -117,27 +114,25 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.8, 0.4, 0.4],
-                                       1: [0.4, 0.8, 0.8]},
+                    "HABITAT_SCORES": {0: [1.0]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": None,
                     "MAX_SCORE": None,
-                    "HABITAT_SCORES": {0: [1.0, 1.0, 1.0],
-                                       1: [1.0, 1.0, 1.0]},
+                    "HABITAT_SCORES": {0: [1.0]},
                 },
             },
 
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0, 1, 2},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1},
+            "INITIAL_HABITAT_SET": {0},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
