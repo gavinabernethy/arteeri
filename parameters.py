@@ -35,7 +35,7 @@ master_para = {
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": -1.0,  # in range [-1, 1]
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.0,  # in range [-1, 1]
             "HABITAT_TYPE_MANUAL_OVERWRITE": {},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
@@ -67,8 +67,8 @@ master_para = {
         {
             # ---------- CONTROL PARAMETERS: ---------- #
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
-            "NUM_TRANSIENT_STEPS": 100,
-            "NUM_RECORD_STEPS": 100,
+            "NUM_TRANSIENT_STEPS": 10000,
+            "NUM_RECORD_STEPS": 1000,
             "NUM_PATCHES": 1,
             # ----------------------------------------- #
 
@@ -96,6 +96,7 @@ master_para = {
                 # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
                 # name loaded (below) from the parameters_species_repository.py:
                 0: "prey",
+                1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
             "HABITAT_TYPES": {
@@ -114,21 +115,21 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [1.0]},
+                    "HABITAT_SCORES": {0: [0.75, 0.75]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": None,
                     "MAX_SCORE": None,
-                    "HABITAT_SCORES": {0: [1.0]},
+                    "HABITAT_SCORES": {0: [1.0, 1.0]},
                 },
             },
 
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
@@ -152,7 +153,7 @@ master_para = {
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
+            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, IF COLLECTED - see option in main_para)?
             "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
@@ -166,21 +167,21 @@ master_para = {
             "IS_SAVE_SYSTEM_STATE_DATA": True,  # produce JSON of system state, including, for example, histories of
             # perturbation, biodiversity, and the mean and s.d. of quality and size of patches present at that time in
             # the network, and the full set of network distance-metric analysis.
-            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
+            "IS_SAVE_PATCH_DATA": True,  # produce JSON file of every patch object (including, for example,
             # the full history per-patch of different local clustering values).
-            "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
+            "IS_SAVE_PATCH_LOCAL_POP_DATA": True,  # produce a JSON file of every local_population object - however
             # note that this requires IS_SAVE_PATCH_DATA to be true first.
             "IS_ODE_RECORDINGS": False,  # do we save the history of each iteration of the ODE details as an attribute
             # of each local population object (it would then be printed as part of IS_SAVE_PATCH_LOCAL_POP_DATA)?
             # This is memory-intensive and mainly intended for debugging.
-            "IS_SAVE_DISTANCE_METRICS": False,  # produce JSON of species and community distribution analysis.
+            "IS_SAVE_DISTANCE_METRICS": True,  # produce JSON of species and community distribution analysis.
             "IS_PICKLE_SAVE": False,  # save the Python objects.
             "IS_SAVE_CURRENT_MOVE_SCORES": False,  # writes the final movement scores to the simulation-specific folder.
             #
             # Plot control options (requires IS_PLOT to be true):
-            "IS_PLOT_LOCAL_TIME_SERIES": False,  # produce plots of all local time-series of species properties, imposed
+            "IS_PLOT_LOCAL_TIME_SERIES": True,  # produce plots of all local time-series of species properties, imposed
             # on the same figure.
-            "LOCAL_PLOTS": False,  # produce separate plot files for each patch showing the time-series.
+            "LOCAL_PLOTS": True,  # produce separate plot files for each patch showing the time-series.
             "IS_PLOT_ACCESSIBLE_SUB_GRAPHS": False,  # patch plots showing the fully-connected network sub-graphs from
             # the POV of each species (can be memory intensive and cause crashes if repeated too often).
             "IS_PLOT_ADJACENCY_SUB_GRAPHS": False,  # plots the undirected adjacency-based sub-graphs, regardless of any
@@ -203,7 +204,7 @@ master_para = {
             #
             # These act like safety valves - overriding species-specific options if set to False to turn off such acts.
             "IS_NONLOCAL_FORAGING_PERMITTED": True,
-            "IS_DISPERSAL_PERMITTED": True,
+            "IS_DISPERSAL_PERMITTED": False,
             "IS_PURE_DIRECT_IMPACT": False,  # allows custom ±c*x impact on a species for harvesting or culling etc.
             # Can be specified to occur on a periodic cycle, and the cycle can be offset on certain years or habitats.
             "IS_DIRECT_IMPACT": False,  # allows custom ±c*x*y impacts between species to be specified, inc. mutualism

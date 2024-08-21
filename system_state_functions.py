@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import linregress
+from scipy.stats import linregress, spearmanr, pearsonr
 
 
 # Additional static methods used by system_state object
@@ -27,7 +27,7 @@ def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None):
         except ValueError:
             pass
     linear_model = {
-        "is_linear_model":  True,  # this is for search algorithms to identify that this dictionary is a LM
+        "is_linear_model": True,  # this is for search algorithms to identify that this dictionary is a LM
         "is_success": is_lm_success,
         "slope": lm_slope,
         "intercept": lm_intercept,
@@ -165,3 +165,34 @@ def rank_abundance(sub_networks, is_record_lm_vectors):
             rank_abundance_report[network_key] = {"is_success": 0}
 
     return rank_abundance_report
+
+
+def inter_species_predictions_correlation_coefficients(species_1_vector, species_2_vector):
+    # must first test for 'nearly constant' vectors to avoid warnings
+    species_1_near_constant = np.var(species_1_vector) < 1e-13 * abs(np.mean(species_1_vector))
+    species_2_near_constant = np.var(species_2_vector) < 1e-13 * abs(np.mean(species_2_vector))
+    is_cc_auto_fail = (species_1_near_constant or species_2_near_constant or np.var(
+        species_1_vector) <= 0.0 or np.var(species_2_vector) <= 0.0 or
+                       len(species_1_vector) < 2 or len(species_2_vector) < 2)
+    is_cc_success = 0
+    pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
+    # for correlation coefficients to work, we need two vectors of at least two pairs and at least some variance
+    if not is_cc_auto_fail:
+        try:
+            pearson_cc, pearson_p = pearsonr(species_1_vector, species_2_vector)
+            spearman_rho, spearman_p = spearmanr(species_1_vector, species_2_vector)
+            is_cc_success = 1
+            if pearson_p == float('NaN') or spearman_p == float('NaN'):
+                is_cc_success = 0
+        except ValueError:
+            is_cc_success = 0
+    if is_cc_success == 0:
+        pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
+    corr_coefficients = {
+        'is_success': is_cc_success,
+        'pearson_cc': pearson_cc,
+        'pearson_p_value': pearson_p,
+        'spearman_rho': spearman_rho,
+        'spearman_p_value': spearman_p,
+    }
+    return corr_coefficients

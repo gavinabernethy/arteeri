@@ -323,8 +323,8 @@ default_species = {
 ARTEMIS_01_MASTER = {
     "prey": {
         "MINIMUM_POPULATION_SIZE": 0.000001,
-        "LIFESPAN": 10000000000000,
-        "PREDATOR_LIST": [],
+        "LIFESPAN": 100,
+        "PREDATOR_LIST": ['predator'],
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "gaussian",
             "IS_ENSURE_MINIMUM_POPULATION": True,
@@ -341,17 +341,17 @@ ARTEMIS_01_MASTER = {
             {
                 "GROWTH_FUNCTION": "logistic",
                 "R": {
-                    "type": 'logistic_map',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 4.0,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
                     "vertical_shift": None,
                     "vector_exp": None,
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": 2.0,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": 3.0,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": 4.0,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                 },
                 "RESOURCE_USAGE_CONVERSION": 0.5,  # in [0, 1] - how much resource do you use relative to other species?
                 # Essentially this allows a conversion scale for different carrying capacities of species.
@@ -472,7 +472,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": True,
+                "IS_DISPERSAL": False,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "diffusion",
@@ -585,539 +585,272 @@ ARTEMIS_01_MASTER = {
         },
     },
 
-    # "predator_one": {
-    #     "MINIMUM_POPULATION_SIZE": 0.0001,
-    #     "LIFESPAN": 100,
-    #     "PREDATOR_LIST": [],
-    #     "INITIAL_POPULATION_PARA": {
-    #         "INITIAL_POPULATION_MECHANISM": "gaussian",
-    #         "IS_ENSURE_MINIMUM_POPULATION": True,  # note that this applies even for an explicit patch_vector
-    #         "CONSTANT_VALUE": None,
-    #         "GAUSSIAN_MEAN": 0.01,
-    #         "GAUSSIAN_ST_DEV": 0.001,
-    #         "BINOMIAL_MAXIMUM_MULTIPLIER": None,
-    #         "BINOMIAL_PROBABILITY": None,
-    #         "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-    #         "PATCH_VECTOR": None,
-    #     },
-    #     "SEASONAL_PERIOD": 0,
-    #     "GROWTH_PARA":
-    #         {
-    #             "GROWTH_FUNCTION": "logistic",
-    #             "R": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.5,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "RESOURCE_USAGE_CONVERSION": 1.0,  # in [0, 1] - how much resource do you use relative to other species?
-    #             # Essentially this allows a conversion scale for different carrying capacities of species.
-    #             "CARRYING_CAPACITY": 1.0,
-    #             "ANNUAL_OFFSET": {
-    #                 "IS_GROWTH_OFFSET": False,  # is there an annual offset to early/late seasonal
-    #                 # behaviour, for example to delay mating season or late spring etc.
-    #                 "ANNUAL_DURATION": None,  # This is how long each year is
-    #                 "GROWTH_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
-    #                 "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
-    #                 "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
-    #             },
-    #         },
-    #     "PREDATION_PARA":
-    #         {
-    #             "PREDATION_FUNCTION": "lotka_volterra",
-    #             "PREY_DICT": {
-    #                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": {'prey': 1.0},  # dictionary with name and preference weighting
-    #                 "period": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": {},  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #             },
-    #             "IS_NONLOCAL_FORAGING": True,
-    #             "MINIMUM_LINK_STRENGTH_FORAGING": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.0001,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": True,
-    #             "MAX_FORAGING_PATH_LENGTH": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 2,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "FORAGING_MOBILITY": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "PREDATION_RATE": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 10.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "PREDATION_EFFICIENCY": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,  # in the range [0,1] - determines how pragmatic when foraging vs. the
-    #                 # weight given to prey preferences and to distant populations. If at 1, seeks to maximise scores.
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "PREDATION_FOCUS": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 2.1,  # should be non-negative
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "ECOLOGICAL_EFFICIENCY": 0.3,
-    #             "IS_PREDATION_ONLY_PREVENTS_DEATH": False,  # cant gain new members due to pred. (only to r)
-    #         },
-    #     "DISPERSAL_PARA":
-    #         {
-    #             "IS_DISPERSAL": True,
-    #             "DISPERSAL_MECHANISM": {
-    #                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": "diffusion",
-    #                 "period": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #             },
-    #             "ALWAYS_MOVE_WITH_MINIMUM": False,  # this should certainly be false if using stochastic_binomial
-    #             "SS_DISPERSAL_PENALTY": 0.0,  # this is a fraction of movement that dies/never arrives.
-    #             # It can overwrite the system-wide general value in pop_dyn_para but ONLY IF IT IS LARGER!
-    #             "MINIMUM_LINK_STRENGTH_DISPERSAL": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.01,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "DISPERSAL_MOBILITY": {
-    #                 # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.025,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             # Is there a preference for permitted movement direction? 1.0 = ONLY move up, -1.0 = ONLY move down.
-    #             "DISPERSAL_DIRECTION": {  # This should be a numerical value from [-1.0, 1.0]
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "IS_DISPERSAL_PATH_RESTRICTED": True,
-    #             "MAX_DISPERSAL_PATH_LENGTH": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "BINOMIAL_EXTRA_INDIVIDUAL": 0.0,
-    #             "COEFFICIENTS_LISTS": {
-    #                 "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": None,
-    #                 "period": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #             },
-    #         },
-    #     "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
-    #     "PURE_DIRECT_IMPACT_PARA":
-    #         {
-    #             "TYPE": None,
-    #             "IMPACT": None,
-    #             "PROBABILITY": None,
-    #             "DIRECT_VECTOR": [],
-    #             "ANNUAL_OFFSET": {
-    #                 "IS_DIRECT_OFFSET": False,  # is there an annual offset to early/late seasonal
-    #                 # behaviour, for example to delay mating season or late spring etc.
-    #                 "ANNUAL_DURATION": None,  # This is how long each year is
-    #                 "DIRECT_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
-    #                 "IS_DIRECT_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
-    #                 "DIRECT_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
-    #             },
-    #         },
-    #     "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-    #     "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
-    #     "PERTURBATION_PARA": {
-    #         "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
-    #         "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
-    #             # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
-    #             # dependent upon the density, that is x = local population / carrying_capacity
-    #             "SAME": [0, 0, 0, 0],
-    #             "ADJACENT": [0, 0, 0, 0],
-    #             "XY_ADJACENT": [0, 0, 0, 0],
-    #         },
-    #         "PERTURBATION": {
-    #             "IS_REMOVAL": False,
-    #             "IS_HABITAT_TYPE_CHANGE": False,
-    #             "HABITAT_TYPE_NUM_TO_CHANGE_TO": None,  # integer habitat type number
-    #             "IS_QUALITY_CHANGE": False,
-    #             "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
-    #             "IS_ADJACENCY_CHANGE": False,
-    #             "ABSOLUTE_ADJACENCY_CHANGE": None,  # 1 or 0
-    #         },
-    #     },
-    # },
-    #
-    # "predator_two": {
-    #     "MINIMUM_POPULATION_SIZE": 0.0001,
-    #     "LIFESPAN": 100,
-    #     "PREDATOR_LIST": [],
-    #     "INITIAL_POPULATION_PARA": {
-    #         "INITIAL_POPULATION_MECHANISM": "gaussian",
-    #         "IS_ENSURE_MINIMUM_POPULATION": True,  # note that this applies even for an explicit patch_vector
-    #         "CONSTANT_VALUE": None,
-    #         "GAUSSIAN_MEAN": 0.01,
-    #         "GAUSSIAN_ST_DEV": 0.001,
-    #         "BINOMIAL_MAXIMUM_MULTIPLIER": None,
-    #         "BINOMIAL_PROBABILITY": None,
-    #         "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
-    #         "PATCH_VECTOR": None,
-    #     },
-    #     "SEASONAL_PERIOD": 0,
-    #     "GROWTH_PARA":
-    #         {
-    #             "GROWTH_FUNCTION": "logistic",
-    #             "R": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.5,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "RESOURCE_USAGE_CONVERSION": 1.0,  # in [0, 1] - how much resource do you use relative to other species?
-    #             # Essentially this allows a conversion scale for different carrying capacities of species.
-    #             "CARRYING_CAPACITY": 1.0,
-    #             "ANNUAL_OFFSET": {
-    #                 "IS_GROWTH_OFFSET": False,  # is there an annual offset to early/late seasonal
-    #                 # behaviour, for example to delay mating season or late spring etc.
-    #                 "ANNUAL_DURATION": None,  # This is how long each year is
-    #                 "GROWTH_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
-    #                 "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
-    #                 "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
-    #             },
-    #         },
-    #     "PREDATION_PARA":
-    #         {
-    #             "PREDATION_FUNCTION": "lotka_volterra",
-    #             "PREY_DICT": {
-    #                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": {'prey': 1.0},  # dictionary with name and preference weighting
-    #                 "period": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": {},  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #             },
-    #             "IS_NONLOCAL_FORAGING": True,
-    #             "MINIMUM_LINK_STRENGTH_FORAGING": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.0001,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": True,
-    #             "MAX_FORAGING_PATH_LENGTH": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 2,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "FORAGING_MOBILITY": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "PREDATION_RATE": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 10.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "PREDATION_EFFICIENCY": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,  # in the range [0,1] - determines how pragmatic when foraging vs. the
-    #                 # weight given to prey preferences and to distant populations. If at 1, seeks to maximise scores.
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "PREDATION_FOCUS": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.9,  # should be non-negative
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "ECOLOGICAL_EFFICIENCY": 0.3,
-    #             "IS_PREDATION_ONLY_PREVENTS_DEATH": False,  # cant gain new members due to pred. (only to r)
-    #         },
-    #     "DISPERSAL_PARA":
-    #         {
-    #             "IS_DISPERSAL": True,
-    #             "DISPERSAL_MECHANISM": {
-    #                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": "diffusion",
-    #                 "period": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #             },
-    #             "ALWAYS_MOVE_WITH_MINIMUM": False,  # this should certainly be false if using stochastic_binomial
-    #             "SS_DISPERSAL_PENALTY": 0.0,  # this is a fraction of movement that dies/never arrives.
-    #             # It can overwrite the system-wide general value in pop_dyn_para but ONLY IF IT IS LARGER!
-    #             "MINIMUM_LINK_STRENGTH_DISPERSAL": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.01,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "DISPERSAL_MOBILITY": {
-    #                 # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.025,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             # Is there a preference for permitted movement direction? 1.0 = ONLY move up, -1.0 = ONLY move down.
-    #             "DISPERSAL_DIRECTION": {  # This should be a numerical value from [-1.0, 1.0]
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 0.0,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "IS_DISPERSAL_PATH_RESTRICTED": True,
-    #             "MAX_DISPERSAL_PATH_LENGTH": {
-    #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1,
-    #                 "period": None,
-    #                 "amplitude": None,
-    #                 "phase_shift": None,
-    #                 "vertical_shift": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
-    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-    #             },
-    #             "BINOMIAL_EXTRA_INDIVIDUAL": 0.0,
-    #             "COEFFICIENTS_LISTS": {
-    #                 "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": None,
-    #                 "period": None,
-    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
-    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-    #             },
-    #         },
-    #     "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
-    #     "PURE_DIRECT_IMPACT_PARA":
-    #         {
-    #             "TYPE": None,
-    #             "IMPACT": None,
-    #             "PROBABILITY": None,
-    #             "DIRECT_VECTOR": [],
-    #             "ANNUAL_OFFSET": {
-    #                 "IS_DIRECT_OFFSET": False,  # is there an annual offset to early/late seasonal
-    #                 # behaviour, for example to delay mating season or late spring etc.
-    #                 "ANNUAL_DURATION": None,  # This is how long each year is
-    #                 "DIRECT_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
-    #                 "IS_DIRECT_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
-    #                 "DIRECT_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
-    #             },
-    #         },
-    #     "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-    #     "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
-    #     "PERTURBATION_PARA": {
-    #         "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
-    #         "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
-    #             # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
-    #             # dependent upon the density, that is x = local population / carrying_capacity
-    #             "SAME": [0, 0, 0, 0],
-    #             "ADJACENT": [0, 0, 0, 0],
-    #             "XY_ADJACENT": [0, 0, 0, 0],
-    #         },
-    #         "PERTURBATION": {
-    #             "IS_REMOVAL": False,
-    #             "IS_HABITAT_TYPE_CHANGE": False,
-    #             "HABITAT_TYPE_NUM_TO_CHANGE_TO": None,  # integer habitat type number
-    #             "IS_QUALITY_CHANGE": False,
-    #             "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
-    #             "IS_ADJACENCY_CHANGE": False,
-    #             "ABSOLUTE_ADJACENCY_CHANGE": None,  # 1 or 0
-    #         },
-    #     },
-    # },
+    "predator": {
+        "MINIMUM_POPULATION_SIZE": 0.0001,
+        "LIFESPAN": 100,
+        "PREDATOR_LIST": [],
+        "INITIAL_POPULATION_PARA": {
+            "INITIAL_POPULATION_MECHANISM": "gaussian",
+            "IS_ENSURE_MINIMUM_POPULATION": True,  # note that this applies even for an explicit patch_vector
+            "CONSTANT_VALUE": None,
+            "GAUSSIAN_MEAN": 0.01,
+            "GAUSSIAN_ST_DEV": 0.001,
+            "BINOMIAL_MAXIMUM_MULTIPLIER": None,
+            "BINOMIAL_PROBABILITY": None,
+            "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
+            "PATCH_VECTOR": None,
+        },
+        "SEASONAL_PERIOD": 0,
+        "GROWTH_PARA":
+            {
+                "GROWTH_FUNCTION": "logistic",
+                "R": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0.5,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "RESOURCE_USAGE_CONVERSION": 1.0,  # in [0, 1] - how much resource do you use relative to other species?
+                # Essentially this allows a conversion scale for different carrying capacities of species.
+                "CARRYING_CAPACITY": 1.0,
+                "ANNUAL_OFFSET": {
+                    "IS_GROWTH_OFFSET": False,  # is there an annual offset to early/late seasonal
+                    # behaviour, for example to delay mating season or late spring etc.
+                    "ANNUAL_DURATION": None,  # This is how long each year is
+                    "GROWTH_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
+                    "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
+                    "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
+                },
+            },
+        "PREDATION_PARA":
+            {
+                "PREDATION_FUNCTION": "lotka_volterra",
+                "PREY_DICT": {
+                    "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
+                    "constant_value": {'prey': 1.0},  # dictionary with name and preference weighting
+                    "period": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": {},  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "IS_NONLOCAL_FORAGING": True,
+                "MINIMUM_LINK_STRENGTH_FORAGING": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0.0001,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": True,
+                "MAX_FORAGING_PATH_LENGTH": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 2,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "FORAGING_MOBILITY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 1.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "PREDATION_RATE": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 10.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "PREDATION_EFFICIENCY": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 1.0,  # in the range [0,1] - determines how pragmatic when foraging vs. the
+                    # weight given to prey preferences and to distant populations. If at 1, seeks to maximise scores.
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "PREDATION_FOCUS": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 1.0,  # should be non-negative
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "ECOLOGICAL_EFFICIENCY": 0.3,
+                "IS_PREDATION_ONLY_PREVENTS_DEATH": False,  # cant gain new members due to pred. (only to r)
+            },
+        "DISPERSAL_PARA":
+            {
+                "IS_DISPERSAL": False,
+                "DISPERSAL_MECHANISM": {
+                    "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
+                    "constant_value": "diffusion",
+                    "period": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+                "ALWAYS_MOVE_WITH_MINIMUM": False,  # this should certainly be false if using stochastic_binomial
+                "SS_DISPERSAL_PENALTY": 0.0,  # this is a fraction of movement that dies/never arrives.
+                # It can overwrite the system-wide general value in pop_dyn_para but ONLY IF IT IS LARGER!
+                "MINIMUM_LINK_STRENGTH_DISPERSAL": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0.01,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "DISPERSAL_MOBILITY": {
+                    # THIS IS REDUNDANT FOR STEP_POLY DISPERSAL IF CF_LISTS SCALED
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0.025,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                # Is there a preference for permitted movement direction? 1.0 = ONLY move up, -1.0 = ONLY move down.
+                "DISPERSAL_DIRECTION": {  # This should be a numerical value from [-1.0, 1.0]
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0.0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "IS_DISPERSAL_PATH_RESTRICTED": True,
+                "MAX_DISPERSAL_PATH_LENGTH": {
+                    "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 1,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+                "BINOMIAL_EXTRA_INDIVIDUAL": 0.0,
+                "COEFFICIENTS_LISTS": {
+                    "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
+                    "constant_value": None,
+                    "period": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                },
+            },
+        "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
+        "PURE_DIRECT_IMPACT_PARA":
+            {
+                "TYPE": None,
+                "IMPACT": None,
+                "PROBABILITY": None,
+                "DIRECT_VECTOR": [],
+                "ANNUAL_OFFSET": {
+                    "IS_DIRECT_OFFSET": False,  # is there an annual offset to early/late seasonal
+                    # behaviour, for example to delay mating season or late spring etc.
+                    "ANNUAL_DURATION": None,  # This is how long each year is
+                    "DIRECT_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
+                    "IS_DIRECT_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
+                    "DIRECT_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
+                },
+            },
+        "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
+        "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
+        "PERTURBATION_PARA": {
+            "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
+            "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
+                # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
+                # dependent upon the density, that is x = local population / carrying_capacity
+                "SAME": [0, 0, 0, 0],
+                "ADJACENT": [0, 0, 0, 0],
+                "XY_ADJACENT": [0, 0, 0, 0],
+            },
+            "PERTURBATION": {
+                "IS_REMOVAL": False,
+                "IS_HABITAT_TYPE_CHANGE": False,
+                "HABITAT_TYPE_NUM_TO_CHANGE_TO": None,  # integer habitat type number
+                "IS_QUALITY_CHANGE": False,
+                "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
+                "IS_ADJACENCY_CHANGE": False,
+                "ABSOLUTE_ADJACENCY_CHANGE": None,  # 1 or 0
+            },
+        },
+    },
 
 }
 

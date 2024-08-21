@@ -2,10 +2,9 @@ import numpy as np
 from copy import deepcopy
 from collections import Counter
 from degree_distribution import power_law_curve_fit
-from scipy.stats import spearmanr, pearsonr
 from data_manager_functions import update_local_population_nets
 from system_state_functions import tuple_builder, linear_model_report, generate_cluster, \
-    determine_complexity, rank_abundance
+    determine_complexity, rank_abundance, inter_species_predictions_correlation_coefficients
 
 
 class System_state:
@@ -641,7 +640,8 @@ class System_state:
                                                                 habitat_type_nums=habitat_type_nums)
 
         # use the non-normalised final population (returns five dictionaries)
-        presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
+        presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
+            linear_model_store, linear_model_nz_store = \
             self.inter_species_predictions(sub_networks=community_state_sub_networks,
                                            habitat_type_nums=habitat_type_nums,
                                            is_record_lm_vectors=is_record_lm_vectors)
@@ -650,10 +650,13 @@ class System_state:
             "similarity_store": similarity_store,
             "prediction_store": prediction_store,
             "correlation_store": correlation_store,
+            "correlation_nz_store": correlation_nz_store,
             "linear_model_store": linear_model_store,
+            "linear_model_nz_store": linear_model_nz_store,
         }
         # and the time-averaged populations
-        presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
+        presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
+            linear_model_store, linear_model_nz_store = \
             self.inter_species_predictions(sub_networks=time_averaged_sub_networks,
                                            habitat_type_nums=habitat_type_nums,
                                            is_record_lm_vectors=is_record_lm_vectors)
@@ -662,7 +665,9 @@ class System_state:
             "similarity_store": similarity_store,
             "prediction_store": prediction_store,
             "correlation_store": correlation_store,
+            "correlation_nz_store": correlation_nz_store,
             "linear_model_store": linear_model_store,
+            "linear_model_nz_store": linear_model_nz_store,
         }
 
         # Now use both the final and time-averaged community populations to determine SAR, binary and
@@ -893,14 +898,18 @@ class System_state:
         similarity_store = {'all': deepcopy(outer_species_val)}
         prediction_store = {'all': deepcopy(outer_species_val)}
         correlation_store = {'all': deepcopy(outer_species_dict)}
+        correlation_nz_store = {'all': deepcopy(outer_species_dict)}
         linear_model_store = {'all': deepcopy(outer_species_dict)}
+        linear_model_nz_store = {'all': deepcopy(outer_species_dict)}
 
         for habitat_type_num in habitat_type_nums:
             presence_store[habitat_type_num] = deepcopy(outer_species_val)
             similarity_store[habitat_type_num] = deepcopy(outer_species_val)
             prediction_store[habitat_type_num] = deepcopy(outer_species_val)
             correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
+            correlation_nz_store[habitat_type_num] = deepcopy(outer_species_dict)
             linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
+            linear_model_nz_store[habitat_type_num] = deepcopy(outer_species_dict)
 
         # Now for each subnetwork:
         for network_key in sub_networks.keys():
@@ -917,7 +926,7 @@ class System_state:
                     for species_1_ball_radius in range(3):
                         species_1_pop_vector = current_norm_pop_arrays[species_1_ball_radius][:, species_1_index]
 
-                        # check for non-zero predictor population (given this ball size)
+                        # check for non-zero predictor population IN TOTAL (given this ball size)
                         if np.sum(species_1_pop_vector) > 0.0:
 
                             # iterate response species (including self)
@@ -963,52 +972,47 @@ class System_state:
                                     prediction_store[network_key][species_1_name][
                                         species_1_ball_radius][species_2_name][species_2_ball_radius] = prediction
 
+                                    #
+                                    # Build non-zero input versions for D-II and E-II:
+                                    #
+                                    # list zero-element indices, then delete all at once
+                                    zero_index_list = []
+                                    for _ in range(len(species_1_pop_vector)):
+                                        if species_1_pop_vector[_] == 0.0:
+                                            zero_index_list.append(_)
+                                    species_1_pop_vector_nz = np.delete(species_1_pop_vector, zero_index_list)
+                                    species_2_pop_vector_nz = np.delete(species_2_pop_vector, zero_index_list)
+
                                     # D. (Two) correlation coefficients
-                                    # must first test for 'nearly constant' vectors to avoid warnings
-                                    species_1_near_constant = np.var(species_1_pop_vector
-                                                                     ) < 1e-13 * abs(np.mean(species_1_pop_vector))
-                                    species_2_near_constant = np.var(species_2_pop_vector
-                                                                     ) < 1e-13 * abs(np.mean(species_2_pop_vector))
-                                    is_cc_auto_fail = (species_1_near_constant or species_2_near_constant or np.var(
-                                        species_1_pop_vector) <= 0.0 or np.var(species_2_pop_vector) <= 0.0 or
-                                                       len(species_1_pop_vector) < 2 or len(species_2_pop_vector) < 2)
-                                    is_cc_success = 0
-                                    pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
-                                    # for correlation coefficients to work, we need two vectors of at least two pairs
-                                    # and at least some variance
-                                    if not is_cc_auto_fail:
-                                        try:
-                                            pearson_cc, pearson_p = pearsonr(species_1_pop_vector, species_2_pop_vector)
-                                            spearman_rho, spearman_p = spearmanr(
-                                                species_1_pop_vector, species_2_pop_vector)
-                                            is_cc_success = 1
-                                            if pearson_p == float('NaN') or spearman_p == float('NaN'):
-                                                is_cc_success = 0
-                                        except ValueError:
-                                            is_cc_success = 0
-                                    if is_cc_success == 0:
-                                        pearson_cc, pearson_p, spearman_rho, spearman_p = [0.0, 0.0, 0.0, 0.0]
-                                    corr_coefficients = {
-                                        'is_success': is_cc_success,
-                                        'pearson_cc': pearson_cc,
-                                        'pearson_p_value': pearson_p,
-                                        'spearman_rho': spearman_rho,
-                                        'spearman_p_value': spearman_p,
-                                    }
-                                    correlation_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][
-                                        species_2_ball_radius] = corr_coefficients
+                                    # D-I. full data
+                                    correlation_store[network_key][species_1_name][species_1_ball_radius][
+                                        species_2_name][species_2_ball_radius] = \
+                                        inter_species_predictions_correlation_coefficients(
+                                            species_1_pop_vector, species_2_pop_vector)
+                                    # D-II. non-zero predictor only
+                                    correlation_nz_store[network_key][species_1_name][species_1_ball_radius][
+                                        species_2_name][species_2_ball_radius] = \
+                                        inter_species_predictions_correlation_coefficients(
+                                            species_1_pop_vector_nz, species_2_pop_vector_nz)
 
                                     # E. Linear model
                                     # note that we could use curve_fit() for a more general model specification here
+                                    # E-I. full data
                                     linear_model = linear_model_report(
                                         x_val=species_1_pop_vector, y_val=species_2_pop_vector,
                                         is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
                                     linear_model_store[network_key][species_1_name][
                                         species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model
+                                    # E-II. non-zero predictor only
+                                    linear_model_nz = linear_model_report(
+                                        x_val=species_1_pop_vector_nz, y_val=species_2_pop_vector_nz,
+                                        is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
+                                    linear_model_nz_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model_nz
 
-        # output five nested dictionaries of results
-        return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
+        # output SEVEN nested dictionaries of results
+        return presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
+            linear_model_store, linear_model_nz_store
 
     def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors):
         # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
