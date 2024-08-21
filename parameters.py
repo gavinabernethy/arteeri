@@ -35,8 +35,8 @@ master_para = {
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {},  # set this to None or empty dict, unless you want
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -69,7 +69,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 10000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 1,
+            "NUM_PATCHES": 400,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -102,6 +102,7 @@ master_para = {
             "HABITAT_TYPES": {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
+                1: 'habitat_type_1',
             },
             "GENERATED_SPEC": {
                 #
@@ -115,14 +116,16 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.75, 0.75]},
+                    "HABITAT_SCORES": {0: [0.8, 0.2],
+                                       1: [0.2, 0.8]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": None,
                     "MAX_SCORE": None,
-                    "HABITAT_SCORES": {0: [1.0, 1.0]},
+                    "HABITAT_SCORES": {0: [1.0, 1.0],
+                                       1: [1.0, 1.0]},
                 },
             },
 
@@ -133,7 +136,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0},
+            "INITIAL_HABITAT_SET": {0, 1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -142,7 +145,7 @@ master_para = {
 
             # When conducting distance metric, network and complexity analyses that include linear regressions, do we
             # record the vectors of values, to reconstruct the raw data scatter plots against the fitted models later?
-            "IS_RECORD_METRICS_LM_VECTORS": False,
+            "IS_RECORD_METRICS_LM_VECTORS": True,
         },
     "plot_save_para":
         {
@@ -181,7 +184,7 @@ master_para = {
             # Plot control options (requires IS_PLOT to be true):
             "IS_PLOT_LOCAL_TIME_SERIES": True,  # produce plots of all local time-series of species properties, imposed
             # on the same figure.
-            "LOCAL_PLOTS": True,  # produce separate plot files for each patch showing the time-series.
+            "LOCAL_PLOTS": False,  # produce separate plot files for each patch showing the time-series.
             "IS_PLOT_ACCESSIBLE_SUB_GRAPHS": False,  # patch plots showing the fully-connected network sub-graphs from
             # the POV of each species (can be memory intensive and cause crashes if repeated too often).
             "IS_PLOT_ADJACENCY_SUB_GRAPHS": False,  # plots the undirected adjacency-based sub-graphs, regardless of any
@@ -204,7 +207,7 @@ master_para = {
             #
             # These act like safety valves - overriding species-specific options if set to False to turn off such acts.
             "IS_NONLOCAL_FORAGING_PERMITTED": True,
-            "IS_DISPERSAL_PERMITTED": False,
+            "IS_DISPERSAL_PERMITTED": True,
             "IS_PURE_DIRECT_IMPACT": False,  # allows custom ±c*x impact on a species for harvesting or culling etc.
             # Can be specified to occur on a periodic cycle, and the cycle can be offset on certain years or habitats.
             "IS_DIRECT_IMPACT": False,  # allows custom ±c*x*y impacts between species to be specified, inc. mutualism

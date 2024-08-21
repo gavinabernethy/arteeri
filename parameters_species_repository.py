@@ -472,7 +472,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": False,
+                "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "diffusion",
@@ -682,7 +682,7 @@ ARTEMIS_01_MASTER = {
                 },
                 "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
                     "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": 0.0,
+                    "constant_value": 1.0,
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -738,7 +738,7 @@ ARTEMIS_01_MASTER = {
             },
         "DISPERSAL_PARA":
             {
-                "IS_DISPERSAL": False,
+                "IS_DISPERSAL": True,
                 "DISPERSAL_MECHANISM": {
                     "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
                     "constant_value": "diffusion",

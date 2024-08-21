@@ -641,7 +641,7 @@ class System_state:
 
         # use the non-normalised final population (returns five dictionaries)
         presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
-            linear_model_store, linear_model_nz_store = \
+            correlation_nm_store, linear_model_store, linear_model_nz_store, linear_model_nm_store = \
             self.inter_species_predictions(sub_networks=community_state_sub_networks,
                                            habitat_type_nums=habitat_type_nums,
                                            is_record_lm_vectors=is_record_lm_vectors)
@@ -651,12 +651,14 @@ class System_state:
             "prediction_store": prediction_store,
             "correlation_store": correlation_store,
             "correlation_nz_store": correlation_nz_store,
+            "correlation_nm_store": correlation_nm_store,
             "linear_model_store": linear_model_store,
             "linear_model_nz_store": linear_model_nz_store,
+            "linear_model_nm_store": linear_model_nm_store,
         }
         # and the time-averaged populations
         presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
-            linear_model_store, linear_model_nz_store = \
+            correlation_nm_store, linear_model_store, linear_model_nz_store, linear_model_nm_store = \
             self.inter_species_predictions(sub_networks=time_averaged_sub_networks,
                                            habitat_type_nums=habitat_type_nums,
                                            is_record_lm_vectors=is_record_lm_vectors)
@@ -666,8 +668,10 @@ class System_state:
             "prediction_store": prediction_store,
             "correlation_store": correlation_store,
             "correlation_nz_store": correlation_nz_store,
+            "correlation_nm_store": correlation_nm_store,
             "linear_model_store": linear_model_store,
             "linear_model_nz_store": linear_model_nz_store,
+            "linear_model_nm_store": linear_model_nm_store,
         }
 
         # Now use both the final and time-averaged community populations to determine SAR, binary and
@@ -899,8 +903,10 @@ class System_state:
         prediction_store = {'all': deepcopy(outer_species_val)}
         correlation_store = {'all': deepcopy(outer_species_dict)}
         correlation_nz_store = {'all': deepcopy(outer_species_dict)}
+        correlation_nm_store = {'all': deepcopy(outer_species_dict)}
         linear_model_store = {'all': deepcopy(outer_species_dict)}
         linear_model_nz_store = {'all': deepcopy(outer_species_dict)}
+        linear_model_nm_store = {'all': deepcopy(outer_species_dict)}
 
         for habitat_type_num in habitat_type_nums:
             presence_store[habitat_type_num] = deepcopy(outer_species_val)
@@ -908,8 +914,10 @@ class System_state:
             prediction_store[habitat_type_num] = deepcopy(outer_species_val)
             correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
             correlation_nz_store[habitat_type_num] = deepcopy(outer_species_dict)
+            correlation_nm_store[habitat_type_num] = deepcopy(outer_species_dict)
             linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
             linear_model_nz_store[habitat_type_num] = deepcopy(outer_species_dict)
+            linear_model_nm_store[habitat_type_num] = deepcopy(outer_species_dict)
 
         # Now for each subnetwork:
         for network_key in sub_networks.keys():
@@ -973,15 +981,24 @@ class System_state:
                                         species_1_ball_radius][species_2_name][species_2_ball_radius] = prediction
 
                                     #
-                                    # Build non-zero input versions for D-II and E-II:
+                                    # Build non-zero input versions for D-II, E-II and non-minimum for D-III, E-III:
                                     #
-                                    # list zero-element indices, then delete all at once
+                                    # list zero-element indices, and indices with element <= adjusted min species
+                                    # population (basically 5% capacity), then delete all at once
                                     zero_index_list = []
+                                    min_index_list = []
+                                    adjusted_species_1_minimum = max(10.0 * self.species_set["dict"][
+                                        species_1_name].minimum_population_size, 0.05 * self.species_set["dict"][
+                                        species_1_name].growth_para["CARRYING_CAPACITY"])
                                     for _ in range(len(species_1_pop_vector)):
                                         if species_1_pop_vector[_] == 0.0:
                                             zero_index_list.append(_)
+                                        if species_1_pop_vector[_] <= adjusted_species_1_minimum:
+                                            min_index_list.append(_)
                                     species_1_pop_vector_nz = np.delete(species_1_pop_vector, zero_index_list)
                                     species_2_pop_vector_nz = np.delete(species_2_pop_vector, zero_index_list)
+                                    species_1_pop_vector_nm = np.delete(species_1_pop_vector, min_index_list)
+                                    species_2_pop_vector_nm = np.delete(species_2_pop_vector, min_index_list)
 
                                     # D. (Two) correlation coefficients
                                     # D-I. full data
@@ -994,6 +1011,11 @@ class System_state:
                                         species_2_name][species_2_ball_radius] = \
                                         inter_species_predictions_correlation_coefficients(
                                             species_1_pop_vector_nz, species_2_pop_vector_nz)
+                                    # D-III. non-(species) minimum predictor only
+                                    correlation_nm_store[network_key][species_1_name][species_1_ball_radius][
+                                        species_2_name][species_2_ball_radius] = \
+                                        inter_species_predictions_correlation_coefficients(
+                                            species_1_pop_vector_nm, species_2_pop_vector_nm)
 
                                     # E. Linear model
                                     # note that we could use curve_fit() for a more general model specification here
@@ -1009,10 +1031,16 @@ class System_state:
                                         is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
                                     linear_model_nz_store[network_key][species_1_name][
                                         species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model_nz
+                                    # E-III. non(species)-minimum predictor only
+                                    linear_model_nm = linear_model_report(
+                                        x_val=species_1_pop_vector_nm, y_val=species_2_pop_vector_nm,
+                                        is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
+                                    linear_model_nm_store[network_key][species_1_name][
+                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model_nm
 
-        # output SEVEN nested dictionaries of results
+        # output NINE nested dictionaries of results
         return presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
-            linear_model_store, linear_model_nz_store
+            correlation_nm_store, linear_model_store, linear_model_nz_store, linear_model_nm_store
 
     def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors):
         # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
