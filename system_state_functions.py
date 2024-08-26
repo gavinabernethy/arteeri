@@ -14,7 +14,7 @@ def tuple_builder(property_list):
     return sd_tuple
 
 
-def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None):
+def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None, is_shifted=False):
     # checks for typical causes of error, then if valid conducts a linear regression and returns all results in a
     # dictionary structure
     lm_slope, lm_intercept, lm_r, lm_p, lm_std_err = [0, 0, 0, 0, 0]
@@ -35,6 +35,9 @@ def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None):
         "p": lm_p,
         "std_err": lm_std_err,
         "x_lim": np.asarray([np.min(x_val), np.max(x_val)]),
+        "is_shifted": is_shifted  # this is merely a record of whether the raw data had to be shifted up/right
+        # to avoid zeros before taking logs, for log-lin or log-log models
+        #
         # be aware that, to print anything here in the final "format_dictionary_to_JSON_string()" it needs to contain
         # only dictionaries and Numpy arrays, and NOT LISTS
     }

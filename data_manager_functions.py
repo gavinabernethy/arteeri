@@ -1240,6 +1240,7 @@ def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
                 model_type = target_dict["model_type_str"]  # identifies if log-log, lin-log, lin-lin, or log-lin
                 slope = target_dict["slope"]
                 intercept = target_dict["intercept"]
+                is_shifted = bool(target_dict["is_shifted"])
                 # plot the linear model, reconstructed to the appropriate base model
                 x_start = target_dict["x_lim"][0]
                 x_end = target_dict["x_lim"][1]
@@ -1292,6 +1293,9 @@ def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
                     plt.xlabel('Input')
                     plt.ylabel('Output')
                     print_name = path.replace('|', '_')
+                    if is_shifted:
+                        # if the log- / -log data had to be shifted prior to fitting, that is noted here in the suffix.
+                        print_name += "_shift"
                     file_path = f"{sim_path}/{step}/figures/linear_models/{print_name}.png"
                     os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     plt.savefig(file_path, dpi=400)
@@ -1300,12 +1304,16 @@ def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
 
 def linear_model_function(model_type, slope, intercept, x_val):
     if model_type == "lin-lin":
+        # linear model
         y_val = slope * x_val + intercept
     elif model_type == "log-log":
+        # power law
         y_val = np.exp(intercept) * x_val ** slope
     elif model_type == "log-lin":  # (y, x)
+        # exponential model
         y_val = np.exp(slope * x_val + intercept)
     elif model_type == "lin-log":  # (y, x)
+        # logarithmic model
         y_val = slope * np.log(x_val) + intercept
     else:
         raise Exception("Invalid type of model underlying linear model fit.")
