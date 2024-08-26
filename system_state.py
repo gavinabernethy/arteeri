@@ -1016,7 +1016,7 @@ class System_state:
                                     for vector_choice, vector_list in vector_set.items():
                                         if vector_choice == "nm" or self.is_record_lesser_lm:
                                             # we only collect the base and NZ data if requested in plot_save para,
-                                            # i.e. only E-III is collected by default.
+                                            # that is: Only E-III is collected by default.
                                             for model_type in ["lin-lin", "log-lin", "log-log"]:
                                                 is_shifted = False
                                                 if model_type == "lin-lin":
