@@ -28,6 +28,7 @@ class System_state:
         self.perturbation_history = {}
         self.perturbation_holding = None
         self.distance_metrics_store = {}  # will hold a very deep nested dictionary of measures
+        self.is_record_lesser_lm = parameters["plot_save_para"]["IS_RECORD_AND_PLOT_LESSER_LM"]
 
         # this requires that the ordering of the species list and of the columns in the external files are identical!
         self.habitat_type_dictionary = habitat_type_dictionary
@@ -640,38 +641,28 @@ class System_state:
                                                                 habitat_type_nums=habitat_type_nums)
 
         # use the non-normalised final population (returns five dictionaries)
-        presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
-            correlation_nm_store, linear_model_store, linear_model_nz_store, linear_model_nm_store = \
+        presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
             self.inter_species_predictions(sub_networks=community_state_sub_networks,
                                            habitat_type_nums=habitat_type_nums,
                                            is_record_lm_vectors=is_record_lm_vectors)
         inter_species_predictions_final = {
-            "presence_store": presence_store,
-            "similarity_store": similarity_store,
-            "prediction_store": prediction_store,
-            "correlation_store": correlation_store,
-            "correlation_nz_store": correlation_nz_store,
-            "correlation_nm_store": correlation_nm_store,
-            "linear_model_store": linear_model_store,
-            "linear_model_nz_store": linear_model_nz_store,
-            "linear_model_nm_store": linear_model_nm_store,
+            "presence": presence_store,
+            "similarity": similarity_store,
+            "prediction": prediction_store,
+            "correlation": correlation_store,
+            "linear_model": linear_model_store,
         }
         # and the time-averaged populations
-        presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
-            correlation_nm_store, linear_model_store, linear_model_nz_store, linear_model_nm_store = \
+        presence_store, similarity_store, prediction_store, correlation_store, linear_model_store = \
             self.inter_species_predictions(sub_networks=time_averaged_sub_networks,
                                            habitat_type_nums=habitat_type_nums,
                                            is_record_lm_vectors=is_record_lm_vectors)
         inter_species_predictions_average = {
-            "presence_store": presence_store,
-            "similarity_store": similarity_store,
-            "prediction_store": prediction_store,
-            "correlation_store": correlation_store,
-            "correlation_nz_store": correlation_nz_store,
-            "correlation_nm_store": correlation_nm_store,
-            "linear_model_store": linear_model_store,
-            "linear_model_nz_store": linear_model_nz_store,
-            "linear_model_nm_store": linear_model_nm_store,
+            "presence": presence_store,
+            "similarity": similarity_store,
+            "prediction": prediction_store,
+            "correlation": correlation_store,
+            "linear_model": linear_model_store,
         }
 
         # Now use both the final and time-averaged community populations to determine SAR, binary and
@@ -809,7 +800,7 @@ class System_state:
 
     def shannon_entropy(self, patch_state_array, patch_habitat, patch_binary_vector):
         # Shannon information of community probability distributions:
-        #   1. Considering each separate species state as a distinct variable value
+        #   1. Considering each separate community binary state as a distinct variable value
         #   2. Just of the plain diversity (amount of species)
         # both of these are calculated over the whole system, and over each single-habitat-type subnetwork
 
@@ -885,8 +876,14 @@ class System_state:
         #                   B. similarity
         #                   C. species A -> species B (product and root calculation)
         # 				    D. correlation coefficients (for co-variance of populations)
+        #                       I. All patches; II. Non-zero [nz] input; III. Adjusted non-minimum [nm] input (> 10x
+        #                       species minimum population AND 5% base carrying capacity)
         # 					E. linear model fit
+        #                       I. All patches; II. Non-zero [nz] input; III. Adjusted non-minimum [nm] input (> 10x
+        #                       species minimum population AND 5% base carrying capacity)
+        #                       Each conducted for lin-lin, log-lin, and log-log models.
         #
+
 
         species_list = [x.name for x in self.species_set["list"]]
 
@@ -902,22 +899,21 @@ class System_state:
         similarity_store = {'all': deepcopy(outer_species_val)}
         prediction_store = {'all': deepcopy(outer_species_val)}
         correlation_store = {'all': deepcopy(outer_species_dict)}
-        correlation_nz_store = {'all': deepcopy(outer_species_dict)}
-        correlation_nm_store = {'all': deepcopy(outer_species_dict)}
-        linear_model_store = {'all': deepcopy(outer_species_dict)}
-        linear_model_nz_store = {'all': deepcopy(outer_species_dict)}
-        linear_model_nm_store = {'all': deepcopy(outer_species_dict)}
+
+        # a deeper nest for the linear models:
+        linear_nest = {x: {y: {} for y in ["lin-lin", "log-lin", "log-log"]} for x in ["base", "nz", "nm"]}
+        inner_species_dict_lm = {species_name: {radius: deepcopy(linear_nest) for radius in range(3)}
+                                 for species_name in species_list}
+        outer_species_dict_lm = {species_name: {radius: deepcopy(inner_species_dict_lm) for radius in range(3)} for
+                                 species_name in species_list}
+        linear_model_store = {'all': deepcopy(outer_species_dict_lm)}
 
         for habitat_type_num in habitat_type_nums:
             presence_store[habitat_type_num] = deepcopy(outer_species_val)
             similarity_store[habitat_type_num] = deepcopy(outer_species_val)
             prediction_store[habitat_type_num] = deepcopy(outer_species_val)
             correlation_store[habitat_type_num] = deepcopy(outer_species_dict)
-            correlation_nz_store[habitat_type_num] = deepcopy(outer_species_dict)
-            correlation_nm_store[habitat_type_num] = deepcopy(outer_species_dict)
-            linear_model_store[habitat_type_num] = deepcopy(outer_species_dict)
-            linear_model_nz_store[habitat_type_num] = deepcopy(outer_species_dict)
-            linear_model_nm_store[habitat_type_num] = deepcopy(outer_species_dict)
+            linear_model_store[habitat_type_num] = deepcopy(outer_species_dict_lm)
 
         # Now for each subnetwork:
         for network_key in sub_networks.keys():
@@ -987,9 +983,11 @@ class System_state:
                                     # population (basically 5% capacity), then delete all at once
                                     zero_index_list = []
                                     min_index_list = []
-                                    adjusted_species_1_minimum = max(10.0 * self.species_set["dict"][
-                                        species_1_name].minimum_population_size, 0.05 * self.species_set["dict"][
-                                        species_1_name].growth_para["CARRYING_CAPACITY"])
+                                    species_1_minimum = self.species_set["dict"][species_1_name].minimum_population_size
+                                    species_2_minimum = self.species_set["dict"][species_2_name].minimum_population_size
+                                    adjusted_species_1_minimum = max(
+                                        10.0 * species_1_minimum, 0.05 * self.species_set["dict"][
+                                            species_1_name].growth_para["CARRYING_CAPACITY"])
                                     for _ in range(len(species_1_pop_vector)):
                                         if species_1_pop_vector[_] == 0.0:
                                             zero_index_list.append(_)
@@ -1000,47 +998,66 @@ class System_state:
                                     species_1_pop_vector_nm = np.delete(species_1_pop_vector, min_index_list)
                                     species_2_pop_vector_nm = np.delete(species_2_pop_vector, min_index_list)
 
+                                    # now store in a dictionary to enable iterating through them
+                                    vector_set = {"base": [species_1_pop_vector, species_2_pop_vector],
+                                                  "nz": [species_1_pop_vector_nz, species_2_pop_vector_nz],
+                                                  "nm": [species_1_pop_vector_nm, species_2_pop_vector_nm], }
+
                                     # D. (Two) correlation coefficients
-                                    # D-I. full data
-                                    correlation_store[network_key][species_1_name][species_1_ball_radius][
-                                        species_2_name][species_2_ball_radius] = \
-                                        inter_species_predictions_correlation_coefficients(
-                                            species_1_pop_vector, species_2_pop_vector)
-                                    # D-II. non-zero predictor only
-                                    correlation_nz_store[network_key][species_1_name][species_1_ball_radius][
-                                        species_2_name][species_2_ball_radius] = \
-                                        inter_species_predictions_correlation_coefficients(
-                                            species_1_pop_vector_nz, species_2_pop_vector_nz)
-                                    # D-III. non-(species) minimum predictor only
-                                    correlation_nm_store[network_key][species_1_name][species_1_ball_radius][
-                                        species_2_name][species_2_ball_radius] = \
-                                        inter_species_predictions_correlation_coefficients(
-                                            species_1_pop_vector_nm, species_2_pop_vector_nm)
+                                    for vector_choice, vector_list in vector_set.items():
+                                        correlation_store[network_key][species_1_name][species_1_ball_radius][
+                                            species_2_name][species_2_ball_radius][vector_choice] = \
+                                            inter_species_predictions_correlation_coefficients(
+                                                vector_list[0], vector_list[1])
 
                                     # E. Linear model
-                                    # note that we could use curve_fit() for a more general model specification here
-                                    # E-I. full data
-                                    linear_model = linear_model_report(
-                                        x_val=species_1_pop_vector, y_val=species_2_pop_vector,
-                                        is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
-                                    linear_model_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model
-                                    # E-II. non-zero predictor only
-                                    linear_model_nz = linear_model_report(
-                                        x_val=species_1_pop_vector_nz, y_val=species_2_pop_vector_nz,
-                                        is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
-                                    linear_model_nz_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model_nz
-                                    # E-III. non(species)-minimum predictor only
-                                    linear_model_nm = linear_model_report(
-                                        x_val=species_1_pop_vector_nm, y_val=species_2_pop_vector_nm,
-                                        is_record_vectors=is_record_lm_vectors, model_type_str="lin-lin")
-                                    linear_model_nm_store[network_key][species_1_name][
-                                        species_1_ball_radius][species_2_name][species_2_ball_radius] = linear_model_nm
+                                    # (note that we could use curve_fit() for a more general model specification here)
+                                    # E-I. full data; E-II. non-zero predictor; E-III. non-(spec) minimum predictor.
+                                    for vector_choice, vector_list in vector_set.items():
+                                        if vector_choice == "nm" or self.is_record_lesser_lm:
+                                            # we only collect the base and NZ data if requested in plot_save para,
+                                            # i.e. only E-III is collected by default.
+                                            for model_type in ["lin-lin", "log-lin", "log-log"]:
+                                                is_shifted = False
+                                                if model_type == "lin-lin":
+                                                    use_vector = vector_list
+                                                elif model_type == "log-lin":
+                                                    if 0.0 in vector_list[1] and self.is_record_lesser_lm:
+                                                        # shift both vectors up
+                                                        is_shifted = True
+                                                        use_vector = [deepcopy(vector_list[0]) + species_1_minimum,
+                                                                      np.log(deepcopy(vector_list[1]
+                                                                                      ) + species_2_minimum)]
+                                                    else:
+                                                        use_vector = [vector_list[0], np.log(deepcopy(vector_list[1]))]
 
-        # output NINE nested dictionaries of results
-        return presence_store, similarity_store, prediction_store, correlation_store, correlation_nz_store, \
-            correlation_nm_store, linear_model_store, linear_model_nz_store, linear_model_nm_store
+                                                elif model_type == "log-log":
+                                                    if (0.0 in vector_list[0] or 0.0 in vector_list[1]) and \
+                                                            self.is_record_lesser_lm:
+                                                        # shift both vectors up
+                                                        is_shifted = True
+                                                        use_vector = [np.log(deepcopy(vector_list[0]
+                                                                                      ) + species_1_minimum),
+                                                                      np.log(deepcopy(vector_list[1]
+                                                                                      ) + species_2_minimum)]
+                                                    else:
+                                                        use_vector = [np.log(deepcopy(vector_list[0])),
+                                                                      np.log(deepcopy(vector_list[1]))]
+                                                else:
+                                                    raise Exception("Error in model choice.")
+                                                # conduct the analysis and store
+                                                if self.is_record_lesser_lm or not is_shifted:
+                                                    # only include lesser models if specified in plot_save para
+                                                    linear_model_store[network_key][species_1_name][
+                                                        species_1_ball_radius][species_2_name][species_2_ball_radius][
+                                                        vector_choice][model_type] = \
+                                                        linear_model_report(x_val=use_vector[0], y_val=use_vector[1],
+                                                                            is_record_vectors=is_record_lm_vectors,
+                                                                            model_type_str=model_type,
+                                                                            is_shifted=is_shifted)
+
+        # output FIVE nested dictionaries of results
+        return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
 
     def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors):
         # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data

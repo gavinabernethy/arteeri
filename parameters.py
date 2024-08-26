@@ -158,6 +158,8 @@ master_para = {
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, IF COLLECTED - see option in main_para)?
+            "IS_RECORD_AND_PLOT_LESSER_LM": False,  # if True, then also attempt to fit, store, and then plot _base,
+            # _nz, and shifted (less reliable) fitted linear models for inter_species_predictions.
             "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
