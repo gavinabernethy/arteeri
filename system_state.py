@@ -1011,7 +1011,7 @@ class System_state:
                                                 vector_list[0], vector_list[1])
 
                                     # E. Linear model
-                                    # (note that we could use curve_fit() for a more general model specification here)
+                                    # (Note that we could use curve_fit() for a more general model specification here.)
                                     # E-I. full data; E-II. non-zero predictor; E-III. non-(spec) minimum predictor.
                                     for vector_choice, vector_list in vector_set.items():
                                         if vector_choice == "nm" or self.is_record_lesser_lm:
