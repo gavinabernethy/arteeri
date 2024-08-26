@@ -879,11 +879,10 @@ class System_state:
         #                       I. All patches; II. Non-zero [nz] input; III. Adjusted non-minimum [nm] input (> 10x
         #                       species minimum population AND 5% base carrying capacity)
         # 					E. linear model fit
-        #                       I. All patches; II. Non-zero [nz] input; III. Adjusted non-minimum [nm] input (> 10x
-        #                       species minimum population AND 5% base carrying capacity)
-        #                       Each conducted for lin-lin, log-lin, and log-log models.
+        #                       By default: III. Adjusted non-minimum [nm] input (> 10x species minimum population AND
+        #                       %5 base carrying capacity) Each conducted for lin-lin, log-lin, and log-log models.
+        #                       Optional extras: I. All patches; II. Non-zero [nz] input.
         #
-
 
         species_list = [x.name for x in self.species_set["list"]]
 
