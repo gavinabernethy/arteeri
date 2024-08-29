@@ -95,29 +95,35 @@ def generate_cluster(sub_network, size):
     return cluster, is_success
 
 
-def determine_complexity(sub_network, cluster, is_normalised):
+def determine_complexity(sub_network, cluster, is_normalised, num_species):
     # sum the absolute state difference values over all unique patch pairs in the cluster
     total_difference = 0
-    if sub_network["num_patches"] > 1:
-        for lower_patch_index in range(len(cluster) - 1):
-            lower_patch_num = cluster[lower_patch_index]
-            for upper_patch_index in range(lower_patch_index + 1, len(cluster)):
-                upper_patch_num = cluster[upper_patch_index]
-                # compare pair
-                if is_normalised:
-                    # for populations - difference should be |x_i - x_j| / bar{x}
-                    lower_vector = sub_network["normalised_population_arrays"][0][lower_patch_num, :]
-                    upper_vector = sub_network["normalised_population_arrays"][0][upper_patch_num, :]
-                else:
-                    # for binary (occupancy) comparison - difference should be 1 or 0
-                    lower_vector = sub_network["population_arrays"][0][lower_patch_num, :]
-                    upper_vector = sub_network["population_arrays"][0][upper_patch_num, :]
-                difference = 0
-                for species_index in range(len(lower_vector)):
-                    difference += np.abs(lower_vector[species_index] - upper_vector[species_index])
-                total_difference += difference
-        # report the total complexity (rather than the per-patch or per-pair average, as this is then
-        # compared with log(cluster size) in the subsequent information dimension calculation)
+    if num_species > 0:
+        if sub_network["num_patches"] > 1:
+            for lower_patch_index in range(len(cluster) - 1):
+                lower_patch_num = cluster[lower_patch_index]
+                for upper_patch_index in range(lower_patch_index + 1, len(cluster)):
+                    upper_patch_num = cluster[upper_patch_index]
+                    # compare pair
+                    if is_normalised:
+                        # for populations - difference should be |x_i - x_j| / max{x}
+                        lower_vector = sub_network["normalised_population_arrays"][0][lower_patch_num, :]
+                        upper_vector = sub_network["normalised_population_arrays"][0][upper_patch_num, :]
+                    else:
+                        # for binary (occupancy) comparison - difference should be 1 or 0
+                        lower_vector = sub_network["population_arrays"][0][lower_patch_num, :]
+                        upper_vector = sub_network["population_arrays"][0][upper_patch_num, :]
+                    difference = 0
+                    for species_index in range(len(lower_vector)):
+                        difference += np.abs(lower_vector[species_index] - upper_vector[species_index])
+                    total_difference += difference
+            # report the total complexity (rather than the per-patch or per-pair average, as this is then
+            # compared with log(cluster size) in the subsequent information dimension calculation)
+
+        # however we will, for niceness, normalise by the number of species (in the entire system - not just
+        # this subnetwork). But because we take logs and then only consider the fitted gradient for complexity
+        # dimension, this will actually have no impact.
+        total_difference = total_difference / num_species
     return total_difference
 
 

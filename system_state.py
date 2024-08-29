@@ -670,11 +670,14 @@ class System_state:
         complexity_final = self.complexity_analysis(
             sub_networks=community_state_sub_networks,
             corresponding_binary=community_presence_sub_networks,
-            is_record_lm_vectors=is_record_lm_vectors)
+            is_record_lm_vectors=is_record_lm_vectors,
+            num_species=num_species
+        )
         complexity_average = self.complexity_analysis(
             sub_networks=time_averaged_sub_networks,
             corresponding_binary=None,
-            is_record_lm_vectors=is_record_lm_vectors)
+            is_record_lm_vectors=is_record_lm_vectors,
+            num_species=num_species)
 
         # Species-rank abundance - fit a log-linear model to the curve of relative global abundance vs. species rank
         #
@@ -979,7 +982,8 @@ class System_state:
                                     # Build non-zero input versions for D-II, E-II and non-minimum for D-III, E-III:
                                     #
                                     # list zero-element indices, and indices with (normalised) element <= 5%,
-                                    # then delete all at once
+                                    # then delete all at once.
+                                    # Recall that these vectors are all normalised!
                                     zero_index_list = []
                                     min_index_list = []
                                     minimum_fraction = 0.05
@@ -1055,7 +1059,7 @@ class System_state:
         # output FIVE nested dictionaries of results
         return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
 
-    def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors):
+    def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors, num_species):
         # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
         # points after random sampling (multiple attempts for each) of several random clusters of connected patches
         # within the sub_network, conducts a linear regression to analyse:
@@ -1113,13 +1117,17 @@ class System_state:
                                 binary_complexity[delta - 1] += determine_complexity(
                                     sub_network=corresponding_binary[network_key],
                                     cluster=cluster,
-                                    is_normalised=False)
+                                    is_normalised=False,
+                                    num_species=num_species,
+                                )
 
                             # determine population-weighted complexity within cluster
                             population_weighted_complexity[delta - 1] += determine_complexity(
                                 sub_network=sub_networks[network_key],
                                 cluster=cluster,
-                                is_normalised=True)
+                                is_normalised=True,
+                                num_species=num_species,
+                            )
 
                     # normalise output arrays
                     if successful_clusters[delta - 1] > 0:
@@ -1171,8 +1179,8 @@ class System_state:
                     lm_binary_complexity = linear_model_report(x_val=x_val[1:], y_val=bin_comp_y_val,
                                                                is_record_vectors=is_record_lm_vectors,
                                                                model_type_str="log-log")
-                    # complexity dimension is -gradient
-                    lm_binary_complexity["complexity_dimension"] = -lm_binary_complexity["slope"]
+                    # complexity dimension is +gradient
+                    lm_binary_complexity["complexity_dimension"] = lm_binary_complexity["slope"]
                 else:
                     lm_binary_complexity = {"is_success": 0}
 
@@ -1181,8 +1189,8 @@ class System_state:
                     lm_pop_weighted_complexity = linear_model_report(x_val=x_val[1:], y_val=pop_weight_y_val,
                                                                      is_record_vectors=is_record_lm_vectors,
                                                                      model_type_str="log-log")
-                    # complexity dimension is -gradient
-                    lm_pop_weighted_complexity["complexity_dimension"] = -lm_pop_weighted_complexity["slope"]
+                    # complexity dimension is +gradient (unaffected by whether or not we normalise by number of species)
+                    lm_pop_weighted_complexity["complexity_dimension"] = lm_pop_weighted_complexity["slope"]
                 else:
                     lm_pop_weighted_complexity = {"is_success": 0}
 
