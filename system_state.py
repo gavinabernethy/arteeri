@@ -879,8 +879,8 @@ class System_state:
         #                       I. All patches; II. Non-zero [nz] input; III. Adjusted non-minimum [nm] input (> 10x
         #                       species minimum population AND 5% base carrying capacity)
         # 					E. linear model fit
-        #                       By default: III. Adjusted non-minimum [nm] input (> 10x species minimum population AND
-        #                       %5 base carrying capacity) Each conducted for lin-lin, log-lin, and log-log models.
+        #                       By default: III. Adjusted non-minimum [nm] input (>%5 of the NORMALISED vector maximum)
+        #                       Each conducted for lin-lin, log-lin, and log-log models.
         #                       Optional extras: I. All patches; II. Non-zero [nz] input.
         #
 
@@ -978,19 +978,15 @@ class System_state:
                                     #
                                     # Build non-zero input versions for D-II, E-II and non-minimum for D-III, E-III:
                                     #
-                                    # list zero-element indices, and indices with element <= adjusted min species
-                                    # population (basically 5% capacity), then delete all at once
+                                    # list zero-element indices, and indices with (normalised) element <= 5%,
+                                    # then delete all at once
                                     zero_index_list = []
                                     min_index_list = []
-                                    species_1_minimum = self.species_set["dict"][species_1_name].minimum_population_size
-                                    species_2_minimum = self.species_set["dict"][species_2_name].minimum_population_size
-                                    adjusted_species_1_minimum = max(
-                                        10.0 * species_1_minimum, 0.05 * self.species_set["dict"][
-                                            species_1_name].growth_para["CARRYING_CAPACITY"])
+                                    minimum_fraction = 0.05
                                     for _ in range(len(species_1_pop_vector)):
                                         if species_1_pop_vector[_] == 0.0:
                                             zero_index_list.append(_)
-                                        if species_1_pop_vector[_] <= adjusted_species_1_minimum:
+                                        if species_1_pop_vector[_] <= minimum_fraction:
                                             min_index_list.append(_)
                                     species_1_pop_vector_nz = np.delete(species_1_pop_vector, zero_index_list)
                                     species_2_pop_vector_nz = np.delete(species_2_pop_vector, zero_index_list)
@@ -1003,6 +999,7 @@ class System_state:
                                                   "nm": [species_1_pop_vector_nm, species_2_pop_vector_nm], }
 
                                     # D. (Two) correlation coefficients
+                                    # for CCs we always collect all three types (base, _nz, _nm)
                                     for vector_choice, vector_list in vector_set.items():
                                         correlation_store[network_key][species_1_name][species_1_ball_radius][
                                             species_2_name][species_2_ball_radius][vector_choice] = \
@@ -1014,7 +1011,7 @@ class System_state:
                                     # E-I. full data; E-II. non-zero predictor; E-III. non-(spec) minimum predictor.
                                     for vector_choice, vector_list in vector_set.items():
                                         if vector_choice == "nm" or self.is_record_lesser_lm:
-                                            # we only collect the base and NZ data if requested in plot_save para,
+                                            # only collect the base and NZ data for LMs if requested in plot_save para,
                                             # that is: Only E-III is collected by default.
                                             for model_type in ["lin-lin", "log-lin", "log-log"]:
                                                 is_shifted = False
@@ -1024,9 +1021,9 @@ class System_state:
                                                     if 0.0 in vector_list[1] and self.is_record_lesser_lm:
                                                         # shift both vectors up
                                                         is_shifted = True
-                                                        use_vector = [deepcopy(vector_list[0]) + species_1_minimum,
+                                                        use_vector = [deepcopy(vector_list[0]) + minimum_fraction,
                                                                       np.log(deepcopy(vector_list[1]
-                                                                                      ) + species_2_minimum)]
+                                                                                      ) + minimum_fraction)]
                                                     else:
                                                         use_vector = [vector_list[0], np.log(deepcopy(vector_list[1]))]
 
@@ -1036,9 +1033,9 @@ class System_state:
                                                         # shift both vectors up
                                                         is_shifted = True
                                                         use_vector = [np.log(deepcopy(vector_list[0]
-                                                                                      ) + species_1_minimum),
+                                                                                      ) + minimum_fraction),
                                                                       np.log(deepcopy(vector_list[1]
-                                                                                      ) + species_2_minimum)]
+                                                                                      ) + minimum_fraction)]
                                                     else:
                                                         use_vector = [np.log(deepcopy(vector_list[0])),
                                                                       np.log(deepcopy(vector_list[1]))]
