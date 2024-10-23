@@ -86,7 +86,8 @@ def execution():
     master_para = getattr(parameters_file, "master_para")
     meta_para = getattr(parameters_file, "meta_para")
     if meta_para["IS_RUN_SAMPLE_SPATIAL_DATA_FIRST"]:
-        run_sample_spatial_data(parameters=master_para, is_output_files=True)
+        run_sample_spatial_data(parameters=master_para,
+                                is_output_files=master_para["plot_save_para"]["IS_ALLOW_FILE_CREATION"])
     num_repeats = meta_para["NUM_REPEATS"]
 
     for simulation in range(num_repeats):

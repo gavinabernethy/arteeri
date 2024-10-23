@@ -1234,7 +1234,9 @@ class System_state:
         # produce habitat subnetworks first - including adjacency arrays (store them in dict with same network keys)
         sub_networks = {}
         sub_network_list = [x for x in habitat_type_nums]
-        sub_network_list.append('all')
+        sub_network_list.append('all')  # note that if there is just one habitat type, we still generate two
+        # sub-networks and conduct any subsequent analysis twice.
+        # With two different sample sets for the cluster generation this could lead to slightly different results.
         for network_key in sub_network_list:
             # need adjacency matrix and population array
             temp_num_patches = len(self.current_patch_list)
