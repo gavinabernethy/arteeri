@@ -1018,20 +1018,27 @@ class System_state:
                                             # only collect the base and NZ data for LMs if requested in plot_save para,
                                             # that is: Only E-III is collected by default.
                                             for model_type in ["lin-lin", "log-lin", "log-log"]:
+                                                is_success = False
                                                 is_shifted = False
+
                                                 if model_type == "lin-lin":
                                                     use_vector = vector_list
+                                                    is_success = True
+
                                                 elif model_type == "log-lin":
                                                     if any(element < 0.0000000001 for element in vector_list[1]):
                                                         is_shifted = True
                                                         if self.is_record_lesser_lm:
                                                             # shift both vectors up
+                                                            is_success = True
                                                             use_vector = [deepcopy(vector_list[0]) + minimum_fraction,
                                                                           np.log(deepcopy(vector_list[1]
                                                                                           ) + minimum_fraction)]
                                                         else:
+                                                            is_success = False
                                                             use_vector = None
                                                     else:
+                                                        is_success = True
                                                         use_vector = [vector_list[0], np.log(deepcopy(vector_list[1]))]
 
                                                 elif model_type == "log-log":
@@ -1040,19 +1047,23 @@ class System_state:
                                                         is_shifted = True
                                                         if self.is_record_lesser_lm:
                                                             # shift both vectors up
+                                                            is_success = True
                                                             use_vector = [np.log(deepcopy(vector_list[0]
                                                                                           ) + minimum_fraction),
                                                                           np.log(deepcopy(vector_list[1]
                                                                                           ) + minimum_fraction)]
                                                         else:
+                                                            is_success = False
                                                             use_vector = None
                                                     else:
+                                                        is_success = True
                                                         use_vector = [np.log(deepcopy(vector_list[0])),
                                                                       np.log(deepcopy(vector_list[1]))]
                                                 else:
                                                     raise Exception("Error in model choice.")
+
                                                 # conduct the analysis and store
-                                                if self.is_record_lesser_lm or not is_shifted:
+                                                if is_success:
                                                     # only include lesser models if specified in plot_save para
                                                     linear_model_store[network_key][species_1_name][
                                                         species_1_ball_radius][species_2_name][species_2_ball_radius][
