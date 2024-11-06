@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 from collections import Counter
 from degree_distribution import power_law_curve_fit
-from data_manager_functions import update_local_population_nets
+from data_save_functions import update_local_population_nets
 from system_state_functions import tuple_builder, linear_model_report, generate_cluster, \
     determine_complexity, rank_abundance, inter_species_predictions_correlation_coefficients
 
@@ -1022,24 +1022,30 @@ class System_state:
                                                 if model_type == "lin-lin":
                                                     use_vector = vector_list
                                                 elif model_type == "log-lin":
-                                                    if 0.0 in vector_list[1] and self.is_record_lesser_lm:
-                                                        # shift both vectors up
+                                                    if any(element < 0.0000000001 for element in vector_list[1]):
                                                         is_shifted = True
-                                                        use_vector = [deepcopy(vector_list[0]) + minimum_fraction,
-                                                                      np.log(deepcopy(vector_list[1]
-                                                                                      ) + minimum_fraction)]
+                                                        if self.is_record_lesser_lm:
+                                                            # shift both vectors up
+                                                            use_vector = [deepcopy(vector_list[0]) + minimum_fraction,
+                                                                          np.log(deepcopy(vector_list[1]
+                                                                                          ) + minimum_fraction)]
+                                                        else:
+                                                            use_vector = None
                                                     else:
                                                         use_vector = [vector_list[0], np.log(deepcopy(vector_list[1]))]
 
                                                 elif model_type == "log-log":
-                                                    if (0.0 in vector_list[0] or 0.0 in vector_list[1]) and \
-                                                            self.is_record_lesser_lm:
-                                                        # shift both vectors up
+                                                    if (any(element < 0.0000000001 for element in vector_list[0]) or
+                                                        any(element < 0.0000000001 for element in vector_list[1])):
                                                         is_shifted = True
-                                                        use_vector = [np.log(deepcopy(vector_list[0]
-                                                                                      ) + minimum_fraction),
-                                                                      np.log(deepcopy(vector_list[1]
-                                                                                      ) + minimum_fraction)]
+                                                        if self.is_record_lesser_lm:
+                                                            # shift both vectors up
+                                                            use_vector = [np.log(deepcopy(vector_list[0]
+                                                                                          ) + minimum_fraction),
+                                                                          np.log(deepcopy(vector_list[1]
+                                                                                          ) + minimum_fraction)]
+                                                        else:
+                                                            use_vector = None
                                                     else:
                                                         use_vector = [np.log(deepcopy(vector_list[0])),
                                                                       np.log(deepcopy(vector_list[1]))]

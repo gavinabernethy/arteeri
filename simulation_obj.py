@@ -1,7 +1,7 @@
-from data_manager import save_all_data, generate_simulation_number, all_plots, population_snapshot, \
-    change_snapshot, write_initial_files, save_adj_variables, load_adj_variables, load_reserve_list, \
-    save_reserve_list, print_key_outputs_to_console
-from data_manager_functions import plot_network_properties, create_adjacency_path_list
+from data_manager import (save_all_data, generate_simulation_number, write_initial_files, save_adj_variables,
+                          load_adj_variables, load_reserve_list, \
+    save_reserve_list, print_key_outputs_to_console)
+from data_core_functions import create_adjacency_path_list
 from sample_spatial_data import run_sample_spatial_data
 import os
 from patch import Patch
@@ -29,9 +29,11 @@ class Simulation_obj:
     def __init__(self, parameters, metadata, parameters_filename):
         self.parameters = parameters
         self.metadata = metadata
+
         self.is_allow_file_creation = parameters["plot_save_para"]["IS_ALLOW_FILE_CREATION"]
         self.is_save = parameters["plot_save_para"]["IS_SAVE"]
         self.is_plot = parameters["plot_save_para"]["IS_PLOT"]
+
         self.is_print_key_outputs_to_console = parameters["plot_save_para"]["IS_PRINT_KEY_OUTPUTS_TO_CONSOLE"]
         self.total_steps = self.parameters["main_para"]["NUM_TRANSIENT_STEPS"] + self.parameters[
             "main_para"]["NUM_RECORD_STEPS"]
@@ -275,6 +277,8 @@ class Simulation_obj:
                 save_all_data(simulation_obj=self)
                 print(f"{self.sim_number}: Completed data saves.")
             if self.is_plot:
+                # only at this stage import necessary function
+                from data_manager import all_plots
                 print(f"{self.sim_number}: Beginning plot exports.")
                 all_plots(simulation_obj=self)
                 print(f"{self.sim_number}: Completed plot exports.")
@@ -353,7 +357,9 @@ class Simulation_obj:
         self.system_state.initial_patch_adjacency_matrix = initial_patch_adjacency_matrix
 
         # do we require a visualisation of the system after initialisation BEFORE the first (0th) time-step has run?
-        if self.is_allow_file_creation:
+        if self.is_allow_file_creation and self.is_plot:
+            # only at this stage import necessary functions
+            from data_plot_functions import plot_network_properties
             if -1 in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
@@ -372,7 +378,9 @@ class Simulation_obj:
             if step in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
                 pert_archetype = self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"][step]
                 pert_paras = self.parameters["perturbation_para"]["PERT_ARCHETYPE_DICTIONARY"][pert_archetype]
-                if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
+                if (self.is_allow_file_creation and self.is_plot and
+                        self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]):
+                    from data_manager import population_snapshot
                     save_all_data(simulation_obj=self)
                     population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
@@ -381,9 +389,11 @@ class Simulation_obj:
 
             # immediately after the perturbation and one iteration:
             if step - 1 in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
-                population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
-                                    output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
-                if self.is_allow_file_creation and self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]:
+                if (self.is_allow_file_creation and self.is_plot and
+                        self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]):
+                    from data_manager import population_snapshot, change_snapshot
+                    population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
+                                        output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                     save_all_data(simulation_obj=self)
                     # call a function to calculate the resulting change due to the perturbation
                     change_snapshot(system_state=self.system_state, sim_path=self.sim_path,
@@ -414,8 +424,9 @@ class Simulation_obj:
             # --------------------------------------------------------#
 
             # print the spatial network of the system during the simulation at the END OF STEP if manually specified
-            if self.is_allow_file_creation and \
+            if self.is_allow_file_creation and self.is_plot and\
                     step in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
+                from data_plot_functions import plot_network_properties
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
