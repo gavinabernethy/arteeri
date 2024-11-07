@@ -1092,7 +1092,7 @@ class System_state:
         # need to treat each sub_network entirely separately
         for network_key in sub_networks.keys():
             current_num_patches = sub_networks[network_key]["num_patches"]
-            max_delta = int(min(current_num_patches / 4, np.sqrt(current_num_patches)))
+            max_delta = int(max(current_num_patches / 2, np.sqrt(current_num_patches)))  # formerly min()
 
             # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
             if max_delta > 2:
@@ -1103,9 +1103,9 @@ class System_state:
                 binary_complexity = np.zeros(max_delta)
                 population_weighted_complexity = np.zeros(max_delta)
 
-                # iterate over cluster radius
+                # iterate over cluster radius, starting at delta=1 and indexing at 0
                 for delta in range(1, max_delta + 1):
-                    num_clusters = 10
+                    num_clusters = 500  # how many samples do we try to draw?
 
                     # iterate over clusters of this radius
                     for cluster_attempt in range(num_clusters):
@@ -1126,6 +1126,9 @@ class System_state:
                             # sub-network-species-normalised populations).
                             # Then the complexity dimension examines how the rate of complexity increase compares with
                             # the rate of the increase in cluster size.
+                            #
+                            # We also check how this grows immediately with cluster size from n to n+1, to
+                            # attempt to (tentatively) identify the most natural clustering unit of the system.
 
                             # determine binary complexity within cluster
                             if corresponding_binary is not None:
@@ -1154,7 +1157,8 @@ class System_state:
                                                                         delta - 1] / successful_clusters[delta - 1]
 
                 # prepare x-dimension array
-                x_val = np.log(np.arange(1, max_delta + 1))
+                non_log_x_val = np.arange(1, max_delta + 1)
+                x_val = np.log(non_log_x_val)
 
                 # exclude any zero-size elements
                 is_pass = False
@@ -1165,6 +1169,7 @@ class System_state:
                             is_pass = False
                             # remove this entry from all vectors
                             x_val = np.delete(x_val, delta_index, axis=0)
+                            non_log_x_val = np.delete(non_log_x_val, delta_index, axis=0)
                             successful_clusters = np.delete(successful_clusters, delta_index, axis=0)
                             species_diversity = np.delete(species_diversity, delta_index, axis=0)
                             binary_complexity = np.delete(binary_complexity, delta_index, axis=0)
@@ -1173,6 +1178,7 @@ class System_state:
                             break
             else:
                 x_val = np.array([])
+                non_log_x_val = np.array([])
                 species_diversity = np.array([])
                 binary_complexity = np.array([])
                 population_weighted_complexity = np.array([])
@@ -1182,34 +1188,59 @@ class System_state:
                 # linear regressions
                 #
                 # ensure only non-zero values of diversity and complexity
+                lm_sar = {"is_success": 0}
                 if not (species_diversity == 0).any():
                     sar_y_val = np.log(species_diversity)
                     lm_sar = linear_model_report(x_val=x_val, y_val=sar_y_val,
                                                  is_record_vectors=is_record_lm_vectors, model_type_str="log-log")
                     # for the SAR, fitted relationship is diversity = exp(intercept) * size ^ (gradient)
-                else:
-                    lm_sar = {"is_success": 0}
 
-                # ignore first entry (patch size 0 - useful for diversity, but meaningless for intra-cluster complexity)
-                if not (binary_complexity[1:] == 0).any():
-                    bin_comp_y_val = np.log(binary_complexity[1:])
-                    lm_binary_complexity = linear_model_report(x_val=x_val[1:], y_val=bin_comp_y_val,
-                                                               is_record_vectors=is_record_lm_vectors,
-                                                               model_type_str="log-log")
-                    # complexity dimension is +gradient
-                    lm_binary_complexity["complexity_dimension"] = lm_binary_complexity["slope"]
-                else:
-                    lm_binary_complexity = {"is_success": 0}
+                # Again - only when actually calculated for the _final complexity:
+                lm_binary_complexity = {"is_success": 0}
+                natural_binary_cluster_size = 0
+                if corresponding_binary is not None:
+                    # ignore first entry (cluster size of one patch - useful for diversity,
+                    # but no meaning for intra-cluster complexity)
+                    if not (binary_complexity[1:] == 0).any():
+                        bin_comp_y_val = np.log(binary_complexity[1:])
+                        lm_binary_complexity = linear_model_report(x_val=x_val[1:], y_val=bin_comp_y_val,
+                                                                   is_record_vectors=is_record_lm_vectors,
+                                                                   model_type_str="log-log")
+                        # complexity dimension is +gradient
+                        lm_binary_complexity["complexity_dimension"] = lm_binary_complexity["slope"]
 
+                    # Now attempt to identify the natural cluster size in the system:
+                    for x_index in range(1, len(x_val) - 1):  # because of the [_ + 1]
+                        test_n = non_log_x_val[x_index]
+                        c_now = binary_complexity[x_index]
+                        c_next = binary_complexity[x_index + 1]
+                        c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
+                        print(network_key, "binary", x_index, test_n, c_now, c_next, c_test)
+                        if c_next > c_test:
+                            natural_binary_cluster_size = int(deepcopy(test_n))
+                            break
+
+                # Whilst the population-weighted version is calculated for both the complexity_final and _average vers.
+                lm_pop_weighted_complexity = {"is_success": 0}
                 if not (population_weighted_complexity[1:] == 0).any():
                     pop_weight_y_val = np.log(population_weighted_complexity[1:])
                     lm_pop_weighted_complexity = linear_model_report(x_val=x_val[1:], y_val=pop_weight_y_val,
                                                                      is_record_vectors=is_record_lm_vectors,
                                                                      model_type_str="log-log")
-                    # complexity dimension is +gradient (unaffected by whether or not we normalise by number of species)
+                    # complexity dimension is +gradient (unaffected by whether we normalise by number of species)
                     lm_pop_weighted_complexity["complexity_dimension"] = lm_pop_weighted_complexity["slope"]
-                else:
-                    lm_pop_weighted_complexity = {"is_success": 0}
+
+                # Now attempt to identify the natural cluster size in the system:
+                natural_pop_weighted_cluster_size = 0
+                for x_index in range(1, len(x_val) - 2):  # because x_val is one-element longer than the y_val
+                    test_n = non_log_x_val[x_index]
+                    c_now = population_weighted_complexity[x_index]
+                    c_next = population_weighted_complexity[x_index + 1]
+                    c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
+                    print(network_key, "pop_weighted", x_index, test_n, c_now, c_next, c_test)
+                    if c_next > c_test:
+                        natural_pop_weighted_cluster_size = int(deepcopy(test_n))
+                        break
 
                 # record
                 complexity_report[network_key] = {
@@ -1217,6 +1248,8 @@ class System_state:
                     "lm_sar": lm_sar,
                     "lm_binary_complexity": lm_binary_complexity,
                     "lm_pop_weighted_complexity": lm_pop_weighted_complexity,
+                    "estimated_natural_binary_cluster": natural_binary_cluster_size,
+                    "estimated_natural_pop_weight_cluster": natural_pop_weighted_cluster_size,
                 }
             else:
                 complexity_report[network_key] = {
@@ -1224,8 +1257,9 @@ class System_state:
                     "lm_sar": {},
                     "lm_binary_complexity": {},
                     "lm_pop_weighted_complexity": {},
+                    "estimated_natural_binary_cluster": None,
+                    "estimated_natural_pop_weight_cluster": None,
                 }
-
         return complexity_report
 
     def count_diversity(self, sub_network, cluster):
@@ -1247,13 +1281,16 @@ class System_state:
         # 	– Determine the adjacency matrix
         #   – Determine the vectors of radius-1 and radius-2 population sizes
         # 	– Determine the network-normalised (by radius-specific local maximum) population vectors
+        #   - Determine the list of neighbours of each patch - IN TERMS OF THE SUB-NETWORK INDEX
 
         # produce habitat subnetworks first - including adjacency arrays (store them in dict with same network keys)
         sub_networks = {}
         sub_network_list = [x for x in habitat_type_nums]
         sub_network_list.append('all')  # note that if there is just one habitat type, we still generate two
         # sub-networks and conduct any subsequent analysis twice.
+        #
         # With two different sample sets for the cluster generation this could lead to slightly different results.
+
         for network_key in sub_network_list:
             # need adjacency matrix and population array
             temp_num_patches = len(self.current_patch_list)
@@ -1326,12 +1363,25 @@ class System_state:
                                                                      :, species_index] / species_max_population
                     normalised_pop_array_dict[ball_radius] = deepcopy(normalised_pop_array)
 
+
+                # generate a dictionary of sub-network relative STRICT neighbour indices (i.e. not including self)
+                temp_neighbours = {}
+                for host_index in range(temp_num_patches):
+                    host_list = []
+                    for neighbour_index in range(temp_num_patches):
+                        if neighbour_index != host_index:
+                            if temp_adjacency[host_index, neighbour_index
+                            ] != 0 or temp_adjacency[neighbour_index, host_index] != 0:
+                                host_list.append(neighbour_index)
+                        temp_neighbours[host_index] = host_list
+
                 # now store the single-habitat subnetwork
                 sub_networks[network_key] = deepcopy({
                     "num_patches": temp_num_patches,
                     "population_arrays": population_array_dict,
                     "normalised_population_arrays": normalised_pop_array_dict,
                     "adjacency_array": temp_adjacency,
+                    "neighbour_dict": temp_neighbours,
                 })
             else:
                 sub_networks[network_key] = {"num_patches": 0}

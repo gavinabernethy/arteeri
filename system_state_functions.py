@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import linregress, spearmanr, pearsonr
-
+from random import randrange
 
 # Additional static methods used by system_state object
 
@@ -54,44 +54,47 @@ def generate_cluster(sub_network, size):
     num_attempts = 0
     max_attempts = 100
     adjacency_matrix = sub_network["adjacency_array"]
+    neighbour_dict = sub_network["neighbour_dict"]
     # try to generate and return a connected cluster of the given size from the provided sub_network
 
     is_success = False
     cluster = []
+
     # is it possible in principle?
     if size <= sub_network["num_patches"]:
         while num_attempts < max_attempts and not is_success:
             is_success = True
             num_attempts += 1
             cluster = []  # will store the row-column indices relative to the current sub_network
-            eligible_patch_indices = [x for x in range(sub_network["num_patches"])]
 
-            # initial
-            draw_num = np.random.choice(eligible_patch_indices)
+            # initial element
+            draw_num = randrange(sub_network["num_patches"])
             cluster.append(draw_num)
-            eligible_patch_indices.remove(draw_num)
 
             # attempt to draw an element connected to existing elements
             if size > 1:
+
+                # start with the neighbours of the first element
+                possible_draw = set(neighbour_dict[draw_num])
+
+                # loop through drawing the 2nd to Nth elements of the sample
                 for num_element in range(size - 1):
 
-                    possible_draw = set()
-                    # find the neighbours of the current cluster members
-                    for potential_element in eligible_patch_indices:
-                        for existing_member in cluster:
-                            if adjacency_matrix[existing_member, potential_element] == 1 or \
-                                    adjacency_matrix[potential_element, existing_member] == 1:
-                                possible_draw.add(potential_element)
-                                break
                     draw_list = list(possible_draw)
                     if len(draw_list) > 0:
                         draw_num = np.random.choice(draw_list)
                         cluster.append(draw_num)
-                        eligible_patch_indices.remove(draw_num)
+                        possible_draw.remove(draw_num)
                     else:
                         is_success = False
                         cluster = []
                         break
+
+                    # find the neighbours of the new member and add them to the set of possibilities
+                    for potential_element in neighbour_dict[draw_num]:
+                        if potential_element not in cluster:  # don't consider patches already chosen!
+                            possible_draw.add(potential_element)
+
     return cluster, is_success
 
 

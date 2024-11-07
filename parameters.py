@@ -21,10 +21,10 @@ master_para = {
             "SPATIAL_TEST_SET": 1,
             "SPATIAL_DESCRIPTION": "artemis_01",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
-            "GRAPH_TYPE": "lattice",
+            "GRAPH_TYPE": "line",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
+            "LATTICE_GRAPH_CONNECTIVITY": 0.5,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": None,
@@ -34,9 +34,9 @@ master_para = {
             "CLUSTER_PROBABILITY": None,
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
-            "HABITAT_TYPE_MANUAL_ALL_SPEC": None,  # should be None if we want to generate habitats by probability
+            "HABITAT_TYPE_MANUAL_ALL_SPEC": 10*([0 for x in range(20)] + [1 for x in range(20)]),  # should be None if we want to generate habitats by probability
             "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
-            "HABITAT_TYPE_MANUAL_OVERWRITE": {0: 0, 200: 1},  # set this to None or empty dict, unless you want
+            "HABITAT_TYPE_MANUAL_OVERWRITE": None,  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             #
@@ -67,7 +67,7 @@ master_para = {
         {
             # ---------- CONTROL PARAMETERS: ---------- #
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
-            "NUM_TRANSIENT_STEPS": 10000,
+            "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
             "NUM_PATCHES": 400,
             # ----------------------------------------- #
@@ -96,7 +96,6 @@ master_para = {
                 # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
                 # name loaded (below) from the parameters_species_repository.py:
                 0: "prey",
-                1: "predator",
             },  # key numbering must remain consistent with column ordering of the loaded arrays
 
             "HABITAT_TYPES": {
@@ -116,23 +115,23 @@ master_para = {
                     # specify habitat scores for generation
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [0.8, 0.2],
-                                       1: [0.2, 0.8]},
+                    "HABITAT_SCORES": {0: [1.0],
+                                       1: [0.0]},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": None,
                     "MAX_SCORE": None,
-                    "HABITAT_SCORES": {0: [1.0, 1.0],
-                                       1: [1.0, 1.0]},
+                    "HABITAT_SCORES": {0: [1.0,],
+                                       1: [1.0]},
                 },
             },
 
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
@@ -155,26 +154,26 @@ master_para = {
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
-            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
             "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, IF COLLECTED - see option in main_para)?
             "IS_RECORD_AND_PLOT_LESSER_LM": False,  # if True, then also attempt to fit, store, and then plot _base,
             # _nz, and shifted (less reliable) fitted linear models for inter_species_predictions.
-            "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
+            "PLOT_INIT_NETWORK": False,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever,
             # including the initial distributions of the species populations.
             #
             # Data control options (requires IS_SAVE to be true):
-            "IS_SAVE_LOCAL_POP_HISTORY_CSV": True,  # produce individual .csv file with only the core time series
+            "IS_SAVE_LOCAL_POP_HISTORY_CSV": False,  # produce individual .csv file with only the core time series
             # (population size, internal change, dispersal in and out) for each local_pop object.
             "IS_SAVE_SYSTEM_STATE_DATA": True,  # produce JSON of system state, including, for example, histories of
             # perturbation, biodiversity, and the mean and s.d. of quality and size of patches present at that time in
             # the network, and the full set of network distance-metric analysis.
-            "IS_SAVE_PATCH_DATA": True,  # produce JSON file of every patch object (including, for example,
+            "IS_SAVE_PATCH_DATA": False,  # produce JSON file of every patch object (including, for example,
             # the full history per-patch of different local clustering values).
-            "IS_SAVE_PATCH_LOCAL_POP_DATA": True,  # produce a JSON file of every local_population object - however
+            "IS_SAVE_PATCH_LOCAL_POP_DATA": False,  # produce a JSON file of every local_population object - however
             # note that this requires IS_SAVE_PATCH_DATA to be true first.
             "IS_ODE_RECORDINGS": False,  # do we save the history of each iteration of the ODE details as an attribute
             # of each local population object (it would then be printed as part of IS_SAVE_PATCH_LOCAL_POP_DATA)?
