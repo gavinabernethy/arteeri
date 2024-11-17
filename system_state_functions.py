@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import linregress, spearmanr, pearsonr
-from random import randrange
+from copy import deepcopy
 
 # Additional static methods used by system_state object
 
@@ -50,52 +50,68 @@ def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None, is
     return linear_model
 
 
-def generate_cluster(sub_network, size):
-    num_attempts = 0
-    max_attempts = 100
-    adjacency_matrix = sub_network["adjacency_array"]
-    neighbour_dict = sub_network["neighbour_dict"]
-    # try to generate and return a connected cluster of the given size from the provided sub_network
+def complexity_scaling_vector_analysis(x_val, y_val, is_record_lm_vectors, non_log_x_val):
+    # executed during system_state.complexity_analysis() separately
+    # for _binary and _population_weighted vectors to analyse the scaling and dimensions of complexity,
+    # and attempt to estimate the natural occurrences of complexity organisation within the system.
 
-    is_success = False
-    cluster = []
+    lm_complexity = {"is_success": 0}
+    natural_cluster_size = 0
+    dc_estimate_list = []
+    dc_natural_range_est = []
+    dc_significance = 0
+    dc_significance_un_norm = 0
 
-    # is it possible in principle?
-    if size <= sub_network["num_patches"]:
-        while num_attempts < max_attempts and not is_success:
-            is_success = True
-            num_attempts += 1
-            cluster = []  # will store the row-column indices relative to the current sub_network
+    # ignore first entry (cluster size of one patch - used for diversity, but no meaning for intra-cluster complexity)
+    if not (y_val[1:] == 0).any():
+        # shift up to a minimum value of 1
+        testable_complexity = y_val[1:]
+        bin_comp_y_val = np.log(testable_complexity - np.min(testable_complexity) + 1.0)
+        lm_complexity = linear_model_report(x_val=x_val[1:],
+                                            y_val=bin_comp_y_val,
+                                            is_record_vectors=is_record_lm_vectors,
+                                            model_type_str="log-log")
+        # complexity dimension is +gradient
+        lm_complexity["complexity_dimension"] = lm_complexity["slope"]
 
-            # initial element
-            draw_num = randrange(sub_network["num_patches"])
-            cluster.append(draw_num)
+        # fit log-log plots across rolling intervals
+        interval_length = 5
+        # num_increments = int(np.floor_divide(len(x_val) - 2, interval_length))
+        max_lm_slope = -float('inf')
+        dc_estimate_list = []
 
-            # attempt to draw an element connected to existing elements
-            if size > 1:
+        # fit dc over cluster size [2, 2+N], [3, 3+N], [4, 4+N], ...
+        for k in range(len(x_val) - 1 - interval_length):
+            x_start = k + 1
+            x_end = x_start + interval_length
+            log_n = x_val[x_start:x_end]
+            log_c = bin_comp_y_val[x_start:x_end]
+            lm_slope = linregress(x=log_n, y=log_c).slope
+            dc_estimate_list.append(lm_slope)
+            # we try to identify the interval where the rate of growth is greatest
+            if lm_slope > max_lm_slope:
+                max_lm_slope = lm_slope
+                dc_natural_range_est = [int(x_start + 1), int(x_end)]
+        # how significant is this "greatest" dc estimate (i.e. how many s.d. above the mean)?
+        if np.sum(dc_estimate_list) != 0.0:
+            dc_significance = (max_lm_slope - np.mean(dc_estimate_list))/np.std(dc_estimate_list)
+        else:
+            dc_significance = 0
+        # possibly it should NOT be normalised as dc = 2.0 is the universal approximate behaviour
+        dc_significance_un_norm = max_lm_slope - np.mean(dc_estimate_list)
 
-                # start with the neighbours of the first element
-                possible_draw = set(neighbour_dict[draw_num])
+    # Now attempt to identify the natural cluster size in the system:
+    for x_index in range(1, len(x_val) - 1):  # because of the [_ + 1]
+        test_n = non_log_x_val[x_index]
+        c_now = y_val[x_index]
+        c_next = y_val[x_index + 1]
+        c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
+        if c_next > c_test:
+            natural_cluster_size = int(deepcopy(test_n))
+            break
 
-                # loop through drawing the 2nd to Nth elements of the sample
-                for num_element in range(size - 1):
-
-                    draw_list = list(possible_draw)
-                    if len(draw_list) > 0:
-                        draw_num = np.random.choice(draw_list)
-                        cluster.append(draw_num)
-                        possible_draw.remove(draw_num)
-                    else:
-                        is_success = False
-                        cluster = []
-                        break
-
-                    # find the neighbours of the new member and add them to the set of possibilities
-                    for potential_element in neighbour_dict[draw_num]:
-                        if potential_element not in cluster:  # don't consider patches already chosen!
-                            possible_draw.add(potential_element)
-
-    return cluster, is_success
+    return (lm_complexity, dc_estimate_list, dc_natural_range_est, dc_significance_un_norm,
+            dc_significance, natural_cluster_size)
 
 
 def determine_complexity(sub_network, cluster, is_normalised, num_species):

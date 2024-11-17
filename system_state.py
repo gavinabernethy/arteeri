@@ -3,9 +3,10 @@ from copy import deepcopy
 from collections import Counter
 from degree_distribution import power_law_curve_fit
 from data_save_functions import update_local_population_nets
-from system_state_functions import tuple_builder, linear_model_report, generate_cluster, \
-    determine_complexity, rank_abundance, inter_species_predictions_correlation_coefficients
-
+from system_state_functions import (tuple_builder, linear_model_report, determine_complexity,
+                                    rank_abundance, inter_species_predictions_correlation_coefficients,
+                                    complexity_scaling_vector_analysis)
+from cluster_functions import generate_cluster
 
 class System_state:
 
@@ -401,7 +402,7 @@ class System_state:
                     break
                 else:
                     visited.append(next_vertex_num)
-                    not_visited.remove(next_vertex_num)
+                    not_visited.remove(next_vertex_num)  # this deletion does not occur within "for _ in not_visited"
                     next_patch = self.patch_list[next_vertex_num]
                     # now see if a better score to other patches can be achieved through this one
                     for other_patch_num, other_patch in enumerate(self.patch_list):
@@ -1091,8 +1092,14 @@ class System_state:
 
         # need to treat each sub_network entirely separately
         for network_key in sub_networks.keys():
+            # add the full list of patches to the .available_patches list
+            sub_networks[network_key]["available_patches"] = [
+                x for x in range(sub_networks[network_key]["num_patches"])]
+
+            print(f"{network_key}: begin")
+
             current_num_patches = sub_networks[network_key]["num_patches"]
-            max_delta = int(max(current_num_patches / 2, np.sqrt(current_num_patches)))  # formerly min()
+            max_delta = int(min(current_num_patches / 2, 100))
 
             # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
             if max_delta > 2:
@@ -1105,7 +1112,9 @@ class System_state:
 
                 # iterate over cluster radius, starting at delta=1 and indexing at 0
                 for delta in range(1, max_delta + 1):
-                    num_clusters = 500  # how many samples do we try to draw?
+                    num_clusters = 1000  # how many samples do we try to draw?
+
+                    print(f"{network_key}: delta {delta}")
 
                     # iterate over clusters of this radius
                     for cluster_attempt in range(num_clusters):
@@ -1195,70 +1204,62 @@ class System_state:
                                                  is_record_vectors=is_record_lm_vectors, model_type_str="log-log")
                     # for the SAR, fitted relationship is diversity = exp(intercept) * size ^ (gradient)
 
-                # Again - only when actually calculated for the _final complexity:
-                lm_binary_complexity = {"is_success": 0}
-                natural_binary_cluster_size = 0
+                # Binary version is only analysed when actually calculated for the _final (not _average) complexity:
                 if corresponding_binary is not None:
-                    # ignore first entry (cluster size of one patch - useful for diversity,
-                    # but no meaning for intra-cluster complexity)
-                    if not (binary_complexity[1:] == 0).any():
-                        bin_comp_y_val = np.log(binary_complexity[1:])
-                        lm_binary_complexity = linear_model_report(x_val=x_val[1:], y_val=bin_comp_y_val,
-                                                                   is_record_vectors=is_record_lm_vectors,
-                                                                   model_type_str="log-log")
-                        # complexity dimension is +gradient
-                        lm_binary_complexity["complexity_dimension"] = lm_binary_complexity["slope"]
-
-                    # Now attempt to identify the natural cluster size in the system:
-                    for x_index in range(1, len(x_val) - 1):  # because of the [_ + 1]
-                        test_n = non_log_x_val[x_index]
-                        c_now = binary_complexity[x_index]
-                        c_next = binary_complexity[x_index + 1]
-                        c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
-                        print(network_key, "binary", x_index, test_n, c_now, c_next, c_test)
-                        if c_next > c_test:
-                            natural_binary_cluster_size = int(deepcopy(test_n))
-                            break
+                    (lm_binary_complexity, binary_dc_estimate_list, binary_dc_natural_range_est,
+                     binary_dc_natural_significance_un_norm, binary_dc_natural_significance, natural_binary_cluster_size
+                     ) = complexity_scaling_vector_analysis(x_val=x_val, y_val=binary_complexity,
+                                                            is_record_lm_vectors=is_record_lm_vectors,
+                                                            non_log_x_val=non_log_x_val)
+                else:
+                    lm_binary_complexity = {}
+                    binary_dc_estimate_list = None
+                    binary_dc_natural_range_est = None
+                    binary_dc_natural_significance_un_norm = None
+                    binary_dc_natural_significance = None
+                    natural_binary_cluster_size = None
 
                 # Whilst the population-weighted version is calculated for both the complexity_final and _average vers.
-                lm_pop_weighted_complexity = {"is_success": 0}
-                if not (population_weighted_complexity[1:] == 0).any():
-                    pop_weight_y_val = np.log(population_weighted_complexity[1:])
-                    lm_pop_weighted_complexity = linear_model_report(x_val=x_val[1:], y_val=pop_weight_y_val,
-                                                                     is_record_vectors=is_record_lm_vectors,
-                                                                     model_type_str="log-log")
-                    # complexity dimension is +gradient (unaffected by whether we normalise by number of species)
-                    lm_pop_weighted_complexity["complexity_dimension"] = lm_pop_weighted_complexity["slope"]
-
-                # Now attempt to identify the natural cluster size in the system:
-                natural_pop_weighted_cluster_size = 0
-                for x_index in range(1, len(x_val) - 2):  # because x_val is one-element longer than the y_val
-                    test_n = non_log_x_val[x_index]
-                    c_now = population_weighted_complexity[x_index]
-                    c_next = population_weighted_complexity[x_index + 1]
-                    c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
-                    print(network_key, "pop_weighted", x_index, test_n, c_now, c_next, c_test)
-                    if c_next > c_test:
-                        natural_pop_weighted_cluster_size = int(deepcopy(test_n))
-                        break
+                (lm_pop_weighted_complexity, pop_weight_dc_estimate_list, pop_weight_dc_natural_range_est,
+                    pop_weight_dc_natural_significance_un_norm, pop_weight_dc_natural_significance,
+                 natural_pop_weighted_cluster_size) = complexity_scaling_vector_analysis(
+                    x_val=x_val, y_val=population_weighted_complexity,
+                    is_record_lm_vectors=is_record_lm_vectors,
+                    non_log_x_val=non_log_x_val)
 
                 # record
                 complexity_report[network_key] = {
                     "is_cluster_success": 1,
                     "lm_sar": lm_sar,
                     "lm_binary_complexity": lm_binary_complexity,
+                    "binary_dc_list": binary_dc_estimate_list,
+                    "binary_estimated_dc_natural_range": binary_dc_natural_range_est,
+                    "binary_dc_natural_significance_un_normalised": binary_dc_natural_significance_un_norm,
+                    "binary_dc_natural_significance": binary_dc_natural_significance,
+                    "binary_estimated_natural_size": natural_binary_cluster_size,
                     "lm_pop_weighted_complexity": lm_pop_weighted_complexity,
-                    "estimated_natural_binary_cluster": natural_binary_cluster_size,
-                    "estimated_natural_pop_weight_cluster": natural_pop_weighted_cluster_size,
+                    "pop_weighted_dc_list": pop_weight_dc_estimate_list,
+                    "pop_weighted_dc_natural_range": pop_weight_dc_natural_range_est,
+                    "pop_weighted_dc_natural_significance_un_normalised": pop_weight_dc_natural_significance_un_norm,
+                    "pop_weighted_dc_natural_significance": pop_weight_dc_natural_significance,
+                    "pop_weight_estimated_natural_size": natural_pop_weighted_cluster_size,
                 }
             else:
                 complexity_report[network_key] = {
                     "is_cluster_success": 0,
                     "lm_sar": {},
                     "lm_binary_complexity": {},
+                    "binary_dc_list": None,
+                    "binary_estimated_dc_natural_range": None,
+                    "binary_dc_natural_significance_un_normalised": None,
+                    "binary_dc_natural_significance": None,
+                    "binary_estimated_natural_size": None,
                     "lm_pop_weighted_complexity": {},
-                    "estimated_natural_binary_cluster": None,
-                    "estimated_natural_pop_weight_cluster": None,
+                    "pop_weighted_dc_list": None,
+                    "pop_weighted_dc_natural_range": None,
+                    "pop_weighted_dc_natural_significance_un_normalised": None,
+                    "pop_weighted_dc_natural_significance": None,
+                    "pop_weight_estimated_natural_size": None,
                 }
         return complexity_report
 

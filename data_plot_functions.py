@@ -829,7 +829,7 @@ def plot_adjacency_sub_graphs(system_state, sim_path):
         current_list = []
         not_checked = [starting_patch]
         while len(not_checked) > 0:
-            for patch_from in not_checked:
+            for patch_from in list(not_checked):  # iterate over DUMMY COPY of list
                 for patch_to in range(max_patches):
                     if patch_from != patch_to and (patch_adjacency_matrix[patch_from, patch_to] != 0.0 or
                                                    patch_adjacency_matrix[patch_to, patch_from] != 0.0) and \
@@ -868,7 +868,7 @@ def plot_accessible_sub_graphs(patch_list, parameters, species, sim_path, step):
         current_list = []
         not_checked = [starting_patch]
         while len(not_checked) > 0:
-            for patch_from in not_checked:
+            for patch_from in list(not_checked):  # iterate over DUMMY COPY of the list
                 for patch_to in patch_list[patch_from].adjacency_lists[species.name]:
                     if patch_to not in current_list and patch_to not in not_checked:
                         not_checked.append(patch_to)

@@ -21,10 +21,10 @@ master_para = {
             "SPATIAL_TEST_SET": 1,
             "SPATIAL_DESCRIPTION": "artemis_01",
             # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
-            "GRAPH_TYPE": "line",
+            "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 0.5,
+            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": None,
@@ -34,11 +34,16 @@ master_para = {
             "CLUSTER_PROBABILITY": None,
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
-            "HABITAT_TYPE_MANUAL_ALL_SPEC": 10*([0 for x in range(20)] + [1 for x in range(20)]),  # should be None if we want to generate habitats by probability
+            "HABITAT_TYPE_MANUAL_ALL_SPEC": None,
+            # should be None if we want to generate habitats by probability, otherwise a list of the habitat nums
             "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
             "HABITAT_TYPE_MANUAL_OVERWRITE": None,  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
+            "IS_HABITAT_CLUSTERS": True,  # if True then all else ignored except the following two options...
+            "HABITAT_CLUSTER_SIZE": 16,  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+            "HABITAT_CLUSTER_TYPE_STR": "chess_box",  # cluster topology (box, star, chain, random, disconnected).
+            # But also select "chess_box" to use "box" but with constraints to resemble a chess board.
             #
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
@@ -47,7 +52,7 @@ master_para = {
             # Patch quality (scales the reproductive rate (r-parameter) for all local populations):
             "QUALITY_TYPE": "gradient",  # quality types are: 'manual', 'random', 'auto_correlation', 'gradient'
             "QUALITY_MANUAL_SPEC": None,  # should be None if we want to generate quality by other means
-            "QUALITY_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "QUALITY_SPATIAL_AUTO_CORRELATION": 0.5,  # in range [-1, 1]
             "MIN_QUALITY": 1.0,
             "MAX_QUALITY": 1.0,
             "QUALITY_FLUCTUATION": 0.0,
@@ -69,7 +74,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 900,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -154,12 +159,12 @@ master_para = {
             "IS_PRINT_KEY_OUTPUTS_TO_CONSOLE": True,  # prints final and average local populations to console
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
-            "IS_PLOT": False,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
+            "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
+            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
             # scatter plots of the base data, IF COLLECTED - see option in main_para)?
             "IS_RECORD_AND_PLOT_LESSER_LM": False,  # if True, then also attempt to fit, store, and then plot _base,
             # _nz, and shifted (less reliable) fitted linear models for inter_species_predictions.
-            "PLOT_INIT_NETWORK": False,  # do we plot the initial network before the simulation (before species pathing)?
+            "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
             "MANUAL_SPATIAL_NETWORK_SAVE_STEPS": [],  # LIST of integer steps during which to plot the spatial network:
             # - include 0 to plot early state of the network (AFTER first step 0 iterates) before patch perturbations;
             # - include -1 to plot the initialised system before ANY steps or perturbations executed whatsoever,
@@ -183,7 +188,7 @@ master_para = {
             "IS_SAVE_CURRENT_MOVE_SCORES": False,  # writes the final movement scores to the simulation-specific folder.
             #
             # Plot control options (requires IS_PLOT to be true):
-            "IS_PLOT_LOCAL_TIME_SERIES": True,  # produce plots of all local time-series of species properties, imposed
+            "IS_PLOT_LOCAL_TIME_SERIES": False,  # produce plots of all local time-series of species properties, imposed
             # on the same figure.
             "LOCAL_PLOTS": False,  # produce separate plot files for each patch showing the time-series.
             "IS_PLOT_ACCESSIBLE_SUB_GRAPHS": False,  # patch plots showing the fully-connected network sub-graphs from

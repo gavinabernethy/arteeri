@@ -3,7 +3,8 @@ import shutil
 import numpy as np
 import os
 import networkx  # https://networkx.org/documentation/stable/reference/generators.html
-
+import random
+from cluster_functions import cluster_next_element
 
 # ----------------------------- FOLDER PREPARATION ----------------------- #
 
@@ -290,133 +291,241 @@ def generate_patch_size(num_patches, min_patch_size, max_patch_size, graph_para)
 
 
 def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_probabilities,
-                          adjacency_array, graph_para):
+                          adjacency_array, is_clusters, cluster_size, cluster_type_str, position_array, graph_para):
     actual_habitat_list = list(generated_habitat_set)  # needs to be ordered for weighting the probability vector
     actual_num_habitats = len(actual_habitat_list)
     auto_correlation = graph_para["HABITAT_SPATIAL_AUTO_CORRELATION"]
     is_habitat_probability_rebalanced = graph_para["IS_HABITAT_PROBABILITY_REBALANCED"]
     habitat_array = np.zeros(shape=(num_patches, 1))
 
-    specified_habitat_dict = graph_para["HABITAT_TYPE_MANUAL_OVERWRITE"]  # only for overwriting specific patches
-    # If non-empty, this should be of the form {patch_num: habitat_type_num}, so check now for errors:
-    if specified_habitat_dict is not None:
-        if type(specified_habitat_dict) is not dict or len(specified_habitat_dict) > num_patches:
-            raise Exception("Graph HABITAT_TYPE_MANUAL_OVERWRITE has incorrect format.")
-        for key, value in specified_habitat_dict.items():
-            if key < 0 or key >= num_patches or value not in actual_habitat_list:
-                raise Exception("Graph HABITAT_TYPE_MANUAL_OVERWRITE has {key: value} error.")
-
-    specified_habitat_all_list = graph_para["HABITAT_TYPE_MANUAL_ALL_SPEC"]  # for specifying ALL patches
-    if specified_habitat_all_list is not None and len(specified_habitat_all_list) == num_patches:
-        # in this case we have manually specified the habitat types as a list
-        for patch in range(num_patches):
-            # check is valid:
-            habitat_type = specified_habitat_all_list[patch]
-            if habitat_type in actual_habitat_list:
-                habitat_array[patch, 0] = habitat_type
-            else:
-                raise Exception("Unsuitable habitat type num is specified.")
-
-    elif specified_habitat_all_list is None:
-        # otherwise generate habitats probabilistically
-
-        # except any manually overwritten patches
-        list_of_already_assigned = []
-        list_of_unassigned = [x for x in range(num_patches)]
-        if specified_habitat_dict is not None and len(specified_habitat_dict) > 0:
-            for manual_patch_num in specified_habitat_dict:
-                habitat_array[manual_patch_num, 0] = specified_habitat_dict[manual_patch_num]
-                list_of_already_assigned.append(manual_patch_num)
-                list_of_unassigned.remove(manual_patch_num)
-
-        if len(actual_habitat_list) == 1:
-            # if there is only one habitat type to generate from, do that here and skip the probability process
-            for patch_num in list_of_unassigned:
-                habitat_array[patch_num, 0] = actual_habitat_list[0]
-                list_of_already_assigned.append(patch_num)
-                list_of_unassigned.remove(patch_num)
-
+    if is_clusters:
+        # In this case, we build clusters of the required size using cluster_functions.cluster_next_element()
+        # From a choice of box, star, chain, or also (not useful for this application) random or disconnected.
+        #
+        if cluster_type_str == "chess_box":
+            # if selected, we draw possibles using "box" type but impose additional selection criteria in this function
+            cluster_type_str = "box"
+            is_chess = True
         else:
-            # base probability vector
-            if generated_habitat_probabilities is not None:
-                base_probability = np.zeros(shape=(actual_num_habitats, 1))
-                for habitat_type in actual_habitat_list:
-                    base_probability[habitat_type, 0] = generated_habitat_probabilities[habitat_type]
+            is_chess = False
+
+        unassigned_patches = [x for x in range(num_patches)]
+        cluster_num = 0
+        cluster_min_x = -1
+        previous_min_x = -1
+
+        while len(unassigned_patches) > 0:
+            # note that this does not need to be "< cluster_size" as the fail-mechanisms here will also cover the
+            # remainder patches that need to be assigned
+
+            # draw first patch in each cluster randomly, then get the rest from repeated calls to cluster_next_element()
+            if is_chess:
+                draw_num = unassigned_patches[0]
             else:
-                # uniform
-                base_probability = np.ones(shape=(actual_num_habitats, 1))
-            # normalise
-            norm_base_probability = normalise_matrix(base_probability)
+                draw_num = random.choice(unassigned_patches)
+            current_cluster = [draw_num]
+            unassigned_patches.remove(draw_num)  # not occurring within a loop over unassigned_patches strictly
 
-            # while there are patches still to assign a habitat type to...
-            while len(list_of_unassigned) > 0:
-
-                # select a unassigned patch number totally at random (i.e. uniform probability)
-                patch_num = np.random.choice(list_of_unassigned)
-
-                # construct probability arrays of existing distributions
-                neighbour_probability = np.zeros(shape=(actual_num_habitats, 1))
-                existing_probability = np.zeros(shape=(actual_num_habitats, 1))
-
-                if len(list_of_already_assigned) > 0:
-                    # iterate over those patches who have already been assigned their habitats
-                    for other_patch in list_of_already_assigned:
-                        # only those already assigned habitats
-                        if adjacency_array[patch_num, other_patch] == 1:
-                            # neighbours
-                            neighbour_probability[actual_habitat_list.index(int(habitat_array[other_patch, 0])), 0] += 1
-                        if is_habitat_probability_rebalanced:
-                            # all patches
-                            existing_probability[actual_habitat_list.index(int(habitat_array[other_patch, 0])), 0] += 1
-
-                # normalise the previous-patch-weighted distribution (so that auto-correlation is independent of
-                # the number of neighbouring patches that have already been assigned their habitat types)
-                norm_neighbour_probability = normalise_matrix(neighbour_probability)
-
-                # are the base probabilities adaptive?
-                if is_habitat_probability_rebalanced:
-                    total_assigned = np.sum(existing_probability)
-                    anti_probability = np.zeros(shape=(actual_num_habitats, 1))
-                    for habitat_type in range(actual_num_habitats):
-                        anti_probability[habitat_type, 0] = (1.0 - existing_probability[habitat_type, 0]
-                                                             / total_assigned)\
-                                                            * norm_base_probability[habitat_type, 0]
-                    norm_mod_base_probability = normalise_matrix(anti_probability)
+            while len(current_cluster) < cluster_size:
+                # draw next elements
+                possible_nums = cluster_next_element(adjacency_matrix=adjacency_array,
+                                                patch_list=None,
+                                                current_cluster = current_cluster,
+                                                actual_patch_nums=unassigned_patches,
+                                                cluster_arch_type=cluster_type_str)
+                if len(possible_nums) == 0:
+                    break
                 else:
-                    norm_mod_base_probability = norm_base_probability
 
-                # if neighbours, then weight neighbour consideration by (possibly modified) base probability
-                final_neighbour_probability = np.zeros(shape=(actual_num_habitats, 1))
-                if np.sum(norm_neighbour_probability) != 0.0:
-                    for habitat_type in range(actual_num_habitats):
-                        final_neighbour_probability[habitat_type, 0] = norm_neighbour_probability[habitat_type, 0] * \
-                                                                       norm_mod_base_probability[habitat_type, 0]
-                    final_neighbour_probability = normalise_matrix(final_neighbour_probability)
+                    if is_chess:
 
-                # combine both parts and weight by auto-correlation and complement respectively
-                combined_probability = auto_correlation * final_neighbour_probability + (1.0 - auto_correlation
-                                                                                         ) * norm_mod_base_probability
+                        # check if box is currently more tall than wide
+                        cluster_min_x = np.min([position_array[k, 0] for k in current_cluster])
+                        cluster_max_x = np.max([position_array[k, 0] for k in current_cluster])
+                        cluster_min_y = np.min([position_array[k, 1] for k in current_cluster])
+                        cluster_max_y = np.max([position_array[k, 1] for k in current_cluster])
+                        cluster_height = cluster_max_y - cluster_min_y
+                        cluster_width = cluster_max_x - cluster_min_x
 
-                # check if negative entries
-                norm_combined_probability = np.zeros(shape=(actual_num_habitats, 1))
-                for habitat_type in range(actual_num_habitats):
-                    norm_combined_probability[habitat_type, 0] = max(0.0, combined_probability[habitat_type, 0])
+                        # remove elements that were included due to lattice wrap
+                        for possible_element in list(possible_nums):  # deliberately create a DUMMY COPY to iterate over
+                            if (position_array[possible_element, 0] > cluster_max_x + 1 or
+                                position_array[possible_element, 1] > cluster_max_y + 1 or
+                                position_array[possible_element, 0] < cluster_min_x - 1 or
+                                position_array[possible_element, 1] < cluster_min_y - 1):
+                                possible_nums.remove(possible_element)
 
-                # then re-normalise but reset to the (modified) base probability if zero
-                if np.sum(norm_combined_probability) == 0.0:
-                    norm_combined_probability = norm_mod_base_probability
-                norm_combined_probability = normalise_matrix(norm_combined_probability)
+                        if len(possible_nums) == 0:
+                            # break again if all possibilities removed
+                            break
 
-                # then draw the habitat type number from this distribution
-                habitat_array[patch_num, 0] = actual_habitat_list[np.random.choice(
-                    actual_num_habitats, p=np.transpose(norm_combined_probability)[0])]
+                        # When the first patch of the cluster is chosen, check if we have reset to the next horizontal
+                        # "layer" of clusters (like a typewriter return), and if so - is the habitat type set to match
+                        # with that of the cluster immediately below the first patch? If so, we will increment the
+                        # habitat type number to create an offset.
+                        if len(current_cluster) == 1:
+                            # check for first element only
+                            if cluster_min_x < previous_min_x:
+                                first_patch_num = current_cluster[0]
+                                lower_x = position_array[first_patch_num, 0]
+                                lower_y = position_array[first_patch_num, 1] - 1
+                                for test_patch in range(first_patch_num):
+                                    if (position_array[test_patch, :] == [lower_x, lower_y]).all():
+                                        lower_habitat_type_num = habitat_array[test_patch, 0]
+                                        if lower_habitat_type_num == cluster_num:
+                                            # increment to avoid overlap
+                                            cluster_num = np.mod(cluster_num + 1, actual_num_habitats)
+                                        break
 
-                # update status tracking
-                list_of_already_assigned.append(patch_num)
-                list_of_unassigned.remove(patch_num)
+                        if len(current_cluster) == 1 or cluster_height < cluster_width:
+                            draw_num = possible_nums[-1]
+                        elif cluster_width < np.sqrt(cluster_size):
+                            draw_num = possible_nums[0]
+                        else:
+                            draw_num = random.choice(possible_nums)
+                    else:
+                        draw_num = random.choice(possible_nums)
+                    current_cluster.append(draw_num)
+                    unassigned_patches.remove(draw_num)  # deletion does not occur strictly within a loop over the list
+
+            # When cluster is full size or no possible new members could be found,
+            # assign all members the next habitat type
+            for patch_num in current_cluster:
+                habitat_array[patch_num, 0] = cluster_num
+            # Iterate the next habitat type for the subsequent cluster
+            cluster_num = np.mod(cluster_num + 1, actual_num_habitats)
+            previous_min_x = cluster_min_x
+
     else:
-        raise Exception("The graph_para option 'HABITAT_TYPE_MANUAL_ALL_SPEC' should be either None or a list of"
-                        " length equal to the number of patches.")
+        specified_habitat_dict = graph_para["HABITAT_TYPE_MANUAL_OVERWRITE"]  # only for overwriting specific patches
+        # If non-empty, this should be of the form {patch_num: habitat_type_num}, so check now for errors:
+        if specified_habitat_dict is not None:
+            if type(specified_habitat_dict) is not dict or len(specified_habitat_dict) > num_patches:
+                raise Exception("Graph HABITAT_TYPE_MANUAL_OVERWRITE has incorrect format.")
+            for key, value in specified_habitat_dict.items():
+                if key < 0 or key >= num_patches or value not in actual_habitat_list:
+                    raise Exception("Graph HABITAT_TYPE_MANUAL_OVERWRITE has {key: value} error.")
+
+        specified_habitat_all_list = graph_para["HABITAT_TYPE_MANUAL_ALL_SPEC"]  # for specifying ALL patches
+        if specified_habitat_all_list is not None and len(specified_habitat_all_list) == num_patches:
+            # in this case we have manually specified the habitat types as a list
+            for patch in range(num_patches):
+                # check is valid:
+                habitat_type = specified_habitat_all_list[patch]
+                if habitat_type in actual_habitat_list:
+                    habitat_array[patch, 0] = habitat_type
+                else:
+                    raise Exception("Unsuitable habitat type num is specified.")
+
+        elif specified_habitat_all_list is None:
+            # otherwise generate habitats probabilistically
+
+            # except any manually overwritten patches
+            list_of_already_assigned = []
+            list_of_unassigned = [x for x in range(num_patches)]
+            if specified_habitat_dict is not None and len(specified_habitat_dict) > 0:
+                for manual_patch_num in specified_habitat_dict:
+                    habitat_array[manual_patch_num, 0] = specified_habitat_dict[manual_patch_num]
+                    list_of_already_assigned.append(manual_patch_num)
+                    list_of_unassigned.remove(manual_patch_num)
+
+            if len(actual_habitat_list) == 1:
+                # if there is only one habitat type to generate from, do that here and skip the probability process
+                for patch_num in list(list_of_unassigned):  # create a DUMMY LIST to iterate over
+                    habitat_array[patch_num, 0] = actual_habitat_list[0]
+                    list_of_already_assigned.append(patch_num)
+                    list_of_unassigned.remove(patch_num)
+
+            else:
+                # base probability vector
+                if generated_habitat_probabilities is not None:
+                    base_probability = np.zeros(shape=(actual_num_habitats, 1))
+                    for habitat_type in actual_habitat_list:
+                        base_probability[habitat_type, 0] = generated_habitat_probabilities[habitat_type]
+                else:
+                    # uniform
+                    base_probability = np.ones(shape=(actual_num_habitats, 1))
+                # normalise
+                norm_base_probability = normalise_matrix(base_probability)
+
+                # while there are patches still to assign a habitat type to...
+                while len(list_of_unassigned) > 0:
+
+                    # select a unassigned patch number totally at random (i.e. uniform probability)
+                    patch_num = np.random.choice(list_of_unassigned)
+
+                    # construct probability arrays of existing distributions
+                    neighbour_probability = np.zeros(shape=(actual_num_habitats, 1))
+                    existing_probability = np.zeros(shape=(actual_num_habitats, 1))
+
+                    if len(list_of_already_assigned) > 0:
+                        # iterate over those patches who have already been assigned their habitats
+                        for other_patch in list_of_already_assigned:
+                            # only those already assigned habitats
+                            if adjacency_array[patch_num, other_patch] == 1:
+                                # neighbours
+                                neighbour_probability[actual_habitat_list.index(
+                                    int(habitat_array[other_patch, 0])), 0] += 1
+                            if is_habitat_probability_rebalanced:
+                                # all patches
+                                existing_probability[actual_habitat_list.index(
+                                    int(habitat_array[other_patch, 0])), 0] += 1
+
+                        # normalise the previous-patch-weighted distribution (so that auto-correlation is independent of
+                        # the number of neighbouring patches that have already been assigned their habitat types)
+                        norm_neighbour_probability = normalise_matrix(neighbour_probability)
+
+                        # are the base probabilities adaptive?
+                        if is_habitat_probability_rebalanced:
+                            total_assigned = np.sum(existing_probability)
+                            anti_probability = np.zeros(shape=(actual_num_habitats, 1))
+                            for habitat_type in range(actual_num_habitats):
+                                anti_probability[habitat_type, 0] = (1.0 - existing_probability[habitat_type, 0]
+                                                                     / total_assigned)\
+                                                                    * norm_base_probability[habitat_type, 0]
+                            norm_mod_base_probability = normalise_matrix(anti_probability)
+                        else:
+                            norm_mod_base_probability = norm_base_probability
+
+                        # if neighbours, then weight neighbour consideration by (possibly modified) base probability
+                        final_neighbour_probability = np.zeros(shape=(actual_num_habitats, 1))
+                        if np.sum(norm_neighbour_probability) != 0.0:
+                            for habitat_type in range(actual_num_habitats):
+                                final_neighbour_probability[habitat_type, 0
+                                ] = norm_neighbour_probability[habitat_type, 0] * norm_mod_base_probability[
+                                    habitat_type, 0]
+                            final_neighbour_probability = normalise_matrix(final_neighbour_probability)
+
+                        # combine both parts and weight by auto-correlation and complement respectively
+                        combined_probability = auto_correlation * final_neighbour_probability + (
+                                1.0 - auto_correlation) * norm_mod_base_probability
+
+                        # check if negative entries
+                        norm_combined_probability = np.zeros(shape=(actual_num_habitats, 1))
+                        for habitat_type in range(actual_num_habitats):
+                            norm_combined_probability[habitat_type, 0] = max(0.0, combined_probability[habitat_type, 0])
+
+                        # then re-normalise but reset to the (modified) base probability if zero
+                        if np.sum(norm_combined_probability) == 0.0:
+                            norm_combined_probability = norm_mod_base_probability
+                        norm_combined_probability = normalise_matrix(norm_combined_probability)
+
+                    else:
+                        # this is necessary for the possibility: auto_correlation = -1 and NO patches are specified in
+                        # advance, so that the first draw still defaults to the base probabilities regardless without
+                        # incurring a division by zero.
+                        norm_combined_probability = norm_base_probability
+
+                    # then draw the habitat type number from this distribution
+                    habitat_array[patch_num, 0] = actual_habitat_list[np.random.choice(
+                        actual_num_habitats, p=np.transpose(norm_combined_probability)[0])]
+
+                    # update status tracking
+                    list_of_already_assigned.append(patch_num)
+                    list_of_unassigned.remove(patch_num)  # not deleting within a loop indexed by list_of_unassigned
+        else:
+            raise Exception("The graph_para option 'HABITAT_TYPE_MANUAL_ALL_SPEC' should be either None or a list of"
+                            " length equal to the number of patches.")
     return habitat_array
 
 
@@ -467,7 +576,13 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
                                                  position_array=position_array, graph_para=graph_para)
     patch_habitat_array = generate_habitat_type(generated_habitat_set=generated_habitat_set, num_patches=num_patches,
                                                 generated_habitat_probabilities=generated_habitat_probabilities,
-                                                adjacency_array=adjacency_array, graph_para=graph_para)
+                                                adjacency_array=adjacency_array,
+                                                is_clusters=graph_para["IS_HABITAT_CLUSTERS"],
+                                                cluster_size=graph_para["HABITAT_CLUSTER_SIZE"],
+                                                cluster_type_str=graph_para["HABITAT_CLUSTER_TYPE_STR"],
+                                                position_array=position_array,
+                                                graph_para=graph_para)
+
     scores_dict = {}
     for score_type in ["FEEDING", "TRAVERSAL"]:
         scores_dict[score_type.lower()] = generate_habitat_species_scores(num_species=num_species,

@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 from population_dynamics import build_interacting_populations_list, build_actual_dispersal_targets, \
     reset_dispersal_values, pre_dispersal_of_local_population
-
+from cluster_functions import cluster_next_element
 
 # VISUALISATION: be aware that perturbations will not show up in the species dispersal time series, and that a full
 # iteration will also occur before the recording of data, so that isolated impact of the perturbation alone will never
@@ -639,7 +639,7 @@ def remove_patch(system_state,
                         patch.degree_history[system_state.step] = patch.degree
 
                         # record changes to sets of adjacent patches
-                        patch.set_of_adjacent_patches.remove(patch_number)
+                        patch.set_of_adjacent_patches.remove(patch_number)  # not the list being iterated over
                         patch.set_of_adjacent_patches_history[system_state.step] = list(patch.set_of_adjacent_patches)
 
                         # record adjacency change and zero the corresponding patch adjacency matrix entries
@@ -686,8 +686,8 @@ def change_patch_adjacency(system_state,
                     # were adjacent (in at least one direction), now not
                     system_state.patch_list[pair[0]].degree = max(0, system_state.patch_list[pair[0]].degree - 1)
                     system_state.patch_list[pair[1]].degree = max(0, system_state.patch_list[pair[1]].degree - 1)
-                    system_state.patch_list[pair[0]].set_of_adjacent_patches.remove(pair[1])
-                    system_state.patch_list[pair[1]].set_of_adjacent_patches.remove(pair[0])
+                    system_state.patch_list[pair[0]].set_of_adjacent_patches.remove(pair[1])  # not list iterated over
+                    system_state.patch_list[pair[1]].set_of_adjacent_patches.remove(pair[0])  # not list iterated over
             elif adjacency_change[pair_num] == 1.0:
                 if system_state.patch_adjacency_matrix[pair[0], pair[1]] == 0.0 and \
                         system_state.patch_adjacency_matrix[pair[1], pair[0]] == 0.0:
@@ -788,7 +788,8 @@ def perturbation_patch_selection(system_state,
         most_recently_perturbed_patch_nums = list(set([
             patch_num for cluster in system_state.perturbation_history[
                 max(system_state.perturbation_history)] for patch_num in cluster]))
-        for patch_num in eligible_patch_nums_copy:
+
+        for patch_num in list(eligible_patch_nums_copy):  # create a DUMMY LIST to iterate over - removing elements!
             keep_checking = True
             for prev_patch in most_recently_perturbed_patch_nums:
                 if not keep_checking:
@@ -967,7 +968,8 @@ def cluster_builder(system_state, cluster_spec, eligible_patch_nums, clusters_mu
             # Now generate the rest of the cluster
             if cluster["num_patches"] >= 2:
                 for next_reserve in range(cluster["num_patches"] - 1):
-                    type_patch_nums = cluster_next_element(system_state=system_state,
+                    type_patch_nums = cluster_next_element(adjacency_matrix=system_state.patch_adjacency_matrix,
+                                                           patch_list=system_state.patch_list,
                                                            actual_patch_nums=actual_patch_nums,
                                                            current_cluster=current_cluster,
                                                            cluster_arch_type=cluster["arch_type"])
@@ -1050,69 +1052,6 @@ def initial_cluster_choice(system_state, actual_patch_nums, cluster_initial: lis
     else:
         raise "Cluster initial value type not recognised."
 
-    return type_patch_nums
-
-
-def cluster_next_element(system_state, current_cluster: list, actual_patch_nums: list, cluster_arch_type: str):
-    # Called only by cluster_builder().
-    # Returns the list of patches eligible to be drawn as the next element of the cluster.
-    type_patch_nums = []
-    if cluster_arch_type == "random":
-        type_patch_nums = actual_patch_nums
-
-    elif cluster_arch_type == "star":
-        # try to choose a neighbour of the initial node
-        for patch_num in actual_patch_nums:
-            if system_state.patch_adjacency_matrix[current_cluster[0], patch_num] > 0 \
-                    or system_state.patch_adjacency_matrix[patch_num, current_cluster[0]] > 0:
-                type_patch_nums.append(patch_num)
-
-    elif cluster_arch_type == "chain":
-        # try to choose a neighbour of the final node
-        for patch_num in actual_patch_nums:
-            if system_state.patch_adjacency_matrix[current_cluster[-1], patch_num] > 0 \
-                    or system_state.patch_adjacency_matrix[patch_num, current_cluster[-1]] > 0:
-                type_patch_nums.append(patch_num)
-
-    elif cluster_arch_type == "disconnected":
-        # try to choose a neighbour of None of the current nodes
-        for patch_num in actual_patch_nums:
-            for already_chosen_num in current_cluster:
-                if system_state.patch_adjacency_matrix[already_chosen_num, patch_num] == 0 \
-                        and system_state.patch_adjacency_matrix[patch_num, already_chosen_num] == 0:
-                    type_patch_nums.append(patch_num)
-
-    elif cluster_arch_type == "box":
-        # try to choose a neighbour of multiple current nodes
-        adjacency_counter = []
-        for patch_num in actual_patch_nums:
-            num_adjacent = 0
-            for already_chosen_num in current_cluster:
-                if system_state.patch_adjacency_matrix[already_chosen_num, patch_num] > 0 \
-                        or system_state.patch_adjacency_matrix[patch_num, already_chosen_num] > 0:
-                    num_adjacent += 1
-            adjacency_counter.append([patch_num, num_adjacent])
-        # what was the greatest adjacency?
-        max_adjacency = max([x[1] for x in adjacency_counter])
-        # choose from those with greatest adjacency only
-        type_patch_nums = [x[0] for x in adjacency_counter if x[1] == max_adjacency]
-
-    elif cluster_arch_type == "position_box":
-        # choose a box consisting of positionally-close patches, regardless of actual connectivity
-        distance_counter = []
-        for patch_num in actual_patch_nums:
-            summative_distance = 0.0
-            for already_chosen_num in current_cluster:
-                summative_distance += np.linalg.norm(system_state.patch_list[patch_num].position
-                                                     - system_state.patch_list[already_chosen_num].position)
-            distance_counter.append([patch_num, summative_distance])
-        # what was minimum total positional distance of any acceptable patch to the existing members of the cluster?
-        min_distance = min([x[1] for x in distance_counter])
-        # choose from those with least distance only
-        type_patch_nums = [x[0] for x in distance_counter if x[1] == min_distance]
-
-    else:
-        raise "Cluster arch-type not recognised."
     return type_patch_nums
 
 
