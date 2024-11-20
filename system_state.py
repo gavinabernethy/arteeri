@@ -1093,6 +1093,17 @@ class System_state:
         #           The expectation is that this is conducted only for the final meta-community snapshot, and not for
         #            time-averaged versions for which we would also conduct population (rather than binary) analysis.
         #       - a population-weighted version using the sub_networks' populations, normalised for each sub_network.
+        #
+        # Summary of the primary analysis:
+        # - Use_binary for final, but pop_weighted for _average.
+        # - Natural range is calculated as a spectrum of rolling averages and we seek the highest value of fitted
+        #   complexity scaling (i.e. the interval range with the fastest growth).
+        # - Once a possible d_c interval around M is found, or the best individual value of M is found, we test both by
+        #   fitting d_c over [2, M-1] and [M, min(N, 2M)] then compare the change in fitted d_c across this break.
+        # - For the best of the (potentially two) candidates, if there is a definite change (above some tolerance
+        #   threshold), we say it is the natural cluster size. The raw change then quantifies the clustering strength.
+        # - We also report the spectrum of fitted d_c values to facilitate potential comparison between simulations
+        #   for how complexity rates increase at particular spatial scales.
         complexity_report = {}
 
         # need to treat each sub_network entirely separately
