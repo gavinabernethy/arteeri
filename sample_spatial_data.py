@@ -304,6 +304,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
         #
         if cluster_type_str == "chess_box":
             # if selected, we draw possibles using "box" type but impose additional selection criteria in this function
+            # which try to replicate a chessboard design.
             cluster_type_str = "box"
             is_chess = True
         else:
@@ -318,10 +319,12 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
             # note that this does not need to be "< cluster_size" as the fail-mechanisms here will also cover the
             # remainder patches that need to be assigned
 
-            # draw first patch in each cluster randomly, then get the rest from repeated calls to cluster_next_element()
+            # draw first patch in each cluster, then get the rest from repeated calls to cluster_next_element()
             if is_chess:
+                # for chessboard, draw the lowest numbered patch - i.e. we fill from the lower-left of the lattice
                 draw_num = unassigned_patches[0]
             else:
+                # draw first patch in each cluster randomly
                 draw_num = random.choice(unassigned_patches)
             current_cluster = [draw_num]
             unassigned_patches.remove(draw_num)  # not occurring within a loop over unassigned_patches strictly
@@ -338,6 +341,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
                 else:
 
                     if is_chess:
+                        # these constraints try to produce cylcic clusters of habitat types
 
                         # check if box is currently more tall than wide
                         cluster_min_x = np.min([position_array[k, 0] for k in current_cluster])

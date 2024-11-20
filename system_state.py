@@ -29,6 +29,7 @@ class System_state:
         self.perturbation_history = {}
         self.perturbation_holding = None
         self.distance_metrics_store = {}  # will hold a very deep nested dictionary of measures
+        self.complexity_parameters = parameters["main_para"]["COMPLEXITY_ANALYSIS"]
         self.is_record_lesser_lm = parameters["plot_save_para"]["IS_RECORD_AND_PLOT_LESSER_LM"]
 
         # this requires that the ordering of the species list and of the columns in the external files are identical!
@@ -668,17 +669,21 @@ class System_state:
 
         # Now use both the final and time-averaged community populations to determine SAR, binary and
         # population-weighted information dimension (community spatial complexity), and species-rank abundance
+        print(f"Begin complexity-final analysis.")
         complexity_final = self.complexity_analysis(
             sub_networks=community_state_sub_networks,
             corresponding_binary=community_presence_sub_networks,
             is_record_lm_vectors=is_record_lm_vectors,
             num_species=num_species
         )
+        print(f"Completed complexity-final analysis.")
+        print(f"Begin complexity-average analysis.")
         complexity_average = self.complexity_analysis(
             sub_networks=time_averaged_sub_networks,
             corresponding_binary=None,
             is_record_lm_vectors=is_record_lm_vectors,
             num_species=num_species)
+        print(f"Completed complexity-average analysis.")
 
         # Species-rank abundance - fit a log-linear model to the curve of relative global abundance vs. species rank
         #
@@ -1092,14 +1097,13 @@ class System_state:
 
         # need to treat each sub_network entirely separately
         for network_key in sub_networks.keys():
+            print(f"..... complexity analysis for sub-network: {network_key}")
             # add the full list of patches to the .available_patches list
             sub_networks[network_key]["available_patches"] = [
                 x for x in range(sub_networks[network_key]["num_patches"])]
 
-            print(f"{network_key}: begin")
-
             current_num_patches = sub_networks[network_key]["num_patches"]
-            max_delta = int(min(current_num_patches / 2, 100))
+            max_delta = int(min(current_num_patches / 2, self.complexity_parameters["MAX_DELTA"]))
 
             # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
             if max_delta > 2:
@@ -1112,21 +1116,20 @@ class System_state:
 
                 # iterate over cluster radius, starting at delta=1 and indexing at 0
                 for delta in range(1, max_delta + 1):
-                    num_clusters = 1000  # how many samples do we try to draw?
-
-                    print(f"{network_key}: delta {delta}")
+                    num_clusters = self.complexity_parameters["NUM_CLUSTER_DRAWS"]  # how many samples we try to draw?
 
                     # iterate over clusters of this radius
                     for cluster_attempt in range(num_clusters):
-                        cluster, is_success = generate_cluster(sub_network=sub_networks[network_key], size=delta)
+                        cluster, is_success = generate_cluster(
+                            sub_network=sub_networks[network_key], size=delta,
+                            max_attempts=self.complexity_parameters["NUM_CLUSTER_DRAW_ATTEMPTS"])
 
                         if is_success:
                             successful_clusters[delta - 1] += 1
 
                             # determine total diversity in cluster
                             species_diversity[delta - 1] += self.count_diversity(
-                                sub_network=sub_networks[network_key],
-                                cluster=cluster)
+                                sub_network=sub_networks[network_key], cluster=cluster)
 
                             # ----- Complexity (information dimension) ----- #
                             #
@@ -1207,10 +1210,14 @@ class System_state:
                 # Binary version is only analysed when actually calculated for the _final (not _average) complexity:
                 if corresponding_binary is not None:
                     (lm_binary_complexity, binary_dc_estimate_list, binary_dc_natural_range_est,
-                     binary_dc_natural_significance_un_norm, binary_dc_natural_significance, natural_binary_cluster_size
-                     ) = complexity_scaling_vector_analysis(x_val=x_val, y_val=binary_complexity,
-                                                            is_record_lm_vectors=is_record_lm_vectors,
-                                                            non_log_x_val=non_log_x_val)
+                     binary_dc_natural_significance_un_norm, binary_dc_natural_significance,
+                     natural_binary_cluster_size, binary_report) = complexity_scaling_vector_analysis(
+                        x_val=x_val, y_val=binary_complexity,
+                        is_record_lm_vectors=is_record_lm_vectors,
+                        non_log_x_val=non_log_x_val,
+                        spectrum_interval_length=self.complexity_parameters["SPECTRUM_INTERVAL_LENGTH"],
+                        test_threshold=self.complexity_parameters["TEST_THRESHOLD"]
+                    )
                 else:
                     lm_binary_complexity = {}
                     binary_dc_estimate_list = None
@@ -1218,48 +1225,60 @@ class System_state:
                     binary_dc_natural_significance_un_norm = None
                     binary_dc_natural_significance = None
                     natural_binary_cluster_size = None
+                    binary_report = None
 
                 # Whilst the population-weighted version is calculated for both the complexity_final and _average vers.
-                (lm_pop_weighted_complexity, pop_weight_dc_estimate_list, pop_weight_dc_natural_range_est,
+                (lm_pop_weight_complexity, pop_weight_dc_estimate_list, pop_weight_dc_natural_range_est,
                     pop_weight_dc_natural_significance_un_norm, pop_weight_dc_natural_significance,
-                 natural_pop_weighted_cluster_size) = complexity_scaling_vector_analysis(
+                 natural_pop_weighted_cluster_size, pop_weight_report) = complexity_scaling_vector_analysis(
                     x_val=x_val, y_val=population_weighted_complexity,
                     is_record_lm_vectors=is_record_lm_vectors,
-                    non_log_x_val=non_log_x_val)
+                    non_log_x_val=non_log_x_val,
+                    spectrum_interval_length=self.complexity_parameters["SPECTRUM_INTERVAL_LENGTH"],
+                    test_threshold=self.complexity_parameters["TEST_THRESHOLD"]
+                )
 
                 # record
                 complexity_report[network_key] = {
                     "is_cluster_success": 1,
                     "lm_sar": lm_sar,
+                    "dc_spectrum_interval_length": self.complexity_parameters["SPECTRUM_INTERVAL_LENGTH"],
+                    "dc_test_threshold": self.complexity_parameters["TEST_THRESHOLD"],
                     "lm_binary_complexity": lm_binary_complexity,
-                    "binary_dc_list": binary_dc_estimate_list,
+                    "binary_dc_spectrum": binary_dc_estimate_list,
                     "binary_estimated_dc_natural_range": binary_dc_natural_range_est,
                     "binary_dc_natural_significance_un_normalised": binary_dc_natural_significance_un_norm,
                     "binary_dc_natural_significance": binary_dc_natural_significance,
                     "binary_estimated_natural_size": natural_binary_cluster_size,
-                    "lm_pop_weighted_complexity": lm_pop_weighted_complexity,
-                    "pop_weighted_dc_list": pop_weight_dc_estimate_list,
-                    "pop_weighted_dc_natural_range": pop_weight_dc_natural_range_est,
-                    "pop_weighted_dc_natural_significance_un_normalised": pop_weight_dc_natural_significance_un_norm,
-                    "pop_weighted_dc_natural_significance": pop_weight_dc_natural_significance,
+                    "binary_report": binary_report,
+                    "lm_pop_weight_complexity": lm_pop_weight_complexity,
+                    "pop_weight_dc_spectrum": pop_weight_dc_estimate_list,
+                    "pop_weight_dc_natural_range": pop_weight_dc_natural_range_est,
+                    "pop_weight_dc_natural_significance_un_normalised": pop_weight_dc_natural_significance_un_norm,
+                    "pop_weight_dc_natural_significance": pop_weight_dc_natural_significance,
                     "pop_weight_estimated_natural_size": natural_pop_weighted_cluster_size,
+                    "pop_weight_report": pop_weight_report,
                 }
             else:
                 complexity_report[network_key] = {
                     "is_cluster_success": 0,
                     "lm_sar": {},
+                    "dc_spectrum_interval_length": self.complexity_parameters["SPECTRUM_INTERVAL_LENGTH"],
+                    "dc_test_threshold": self.complexity_parameters["TEST_THRESHOLD"],
                     "lm_binary_complexity": {},
-                    "binary_dc_list": None,
+                    "binary_dc_spectrum": None,
                     "binary_estimated_dc_natural_range": None,
                     "binary_dc_natural_significance_un_normalised": None,
                     "binary_dc_natural_significance": None,
                     "binary_estimated_natural_size": None,
-                    "lm_pop_weighted_complexity": {},
-                    "pop_weighted_dc_list": None,
-                    "pop_weighted_dc_natural_range": None,
-                    "pop_weighted_dc_natural_significance_un_normalised": None,
-                    "pop_weighted_dc_natural_significance": None,
+                    "binary_report": None,
+                    "lm_pop_weight_complexity": {},
+                    "pop_weight_dc_spectrum": None,
+                    "pop_weight_dc_natural_range": None,
+                    "pop_weight_dc_natural_significance_un_normalised": None,
+                    "pop_weight_dc_natural_significance": None,
                     "pop_weight_estimated_natural_size": None,
+                    "pop_weight_report": None,
                 }
         return complexity_report
 

@@ -1,3 +1,5 @@
+from typing import final
+
 import numpy as np
 from scipy.stats import linregress, spearmanr, pearsonr
 from copy import deepcopy
@@ -50,7 +52,8 @@ def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None, is
     return linear_model
 
 
-def complexity_scaling_vector_analysis(x_val, y_val, is_record_lm_vectors, non_log_x_val):
+def complexity_scaling_vector_analysis(x_val, y_val, is_record_lm_vectors, non_log_x_val,
+                                       spectrum_interval_length, test_threshold):
     # executed during system_state.complexity_analysis() separately
     # for _binary and _population_weighted vectors to analyse the scaling and dimensions of complexity,
     # and attempt to estimate the natural occurrences of complexity organisation within the system.
@@ -61,31 +64,39 @@ def complexity_scaling_vector_analysis(x_val, y_val, is_record_lm_vectors, non_l
     dc_natural_range_est = []
     dc_significance = 0
     dc_significance_un_norm = 0
+    final_report = []
+
+    # attempt to identify the natural cluster size in the system:
+    for x_index in range(1, len(x_val) - 1):  # because of the [_ + 1]
+        test_n = non_log_x_val[x_index]
+        c_now = y_val[x_index]
+        c_next = y_val[x_index + 1]
+        c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
+        if c_next > c_test:
+            natural_cluster_size = int(deepcopy(test_n))
+            break
 
     # ignore first entry (cluster size of one patch - used for diversity, but no meaning for intra-cluster complexity)
     if not (y_val[1:] == 0).any():
         # shift up to a minimum value of 1
         testable_complexity = y_val[1:]
-        bin_comp_y_val = np.log(testable_complexity - np.min(testable_complexity) + 1.0)
+        comp_y_val = np.log(testable_complexity - np.min(testable_complexity) + 1.0)
         lm_complexity = linear_model_report(x_val=x_val[1:],
-                                            y_val=bin_comp_y_val,
+                                            y_val=comp_y_val,
                                             is_record_vectors=is_record_lm_vectors,
                                             model_type_str="log-log")
         # complexity dimension is +gradient
         lm_complexity["complexity_dimension"] = lm_complexity["slope"]
 
-        # fit log-log plots across rolling intervals
-        interval_length = 5
-        # num_increments = int(np.floor_divide(len(x_val) - 2, interval_length))
+        # fit log-log plots and determine d_c across rolling intervals of cluster size [2, 2+N], [3, 3+N], [4, 4+N], ...
         max_lm_slope = -float('inf')
+        # also report the spectrum of complexity for comparable simulations:
         dc_estimate_list = []
-
-        # fit dc over cluster size [2, 2+N], [3, 3+N], [4, 4+N], ...
-        for k in range(len(x_val) - 1 - interval_length):
+        for k in range(len(x_val) - 1 - spectrum_interval_length):
             x_start = k + 1
-            x_end = x_start + interval_length
+            x_end = x_start + spectrum_interval_length
             log_n = x_val[x_start:x_end]
-            log_c = bin_comp_y_val[x_start:x_end]
+            log_c = comp_y_val[x_start:x_end]
             lm_slope = linregress(x=log_n, y=log_c).slope
             dc_estimate_list.append(lm_slope)
             # we try to identify the interval where the rate of growth is greatest
@@ -100,18 +111,39 @@ def complexity_scaling_vector_analysis(x_val, y_val, is_record_lm_vectors, non_l
         # possibly it should NOT be normalised as dc = 2.0 is the universal approximate behaviour
         dc_significance_un_norm = max_lm_slope - np.mean(dc_estimate_list)
 
-    # Now attempt to identify the natural cluster size in the system:
-    for x_index in range(1, len(x_val) - 1):  # because of the [_ + 1]
-        test_n = non_log_x_val[x_index]
-        c_now = y_val[x_index]
-        c_next = y_val[x_index + 1]
-        c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
-        if c_next > c_test:
-            natural_cluster_size = int(deepcopy(test_n))
-            break
+        #
+        # Now we take our candidates for clustering, conduct further testing and report the best choice along with an
+        # indicator of its significance.
+        if len(dc_natural_range_est) > 0:
+
+            # try both the single best value and the integer closest to the centre of the best interval
+            test_m_list = [natural_cluster_size, int((dc_natural_range_est[0] + dc_natural_range_est[1]) / 2)]
+            report_list = []
+            for test_m in test_m_list:
+
+                # fit for [2, test_m-1] and [test_m, 2*test_m-1] (with overlap)
+                if test_m > 0:
+                    lower_log_n = x_val[1:test_m-1]
+                    lower_log_c = comp_y_val[1:test_m-1]
+                    lower_lm_slope = linregress(x=lower_log_n, y=lower_log_c).slope
+                    upper_log_n = x_val[test_m-1:min(2*test_m, len(x_val), len(comp_y_val))]
+                    upper_log_c = comp_y_val[test_m-1:min(2*test_m, len(x_val), len(comp_y_val))]
+                    upper_lm_slope = linregress(x=upper_log_n, y=upper_log_c).slope
+                    significance_value = upper_lm_slope - lower_lm_slope
+                    is_significant = int(significance_value > test_threshold)
+                    report_list.append([significance_value, test_m, is_significant, lower_lm_slope, upper_lm_slope])
+                else:
+                    # if no natural cluster was identified
+                    report_list.append([0.0, test_m, 0, None, None])
+
+            # report the stronger result
+            if report_list[0][0] > report_list[1][0]:
+                final_report = report_list[0][1:]
+            else:
+                final_report = report_list[1][1:]
 
     return (lm_complexity, dc_estimate_list, dc_natural_range_est, dc_significance_un_norm,
-            dc_significance, natural_cluster_size)
+            dc_significance, natural_cluster_size, final_report)
 
 
 def determine_complexity(sub_network, cluster, is_normalised, num_species):

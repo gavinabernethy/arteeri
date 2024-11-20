@@ -74,7 +74,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 900,
+            "NUM_PATCHES": 100,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -150,6 +150,15 @@ master_para = {
             # When conducting distance metric, network and complexity analyses that include linear regressions, do we
             # record the vectors of values, to reconstruct the raw data scatter plots against the fitted models later?
             "IS_RECORD_METRICS_LM_VECTORS": True,
+
+            # Parameters for conducting the complexity analysis - increasing these can be computationally-expensive.
+            "COMPLEXITY_ANALYSIS": {
+                "NUM_CLUSTER_DRAWS": 1000,  # how many samples do we try to draw for each delta?
+                "NUM_CLUSTER_DRAW_ATTEMPTS": 10,  # how many attempts to draw each sample (may fail if disconnected)?
+                "MAX_DELTA": 100,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
+                "SPECTRUM_INTERVAL_LENGTH": 5,
+                "TEST_THRESHOLD": 0.01,
+            },
         },
     "plot_save_para":
         {

@@ -72,13 +72,12 @@ def cluster_next_element(adjacency_matrix, patch_list, current_cluster: list,
     return type_patch_nums
 
 
-def generate_cluster(sub_network, size):
+def generate_cluster(sub_network, size, max_attempts):
     # This is a more limited, but much faster and more efficient method to generate entire clusters of the
     # specified size.
     # It is used during complexity_analysis() when we requiring rapidly drawing many 100's of clusters rapidly,
     # and where the only topological requirement is connectedness.
     num_attempts = 0
-    max_attempts = 10
     neighbour_dict = sub_network["neighbour_dict"]
     # try to generate and return a connected cluster of the given size from the provided sub_network
 
