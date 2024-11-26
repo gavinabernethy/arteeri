@@ -45,7 +45,7 @@ def generate_patch_position_adjacency(num_patches, graph_para):
         position_array[patch, 0] = x
         position_array[patch, 1] = y
 
-        # Now adjacency
+    # Now adjacency
     graph_type = graph_para["GRAPH_TYPE"]
     adjacency_array = np.zeros([num_patches, num_patches])
     adjacency_spec = graph_para["ADJACENCY_MANUAL_SPEC"]
@@ -315,6 +315,17 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
         cluster_min_x = -1
         previous_min_x = -1
 
+        # if cluster_size is a single value, convert to an equivalent list indexable by (modulo) habitat type number:
+        if type(cluster_size) == int:
+            cluster_size_list = [cluster_size for _ in range(actual_num_habitats)]
+        elif type(cluster_size) == list and len(cluster_size) == 1:
+            cluster_size_list = [cluster_size[0] for _ in range(actual_num_habitats)]
+        elif type(cluster_size) == list and len(cluster_size) == actual_num_habitats:
+            cluster_size_list = cluster_size
+        else:
+            raise Exception("Wrong input form for habitat cluster size - should be single integer, or a list of length"
+                            "equal either 1 or to the number of habitats.")
+
         while len(unassigned_patches) > 0:
             # note that this does not need to be "< cluster_size" as the fail-mechanisms here will also cover the
             # remainder patches that need to be assigned
@@ -329,7 +340,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
             current_cluster = [draw_num]
             unassigned_patches.remove(draw_num)  # not occurring within a loop over unassigned_patches strictly
 
-            while len(current_cluster) < cluster_size:
+            while len(current_cluster) < cluster_size_list[cluster_num]:
                 # draw next elements
                 possible_nums = cluster_next_element(adjacency_matrix=adjacency_array,
                                                 patch_list=None,
@@ -341,7 +352,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
                 else:
 
                     if is_chess:
-                        # these constraints try to produce cylcic clusters of habitat types
+                        # these constraints try to produce cyclic clusters of habitat types
 
                         # check if box is currently more tall than wide
                         cluster_min_x = np.min([position_array[k, 0] for k in current_cluster])
@@ -383,7 +394,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
 
                         if len(current_cluster) == 1 or cluster_height < cluster_width:
                             draw_num = possible_nums[-1]
-                        elif cluster_width < np.sqrt(cluster_size):
+                        elif cluster_width < np.sqrt(cluster_size_list[cluster_num]):
                             draw_num = possible_nums[0]
                         else:
                             draw_num = random.choice(possible_nums)

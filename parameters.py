@@ -41,9 +41,16 @@ master_para = {
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             "IS_HABITAT_CLUSTERS": True,  # if True then all else ignored except the following two options...
-            "HABITAT_CLUSTER_SIZE": 16,  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+            "HABITAT_CLUSTER_SIZE": [2, 2, 4],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+                # This should be one of:
+                # (i) a single value for all clusters to be the same, or a list containing this single value;
+                # (ii) a list of length equal to the number of habitat types present at generation (that is,
+                # "main_para"["INITIAL_HABITAT_SET"]). Then each value in the list is the corresponding size of the
+                # clusters sequentially drawn for each habitat type.
             "HABITAT_CLUSTER_TYPE_STR": "chess_box",  # cluster topology (box, star, chain, random, disconnected).
-            # But also select "chess_box" to use "box" but with constraints to resemble a chess board.
+            # But also select "chess_box" to use "box" but with constraints to resemble a chess board. Note that this
+            # has limited effectiveness if used in conjunction with different cluster sizes per habitat type, so most
+            # effective if content with a single cluster size across all habitat types.
             #
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
@@ -74,7 +81,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 100,
+            "NUM_PATCHES": 1600,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -107,6 +114,7 @@ master_para = {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
                 1: 'habitat_type_1',
+                2: 'habitat_type_2',
             },
             "GENERATED_SPEC": {
                 #
@@ -121,15 +129,17 @@ master_para = {
                     # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
                     # length equal to the total possible number of scores (i.e. the number of species)
                     "HABITAT_SCORES": {0: [1.0],
-                                       1: [0.0]},
+                                       1: [0.0],
+                                       2: [1.0],},
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
                     # distribution over [MIN_SCORE, MAX_SCORE]
                     "MIN_SCORE": None,
                     "MAX_SCORE": None,
-                    "HABITAT_SCORES": {0: [1.0,],
-                                       1: [1.0]},
+                    "HABITAT_SCORES": {0: [1.0],
+                                       1: [1.0],
+                                       2: [1.0],},
                 },
             },
 
@@ -140,7 +150,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1},
+            "INITIAL_HABITAT_SET": {0, 1, 2},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
