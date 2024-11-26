@@ -402,6 +402,7 @@ class Local_population:
             total_effort = 0.0
             predation_efficiency = self.species.current_predation_efficiency
             predation_focus = self.species.current_predation_focus
+            predation_focus_type = self.species.predation_focus_type
 
             for population in self.interacting_populations:
                 # this accounts already if nonlocal feeding is allowed in general, for this species, at this range
@@ -414,9 +415,23 @@ class Local_population:
                         # - High efficiency => prioritise prey based on accessibility score and population size.
                         #
 
-                        this_effort = population["object"].holding_population * (
-                                predation_efficiency * population["score_to"] + (1.0 - predation_efficiency) *
-                                this_preference) ** predation_focus
+                        if predation_focus_type == "best_score":
+                            # As rho -> +infty, focuses on the closest (best score / least path cost)
+                            # non-zero prey population, even if very small in size. Tends to local predation, if
+                            # any local prey are available, regardless of the sizes of the prey. This could mean
+                            # focusing exclusively on local prey even if a MUCH greater prey population was available
+                            # nearby.
+                            this_effort = population["object"].holding_population * (
+                                    predation_efficiency * population["score_to"] + (1.0 - predation_efficiency) *
+                                    this_preference) ** predation_focus
+                        elif predation_focus_type == "best_yield":
+                            # As rho -> +infty, focuses on the best returning prey population, from scaling the
+                            # combination of BOTH prey score and population to the power of rho.
+                            this_effort = (population["object"].holding_population * (
+                                    predation_efficiency * population["score_to"] + (1.0 - predation_efficiency) *
+                                    this_preference)) ** predation_focus
+                        else:
+                            raise Exception(f"Error in species {self.species.name} predation_focus_type specification.")
 
                         # Allocate relative prey hunted:
                         this_prey_hunted = this_effort * population["score_to"] * population[

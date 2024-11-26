@@ -139,6 +139,9 @@ default_species = {
                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
             },
+            "PREDATION_FOCUS_TYPE": "best_score",  # must be either "best_score" or "best_yield" - determines the
+                # precise form of the effort function, so that rho -> +infty leads to either local (if non-zero prey)
+                # foraging or focus on only the best return single prey population (from both score and population).
             "PREDATION_FOCUS": {
                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
                 "constant_value": 1.0,  # should be non-negative
@@ -454,6 +457,9 @@ ARTEMIS_01_MASTER = {
                     "logistic_r": None,  # r-value of the logistic map to generate the time-series
                     "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                 },
+                "PREDATION_FOCUS_TYPE": None,  # must be either "best_score" or "best_yield" - determines the
+                    # precise form of the effort function, so that rho -> +infty leads to either local (if non-zero prey)
+                    # foraging or focus on only the best return single prey population (from both score and population).
                 "PREDATION_FOCUS": {
                     "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
                     "constant_value": None,  # should be non-negative
@@ -720,6 +726,9 @@ ARTEMIS_01_MASTER = {
     #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
     #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
     #             },
+    #             "PREDATION_FOCUS_TYPE": "best_score",  # must be either "best_score" or "best_yield" - determines the
+    #               # precise form of the effort function, so that rho -> +infty leads to either local (if non-zero prey)
+    #               # foraging or focus on only the best return single prey population (from both score and population).
     #             "PREDATION_FOCUS": {
     #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
     #                 "constant_value": 1.0,  # should be non-negative
@@ -992,6 +1001,9 @@ WATER_VOLE_MINK_MASTER = {
                         "logistic_r": None,  # r-value of the logistic map to generate the time-series
                         "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                     },
+                    "PREDATION_FOCUS_TYPE": "best_score",  # must be either "best_score" or "best_yield" - determines the
+                        # precise form of the effort function, so that rho -> +infty leads to either local (if non-zero prey)
+                        # foraging or focus on only the best return single prey population (from both score and population).
                     "PREDATION_FOCUS": {
                         "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
                         "constant_value": 1.0,  # should be non-negative
@@ -1263,6 +1275,9 @@ WATER_VOLE_MINK_MASTER = {
                         "logistic_r": None,  # r-value of the logistic map to generate the time-series
                         "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                     },
+                    "PREDATION_FOCUS_TYPE": "best_score",  # must be either "best_score" or "best_yield" - determines the
+                        # precise form of the effort function, so that rho -> +infty leads to either local (if non-zero prey)
+                        # foraging or focus on only the best return single prey population (from both score and population).
                     "PREDATION_FOCUS": {
                         "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
                         "constant_value": 1.0,  # should be non-negative

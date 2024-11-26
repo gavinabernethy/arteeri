@@ -1,5 +1,3 @@
-from typing import final
-
 import numpy as np
 from scipy.stats import linregress, spearmanr, pearsonr
 from copy import deepcopy

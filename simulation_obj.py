@@ -186,6 +186,8 @@ class Simulation_obj:
                     "IS_NONLOCAL_FORAGING"],
                 is_foraging_path_restricted=self.parameters["species_para"][species_name]["PREDATION_PARA"][
                     "IS_NONLOCAL_FORAGING_PATH_RESTRICTED"],
+                predation_focus_type=self.parameters["species_para"][species_name]["PREDATION_PARA"][
+                    "PREDATION_FOCUS_TYPE"],
                 is_pure_direct_impact=self.parameters["species_para"][species_name]["IS_PURE_DIRECT_IMPACT"],
                 pure_direct_impact_para=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"],
                 is_direct_offset=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][

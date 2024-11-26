@@ -26,6 +26,7 @@ class Species:
                  is_predation_only_prevents_death=False,
                  is_nonlocal_foraging=False,
                  is_foraging_path_restricted=False,
+                 predation_focus_type=None,
                  is_pure_direct_impact=False,
                  pure_direct_impact_para=None,
                  is_direct_offset=False,
@@ -38,22 +39,23 @@ class Species:
                  perturbation_para=None,
                  ):
 
+        # core:
         self.name = name
         self.species_num = species_num
-        self.lifespan = lifespan
-        self.minimum_population_size = minimum_population_size
-        self.predator_list = predator_list
-        self.resource_usage_conversion = resource_usage_conversion
-        self.is_dispersal = is_dispersal
-        self.dispersal_para = dispersal_para
-        self.is_dispersal_path_restricted = is_dispersal_path_restricted
-        self.always_move_with_minimum = always_move_with_minimum
-        self.dispersal_efficiency = 1.0 - min(0.999999999, dispersal_penalty)  # convert penalty to efficiency in [0, 1]
+
+        # initial:
         self.initial_population_mechanism = initial_population_mechanism
         self.initial_population_para = initial_population_para
+
+        # growth:
+        self.minimum_population_size = minimum_population_size
+        self.lifespan = lifespan
         self.seasonal_period = seasonal_period
+        self.resource_usage_conversion = resource_usage_conversion
         self.growth_function = growth_function
         self.growth_para = growth_para
+
+        # growth - offset:
         self.is_growth_offset = is_growth_offset
         if growth_annual_duration is not None:
             self.growth_annual_duration = int(growth_annual_duration)
@@ -62,10 +64,25 @@ class Species:
         self.growth_vector_offset_species = growth_offset_species
         self.is_growth_offset_local = is_growth_offset_local
         self.growth_vector_offset_local = growth_offset_local
+
+        # basic population dynamics:
+        self.predator_list = predator_list
+
+        # dispersal:
+        self.is_dispersal = is_dispersal
+        self.dispersal_para = dispersal_para
+        self.is_dispersal_path_restricted = is_dispersal_path_restricted
+        self.always_move_with_minimum = always_move_with_minimum
+        self.dispersal_efficiency = 1.0 - min(0.999999999, dispersal_penalty)  # convert penalty to efficiency in [0, 1]
+
+        # predation:
         self.predation_para = predation_para
         self.is_predation_only_prevents_death = is_predation_only_prevents_death
         self.is_nonlocal_foraging = is_nonlocal_foraging
         self.is_foraging_path_restricted = is_foraging_path_restricted
+        self.predation_focus_type = predation_focus_type
+
+        # direct impact:
         self.is_pure_direct_impact = is_pure_direct_impact
         self.pure_direct_impact_para = pure_direct_impact_para
         self.is_direct_offset = is_direct_offset
@@ -77,10 +94,15 @@ class Species:
         self.is_direct_offset_local = is_direct_offset_local
         self.direct_vector_offset_local = direct_offset_local
         self.direct_impact_on_me = direct_impact_on_me
+
+        # perturbation:
         self.is_perturbs_environment = is_perturbs_environment
         self.perturbation_para = perturbation_para
+
+        # CURRENT holding values - growth:
         self.current_r_value = None
-        # foraging
+
+        # CURRENT holding values - foraging
         self.current_prey_dict = None
         self.current_predation_efficiency = None
         self.current_predation_focus = None
@@ -89,7 +111,8 @@ class Species:
         self.current_foraging_kappa = None
         self.current_max_foraging_path_length = None
         self.current_minimum_link_strength_foraging = None
-        # dispersal
+
+        # CURRENT holding values - dispersal
         self.current_dispersal_mobility = None
         self.current_dispersal_direction = None
         self.current_dispersal_mechanism = None
