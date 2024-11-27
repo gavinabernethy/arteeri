@@ -1,5 +1,8 @@
 # generates sample spatial networks and habitat data in .CSV files for testing
 import shutil
+from copy import deepcopy
+from random import randrange, randint
+
 import numpy as np
 import os
 import networkx  # https://networkx.org/documentation/stable/reference/generators.html
@@ -290,8 +293,9 @@ def generate_patch_size(num_patches, min_patch_size, max_patch_size, graph_para)
     return patch_size_array
 
 
-def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_probabilities,
-                          adjacency_array, is_clusters, cluster_size, cluster_type_str, position_array, graph_para):
+def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_probabilities, adjacency_array,
+                          is_clusters, is_chess_bind_habitat_to_size, cluster_size, cluster_type_str,
+                          position_array, graph_para):
     actual_habitat_list = list(generated_habitat_set)  # needs to be ordered for weighting the probability vector
     actual_num_habitats = len(actual_habitat_list)
     auto_correlation = graph_para["HABITAT_SPATIAL_AUTO_CORRELATION"]
@@ -311,20 +315,28 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
             is_chess = False
 
         unassigned_patches = [x for x in range(num_patches)]
-        cluster_num = 0
-        cluster_min_x = -1
-        previous_min_x = -1
+        cluster_habitat_num = -1
+        cluster_size_num = 0
+        cluster_min_x = 0
+        previous_min_x = 0
 
-        # if cluster_size is a single value, convert to an equivalent list indexable by (modulo) habitat type number:
-        if type(cluster_size) == int:
-            cluster_size_list = [cluster_size for _ in range(actual_num_habitats)]
-        elif type(cluster_size) == list and len(cluster_size) == 1:
-            cluster_size_list = [cluster_size[0] for _ in range(actual_num_habitats)]
-        elif type(cluster_size) == list and len(cluster_size) == actual_num_habitats:
-            cluster_size_list = cluster_size
+        # if cluster_size is a single value, convert to an equivalent list:
+        if is_chess_bind_habitat_to_size:
+            # if we have required the cluster sizes to correspond to given habitat types, check that condition here
+            # but note this ONLY applies as a sub-option for chess_box.
+            if is_chess and type(cluster_size) == list and len(cluster_size) == actual_num_habitats:
+                cluster_size_list = cluster_size
+            else:
+                raise Exception("Habitat cluster options do not match: IS_CHESS_BIND_HABITAT_TO_SIZE is True, so we "
+                                "need type CHESS_BOX, and length of cluster size list should match size of "
+                                "main_para[INITIAL_HABITAT_SET].")
         else:
-            raise Exception("Wrong input form for habitat cluster size - should be single integer, or a list of length"
-                            "equal either 1 or to the number of habitats.")
+            if type(cluster_size) == int:
+                cluster_size_list = [cluster_size]
+            elif type(cluster_size) == list:
+                cluster_size_list = cluster_size
+            else:
+                raise Exception("Wrong input form for habitat cluster size - should be single integer, or a list.")
 
         while len(unassigned_patches) > 0:
             # note that this does not need to be "< cluster_size" as the fail-mechanisms here will also cover the
@@ -340,11 +352,11 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
             current_cluster = [draw_num]
             unassigned_patches.remove(draw_num)  # not occurring within a loop over unassigned_patches strictly
 
-            while len(current_cluster) < cluster_size_list[cluster_num]:
+            while len(current_cluster) < cluster_size_list[cluster_size_num]:
                 # draw next elements
                 possible_nums = cluster_next_element(adjacency_matrix=adjacency_array,
                                                 patch_list=None,
-                                                current_cluster = current_cluster,
+                                                current_cluster=current_cluster,
                                                 actual_patch_nums=unassigned_patches,
                                                 cluster_arch_type=cluster_type_str)
                 if len(possible_nums) == 0:
@@ -359,8 +371,8 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
                         cluster_max_x = np.max([position_array[k, 0] for k in current_cluster])
                         cluster_min_y = np.min([position_array[k, 1] for k in current_cluster])
                         cluster_max_y = np.max([position_array[k, 1] for k in current_cluster])
-                        cluster_height = cluster_max_y - cluster_min_y
-                        cluster_width = cluster_max_x - cluster_min_x
+                        cluster_height = cluster_max_y - cluster_min_y + 1
+                        cluster_width = cluster_max_x - cluster_min_x + 1
 
                         # remove elements that were included due to lattice wrap
                         for possible_element in list(possible_nums):  # deliberately create a DUMMY COPY to iterate over
@@ -374,41 +386,96 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
                             # break again if all possibilities removed
                             break
 
-                        # When the first patch of the cluster is chosen, check if we have reset to the next horizontal
-                        # "layer" of clusters (like a typewriter return), and if so - is the habitat type set to match
-                        # with that of the cluster immediately below the first patch? If so, we will increment the
-                        # habitat type number to create an offset.
+                        desired_height = int(np.sqrt(min(cluster_size_list)))
+                        desired_width = int((cluster_size_list[cluster_size_num]) / np.sqrt(min(cluster_size_list)))
+                        # check if there is a missing piece to fill in (just find the first one) due to unevenness
+                        is_back_fill = False
+                        back_fill_num = 0
+                        for possible_num in possible_nums:
+                            if position_array[possible_num, 0] < cluster_min_x:
+                                is_back_fill = True
+                                back_fill_num = possible_num
+                                break
+                        # now go through the hierarchical ruleset
                         if len(current_cluster) == 1:
-                            # check for first element only
-                            if cluster_min_x < previous_min_x:
-                                first_patch_num = current_cluster[0]
-                                lower_x = position_array[first_patch_num, 0]
-                                lower_y = position_array[first_patch_num, 1] - 1
-                                for test_patch in range(first_patch_num):
-                                    if (position_array[test_patch, :] == [lower_x, lower_y]).all():
-                                        lower_habitat_type_num = habitat_array[test_patch, 0]
-                                        if lower_habitat_type_num == cluster_num:
-                                            # increment to avoid overlap
-                                            cluster_num = np.mod(cluster_num + 1, actual_num_habitats)
-                                        break
-
-                        if len(current_cluster) == 1 or cluster_height < cluster_width:
+                            # make taller
                             draw_num = possible_nums[-1]
-                        elif cluster_width < np.sqrt(cluster_size_list[cluster_num]):
+                        elif is_back_fill:
+                            # back fill
+                            draw_num = back_fill_num
+                        elif cluster_height < desired_height:
+                            # make taller
+                            draw_num = possible_nums[-1]
+                        elif cluster_width < desired_width:
+                            # make wider
                             draw_num = possible_nums[0]
                         else:
-                            draw_num = random.choice(possible_nums)
+                            # check will the next random choice lead to going beyond max desired height? Prefer wider
+                            next_draw_ensures_over = True
+                            for possible_num in possible_nums:
+                                if position_array[possible_num, 0] < cluster_max_x and position_array[
+                                    possible_num, 1] < cluster_max_y:
+                                    next_draw_ensures_over = False
+                                    break
+                            if next_draw_ensures_over:
+                                draw_num = possible_nums[0]
+                            else:
+                                draw_num = random.choice(possible_nums)
                     else:
                         draw_num = random.choice(possible_nums)
                     current_cluster.append(draw_num)
                     unassigned_patches.remove(draw_num)  # deletion does not occur strictly within a loop over the list
 
-            # When cluster is full size or no possible new members could be found,
-            # assign all members the next habitat type
+            # When cluster is full size or no possible new members could be found, determine a habitat type
+            first_patch_num = current_cluster[0]
+            lower_y = position_array[first_patch_num, 1] - 1
+
+            # Possibilities for IS_HABITAT_CLUSTERS:
+            # - chess board, not bound, size = 1 (creates a chessboard with row offset if necessary)
+            # - chess board, not bound, size > 1 (creates a chessboard but habitat types minimise border overlap)
+            # - chess board, bound, size = num habitats (creates a chessboard and habitat types cycle with size)
+            # - not a chess board, size = 1 (draws repeated clusters of one size, cycles habitat types)
+            # - not a chess board, size > 1 (draws clusters, cycles habitat types and sizes,
+            #       so set size == num habitats to bind size and habitat type and lock their cycles in phase)
+
+            if is_chess and not is_chess_bind_habitat_to_size and  len(
+                    cluster_size_list) > 1 and position_array[first_patch_num, 1] != 0:
+                # But first, if it is a chessboard but we have multiple cluster sizes which are not bound to habitat
+                # types, and we are not still on the first row of clusters, determine if a shift would reduce overlap:
+                lower_x_list = []
+                # we find the x-position of all bottom-row patches in the cluster
+                for patch_clu in current_cluster:
+                    if position_array[patch_clu, 1] == position_array[first_patch_num, 1]:
+                        lower_x_list.append(position_array[patch_clu, 0])
+                # and then we find all the patches directly beneath them and check the frequency of the habitat types
+                border_habitat_frequency = np.zeros([actual_num_habitats, 1])
+                for test_patch in range(first_patch_num):
+                    if position_array[test_patch, 1] == lower_y and position_array[test_patch, 0] in lower_x_list:
+                        border_habitat_frequency[int(habitat_array[test_patch, 0])] += 1
+                # now choose (one of) the least represented habitat types, excepting the previous habitat type
+                if cluster_min_x >= previous_min_x:  # (but we do allow it if there has been a ribbon reset)
+                    border_habitat_frequency[cluster_habitat_num] += 9999999999.0 * int(max(cluster_size_list))
+                cluster_habitat_num = random.choice(list(np.where(
+                    border_habitat_frequency == np.min(border_habitat_frequency))[0]))
+            else:
+                # Iterate the next habitat type for the subsequent cluster
+                cluster_habitat_num = np.mod(cluster_habitat_num + 1, actual_num_habitats)
+
+                # But also check if it is a proper chessboard, and the ribbon has reset - then if an offset is required?
+                if is_chess and not is_chess_bind_habitat_to_size and len(cluster_size_list) == 1:
+                    if position_array[first_patch_num, 1] != 0 and cluster_min_x < previous_min_x:
+                        lower_x = position_array[first_patch_num, 0]
+                        for test_patch in range(first_patch_num):
+                            if position_array[test_patch, 0] == lower_x and position_array[test_patch, 1] == lower_y:
+                                if int(habitat_array[test_patch, 0]) == cluster_habitat_num:
+                                    # iterate again!
+                                    cluster_habitat_num = np.mod(cluster_habitat_num + 1, actual_num_habitats)
+
+            # now assign all members the selected habitat type
             for patch_num in current_cluster:
-                habitat_array[patch_num, 0] = cluster_num
-            # Iterate the next habitat type for the subsequent cluster
-            cluster_num = np.mod(cluster_num + 1, actual_num_habitats)
+                habitat_array[patch_num, 0] = cluster_habitat_num
+            # finally iterate the size of the cluster
+            cluster_size_num = np.mod(cluster_size_num + 1, len(cluster_size_list))
             previous_min_x = cluster_min_x
 
     else:
@@ -593,6 +660,8 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
                                                 generated_habitat_probabilities=generated_habitat_probabilities,
                                                 adjacency_array=adjacency_array,
                                                 is_clusters=graph_para["IS_HABITAT_CLUSTERS"],
+                                                is_chess_bind_habitat_to_size=graph_para[
+                                                    "IS_CHESS_BIND_HABITAT_TO_SIZE"],
                                                 cluster_size=graph_para["HABITAT_CLUSTER_SIZE"],
                                                 cluster_type_str=graph_para["HABITAT_CLUSTER_TYPE_STR"],
                                                 position_array=position_array,

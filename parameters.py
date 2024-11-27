@@ -41,16 +41,20 @@ master_para = {
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             "IS_HABITAT_CLUSTERS": True,  # if True then all else ignored except the following two options...
-            "HABITAT_CLUSTER_SIZE": [2, 2, 4],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
-                # This should be one of:
-                # (i) a single value for all clusters to be the same, or a list containing this single value;
-                # (ii) a list of length equal to the number of habitat types present at generation (that is,
-                # "main_para"["INITIAL_HABITAT_SET"]). Then each value in the list is the corresponding size of the
-                # clusters sequentially drawn for each habitat type.
+            "HABITAT_CLUSTER_SIZE": [16],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+                # This should be either a single value for all clusters to be the same, or a list of the desired cluster
+                # sizes to be sequentially alternated through. If IS_BIND_HABITAT_TO_CLUSTER_SIZE then this needs to be
+                # the same length as the number of habitats at generation. Otherwise this is not bound to specific
+                # habitat types, so simply list the range of same-habitat sizes desired and each cluster is assigned
+                # a habitat type to minimise overlapping boundaries.
             "HABITAT_CLUSTER_TYPE_STR": "chess_box",  # cluster topology (box, star, chain, random, disconnected).
             # But also select "chess_box" to use "box" but with constraints to resemble a chess board. Note that this
-            # has limited effectiveness if used in conjunction with different cluster sizes per habitat type, so most
-            # effective if content with a single cluster size across all habitat types.
+            # has limited effectiveness if used in conjunction with different cluster sizes, so most effective if
+            # content with a single cluster size across all habitat types.
+            "IS_CHESS_BIND_HABITAT_TO_SIZE": False,  # if TRUE then HABITAT_CLUSTER_TYPE_STR needs to be "chess_box" and
+            # HABITAT_CLUSTER_SIZE needs to be a list of length equal to the size of "main_para"["INITIAL_HABITAT_SET"].
+            # Set to FALSE if not a chess-board design or just one cluster size chosen, or is a chessboard with multiple
+            # cluster sizes but you do not want to swap habitat types to minimise overlap.
             #
             # Patch size (scales the carrying capacity for all local populations):
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
