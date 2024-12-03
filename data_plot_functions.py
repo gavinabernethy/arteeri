@@ -10,6 +10,12 @@ from copy import deepcopy
 from data_core_functions import *
 
 
+# ----------------------------------------------- FIGURE MANAGEMENT ----------------------------------------------- #
+
+def print_and_close(fig, file_path):
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    plt.savefig(file_path, dpi=400)
+    plt.close(fig)
 
 # ---------------------------------------- BASE FUNCTIONS FOR CREATING PLOTS ---------------------------------------- #
 
@@ -247,9 +253,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
         c_bar.ax.text(c_bar_max_pos, 1.0, f'${"{:.4g}".format(max_color_value)}$', ha='center', va='center')
     ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    plt.savefig(file_path, dpi=400)
-    plt.close(fig)
+    print_and_close(fig, file_path)
 
 
 # ------------------------------------- MAIN FUNCTIONS FOR PLOTTING TIME-SERIES ------------------------------------- #
@@ -512,6 +516,17 @@ def plot_current_local_population_attribute(patch_list, sim_path, attribute_name
 def plot_network_properties(patch_list, sim_path, step, adjacency_path_list,
                             is_biodiversity, is_reserves, is_label_habitat_patches=True, is_retro=False):
     properties = {
+        'habitat_type_numbered':
+            {'attribute_id': 'habitat_type_num',
+             "sub_attribute_list": [None],  # this should be a list containing None
+             'use_color_bar': True,
+             'label_patches': True,
+             'patch_label_attr': 'number',
+             'path_list': adjacency_path_list,
+             'path_color': [0.7, 0.7, 0.7],
+             'use_colors': False,
+             'patch_label_color': None,
+             },
         'habitat_type':
             {'attribute_id': 'habitat_type_num',
              "sub_attribute_list": [None],  # this should be a list containing None
@@ -900,6 +915,56 @@ def plot_accessible_sub_graphs(patch_list, parameters, species, sim_path, step):
 
 # ------------------------- PRODUCING DISTANCE, NETWORK, COMPLEXITY LINEAR REGRESSION PLOTS ------------------------- #
 
+def complexity_plotting(distance_metrics_store, sim_path, step):
+    # While plot_distance_metrics_lm() will plot SAR and complexity dimension across the full range, we need this
+    # additional function to plot the dc spectrum and Delta_C_per_N.
+    list_of_key_paths = recursive_dict_search(nested_dict=distance_metrics_store,
+                                              seek_contains_key="is_complexity_graphical",
+                                              upper_key_path=None)
+    if len(list_of_key_paths) > 0:
+        # results found
+
+        for path in list_of_key_paths:
+            key_list = path.split("|")
+            target_dict = return_dict_from_address(key_list, distance_metrics_store)
+            # now target_dict is the graphical_results dictionary
+            n_values = np.asarray(target_dict["n_vector"])
+
+            # plot the single and dual fitted power laws for complexity
+            plot_y = {}
+            if target_dict["is_single_fit_success"] == 1:
+                plot_y["single"] = target_dict["single_para"][0] * (n_values - 1) ** target_dict["single_para"][1]
+            if target_dict["is_dual_fit_success"] == 1:
+                p = target_dict["dual_para"]
+                plot_y["dual"] = np.exp(-p[0] * (n_values - 1)) * p[1] * (n_values - 1) ** p[3] + (
+                        1 - np.exp(-p[0] * (n_values - 1))) * (p[2] * (n_values - 1) ** p[4] + p[5])
+
+            for law_type in ["single", "dual"]:
+                if target_dict[f"is_{law_type}_fit_success"]:
+                    fig = plt.figure()
+                    plt.plot(n_values, plot_y[law_type], c='b')
+                    plt.scatter(n_values, np.asarray(target_dict["complexity_vector"]), c='r', s=5, edgecolors='k')
+                    r_str = "{0:.5g}".format(target_dict[f"{law_type}_r_squared"])
+                    plt.legend((f'Fit: $R^{2}$ = {r_str}', 'Actual values'))
+                    print_name = path.replace('|', '_')
+                    file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{law_type}.png"
+                    print_and_close(fig, file_path)
+
+            # plot the spectral properties
+            y_label = [r"$\frac{\Delta C(n)}{\Delta n}$", r"$d_{c}$"]
+            s_e_val = [[0, len(n_values)-1], [3, len(n_values)]]  # range of acceptable values to plot
+            for _, y_key in enumerate(["delta_c_per_n", "dc_fit"]):
+                y_values = np.asarray(target_dict[y_key])
+                fig = plt.figure()
+                plt.plot(n_values[s_e_val[_][0]:s_e_val[_][1]], y_values[s_e_val[_][0]:s_e_val[_][1]],
+                         c='b', markersize=5, marker='o', mfc='r', mec='k')
+                plt.xlabel(r"$n$")
+                plt.ylabel(y_label[_])
+                print_name = path.replace('|', '_')
+                file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}.png"
+                print_and_close(fig, file_path)
+
+
 def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
     # produce plots of the linear models associated with distance metrics analysis, together with scatter plots of the
     # data they were fitted to, if this was collected.
@@ -912,17 +977,7 @@ def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
         # results found
         for path in list_of_key_paths:
             key_list = path.split("|")
-            target_dict = distance_metrics_store
-            for key in key_list:
-                # iterate through the keys in a given path
-                try:
-                    target_dict = target_dict[key]
-                except KeyError:
-                    # possibly the dictionary key is an integer (habitat type number) and not a string
-                    try:
-                        target_dict = target_dict[int(key)]
-                    except KeyError:
-                        raise Exception("Key failure.")
+            target_dict = return_dict_from_address(key_list, distance_metrics_store)
             # now target_dict is a linear model output dictionary in standard format
             if target_dict["is_success"] == 1:
                 model_type = target_dict["model_type_str"]  # identifies if log-log, lin-log, lin-lin, or log-lin
@@ -985,9 +1040,7 @@ def plot_distance_metrics_lm(distance_metrics_store, sim_path, step):
                         # if the log- / -log data had to be shifted prior to fitting, that is noted here in the suffix.
                         print_name += "_shift"
                     file_path = f"{sim_path}/{step}/figures/linear_models/{print_name}.png"
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                    plt.savefig(file_path, dpi=400)
-                    plt.close(fig)
+                    print_and_close(fig, file_path)
 
 
 def linear_model_function(model_type, slope, intercept, x_val):
@@ -1024,6 +1077,21 @@ def recursive_dict_search(nested_dict, seek_contains_key, upper_key_path):
                 paths_to_target_dict.append(result)
     return paths_to_target_dict
 
+
+def return_dict_from_address(key_list, target_dict):
+    # after recursive_dict_search() provides the list of addresses, iterate over them and call this function to
+    # return the ACTUAL dictionary object that you were looking for (which directly CONTAINS the target key identifier).
+    for key in key_list:
+        # iterate through the keys in a given path
+        try:
+            target_dict = target_dict[key]
+        except KeyError:
+            # possibly the dictionary key is an integer (habitat type number) and not a string
+            try:
+                target_dict = target_dict[int(key)]
+            except KeyError:
+                raise Exception("Key failure.")
+    return target_dict
 
 # --------------------------------------- PRODUCING DEGREE DISTRIBUTION --------------------------------------- #
 
@@ -1075,9 +1143,7 @@ def plot_degree_distribution(degree_distribution_history, degree_dist_power_law_
     plt.xlabel('Degree')
     plt.ylabel('Frequency')
     file_path = f"{sim_path}/{step}/figures/network_degree_distribution.png"
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    plt.savefig(file_path, dpi=400)
-    plt.close(fig)
+    print_and_close(fig, file_path)
 
 
 # --------------------------------------- PRODUCING SPECIES-AREA CURVES (SAR) --------------------------------------- #
@@ -1163,6 +1229,4 @@ def biodiversity_analysis(patch_list, species_set, parameters, sim_path, step):
     ax2.plot(x_data, y_data, color=ax2_color)
     ax2.set_ylabel('Average biodiversity', color=ax2_color)
     file_path = f"{sim_path}/{step}/figures/species_area_curve.png"
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    plt.savefig(file_path, dpi=400)
-    plt.close(fig)
+    print_and_close(fig, file_path)

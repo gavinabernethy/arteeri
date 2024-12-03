@@ -72,56 +72,64 @@ def cluster_next_element(adjacency_matrix, patch_list, current_cluster: list,
     return type_patch_nums
 
 
-def generate_cluster(sub_network, size, max_attempts):
-    # This is a more limited, but much faster and more efficient method to generate entire clusters of the
-    # specified size.
-    # It is used during complexity_analysis() when we requiring rapidly drawing many 100's of clusters rapidly,
-    # and where the only topological requirement is connectedness.
+def generate_box_cluster(sub_network, size, max_attempts, initial_patch=None):
+    # This is a more limited, but more efficient method to generate entire box-style clusters of the
+    # specified size. Used during complexity_analysis() when we requiring rapidly drawing many 100's of clusters.
+
     num_attempts = 0
     neighbour_dict = sub_network["neighbour_dict"]
-    # try to generate and return a connected cluster of the given size from the provided sub_network
+    # try to generate and return a connected box-cluster of the given size from the provided sub_network
 
     is_success = False
     cluster = []
 
     # is it possible in principle?
-    if size <= len(sub_network["available_patches"]):
+    if size <= sub_network["num_patches"]:
         while num_attempts < max_attempts and not is_success:
             is_success = True
             num_attempts += 1
             cluster = []  # will store the row-column indices relative to the current sub_network
 
             # initial element
-            draw_num = random.choice(sub_network["available_patches"])
+            if initial_patch is not None:
+                draw_num = initial_patch
+            else:
+                draw_num = random.randrange(sub_network["num_patches"])
             cluster.append(draw_num)
 
             # attempt to draw an element connected to existing elements
             if size > 1:
 
+                # initialise the probability array
+                favour_array = np.zeros(sub_network["num_patches"])
                 # start with the neighbours of the first element
-                possible_draw = set(neighbour_dict[draw_num])
+                possible_draw = list(neighbour_dict[draw_num])
                 # discard any that are not eligible
-                for element in list(possible_draw):  # iterate over DUMMY COPY LIST of the set
-                    if element not in sub_network["available_patches"]:
-                        possible_draw.remove(element)
+                for candidate_element in possible_draw:
+                    if candidate_element != draw_num:
+                        favour_array[candidate_element] = 1
 
                 # loop through drawing the 2nd to Nth elements of the sample
                 for num_element in range(size - 1):
 
-                    draw_list = list(possible_draw)
-                    if len(draw_list) > 0:
-                        draw_num = np.random.choice(draw_list)
+                    if np.sum(favour_array) > 0:
+                        short_list = np.where(favour_array == np.max(favour_array))[0]
+                        draw_num = np.random.choice(short_list)
                         cluster.append(draw_num)
-                        possible_draw.remove(draw_num)
+                        favour_array[draw_num] = 0
                     else:
                         is_success = False
                         cluster = []
                         break
 
-                    # check the neighbours of the new member and add them to the set of possibilities
+                    # check the neighbours of the new member and update the set of possibilities
                     for potential_element in neighbour_dict[draw_num]:
-                        if potential_element in sub_network["available_patches"] and potential_element not in cluster:
+                        if potential_element not in cluster:
                             # don't consider patches already chosen!
-                            possible_draw.add(potential_element)
+                            for potential_element_neighbour in neighbour_dict[potential_element]:
+                                # iterate over neighbours of one element rather than the existing cluster, as we
+                                # expect < 10 neighbours per cluster, but the clusters *can* be potentially very large
+                                if potential_element_neighbour in cluster:
+                                    favour_array[potential_element] += 1
 
     return cluster, is_success

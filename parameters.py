@@ -26,7 +26,7 @@ master_para = {
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
-            "IS_LATTICE_WRAPPED": True,
+            "IS_LATTICE_WRAPPED": False,
             "RANDOM_GRAPH_CONNECTIVITY": None,
             "SMALL_WORLD_NUM_NEIGHBOURS": None,  # if num_patches > 2, this need to be at least 2 or graph fails
             "SMALL_WORLD_SHORTCUT_PROBABILITY": None,
@@ -41,7 +41,7 @@ master_para = {
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             "IS_HABITAT_CLUSTERS": True,  # if True then all else ignored except the following two options...
-            "HABITAT_CLUSTER_SIZE": [16],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+            "HABITAT_CLUSTER_SIZE": [25],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
                 # This should be either a single value for all clusters to be the same, or a list of the desired cluster
                 # sizes to be sequentially alternated through. If IS_BIND_HABITAT_TO_CLUSTER_SIZE then this needs to be
                 # the same length as the number of habitats at generation. Otherwise this is not bound to specific
@@ -85,7 +85,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 1600,
+            "NUM_PATCHES": 625,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -118,7 +118,6 @@ master_para = {
                 # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
                 0: 'habitat_type_0',
                 1: 'habitat_type_1',
-                2: 'habitat_type_2',
             },
             "GENERATED_SPEC": {
                 #
@@ -134,7 +133,7 @@ master_para = {
                     # length equal to the total possible number of scores (i.e. the number of species)
                     "HABITAT_SCORES": {0: [1.0],
                                        1: [0.0],
-                                       2: [1.0],},
+                                       },
                 },
                 "TRAVERSAL": {
                     "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
@@ -143,7 +142,7 @@ master_para = {
                     "MAX_SCORE": None,
                     "HABITAT_SCORES": {0: [1.0],
                                        1: [1.0],
-                                       2: [1.0],},
+                                       },
                 },
             },
 
@@ -154,7 +153,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1, 2},
+            "INITIAL_HABITAT_SET": {0, 1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -168,10 +167,8 @@ master_para = {
             # Parameters for conducting the complexity analysis - increasing these can be computationally-expensive.
             "COMPLEXITY_ANALYSIS": {
                 "NUM_CLUSTER_DRAWS": 1000,  # how many samples do we try to draw for each delta?
-                "NUM_CLUSTER_DRAW_ATTEMPTS": 10,  # how many attempts to draw each sample (may fail if disconnected)?
-                "MAX_DELTA": 100,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
-                "SPECTRUM_INTERVAL_LENGTH": 5,
-                "TEST_THRESHOLD": 0.01,
+                "NUM_CLUSTER_DRAW_ATTEMPTS": 20,  # how many attempts to draw each sample (may fail if disconnected)?
+                "MAX_DELTA": 64,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
             },
         },
     "plot_save_para":
@@ -183,8 +180,8 @@ master_para = {
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the complexity/distance-metric linear models (with
-            # scatter plots of the base data, IF COLLECTED - see option in main_para)?
+            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
+            # scatter plots of the base data, IF COLLECTED - see option in main_para) and the complexity power laws?
             "IS_RECORD_AND_PLOT_LESSER_LM": False,  # if True, then also attempt to fit, store, and then plot _base,
             # _nz, and shifted (less reliable) fitted linear models for inter_species_predictions.
             "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?

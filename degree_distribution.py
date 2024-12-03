@@ -37,7 +37,7 @@ def power_law_curve_fit(degree_distribution_list):
         y2 = np.log(y1)
         # attempt the linear curve fit of the transformed function
         try:
-            optimal_parameters, opt_para_covariance = curve_fit(linear_func_to_fit, x2, y2, p0=[5, -2.5])
+            [optimal_parameters, opt_para_covariance] = curve_fit(linear_func_to_fit, x2, y2, p0=[5, -2.5])
             a, b = [np.exp(optimal_parameters[0]), optimal_parameters[1]]
             fit_success = 1
         except (Warning, RuntimeError, TypeError):

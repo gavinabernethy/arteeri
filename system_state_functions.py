@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.stats import linregress, spearmanr, pearsonr
-from copy import deepcopy
+from scipy.stats import spearmanr, pearsonr, linregress
+from scipy.optimize import curve_fit
 
-# Additional static methods used by system_state object
+# Additional static functions used by system_state methods
 
 def tuple_builder(property_list):
     if len(property_list) == 0:
@@ -50,99 +50,135 @@ def linear_model_report(x_val, y_val, is_record_vectors, model_type_str=None, is
     return linear_model
 
 
-def complexity_scaling_vector_analysis(x_val, y_val, is_record_lm_vectors, non_log_x_val,
-                                       spectrum_interval_length, test_threshold):
+def single_power_law(n, alpha, dc):
+    return alpha * (n - 1) ** dc
+
+def dual_power_law(n, k, alpha_1, alpha_2, dc_1, dc_2, beta):
+    return np.exp(-k*(n-1)) * alpha_1 * (n - 1) ** dc_1 + (1 - np.exp(-k*(n-1)))*(alpha_2 * (n - 1) ** dc_2 + beta)
+
+def get_r_squared(x, y, func, fitted_para):
+    # calculate the R-squared statistic
+    residuals = y - func(x, *fitted_para)
+    ss_res = np.sum(residuals ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2.0)
+    if ss_tot != 0.0:
+        r_squared = 1.0 - (ss_res / ss_tot)
+    else:
+        r_squared = 0.0
+    return r_squared
+
+def complexity_scaling_vector_analysis(x_val, y_val):
     # executed during system_state.complexity_analysis() separately
     # for _binary and _population_weighted vectors to analyse the scaling and dimensions of complexity,
     # and attempt to estimate the natural occurrences of complexity organisation within the system.
+    #
+    # Include first entry (cluster size of one patch has zero complexity), but because of "n-1" in power laws, we must
+    # offset this with a small correction term for curve fitting algorithm.
+    # Check where y_val next contains zero - then slice off the invalid part if necessary.
+    y_zero_index = np.where(y_val[1:] == 0)[0]
+    if len(y_zero_index) == 0:
+        testable_complexity = y_val  # [C(1) = 0, C(2), ... ]
+        testable_x_val = x_val  # [1, 2, 3, ... ]
+    else:
+        testable_complexity = y_val[0:y_zero_index[0] + 1]
+        testable_x_val = x_val[0:y_zero_index[0] + 1]
+    # add the offset
+    testable_x_val[0] = testable_x_val[0] + 0.0000001
 
-    lm_complexity = {"is_success": 0}
-    natural_cluster_size = 0
-    dc_estimate_list = []
-    dc_natural_range_est = []
-    dc_significance = 0
-    dc_significance_un_norm = 0
-    final_report = []
+    # overall analysis
+    if len(testable_complexity) > 2:
 
-    # attempt to identify the natural cluster size in the system:
-    for x_index in range(1, len(x_val) - 1):  # because of the [_ + 1]
-        test_n = non_log_x_val[x_index]
-        c_now = y_val[x_index]
-        c_next = y_val[x_index + 1]
-        c_test = c_now + (0.5 * (test_n + 1)) ** 2 - (0.5 * test_n) ** 2
-        if c_next > c_test:
-            natural_cluster_size = int(deepcopy(test_n))
-            break
+        # fit a single power law if more than two data points
+        dual_initial_guess = [0.1, 1, 1, 2, 2, 1]
+        try:
+            single_para = curve_fit(single_power_law, testable_x_val, testable_complexity, p0=[1, 2],
+                                    bounds=((0.0, 0.0),(np.inf, 10.0)))[0]
+            is_single_fit_success = 1
+            dual_initial_guess = [0.1, single_para[0], single_para[0], single_para[1], single_para[1], 0.0]
+            # complexity dimension is power
+            single_dc_fitted = single_para[1]
+            single_r_squared = get_r_squared(x=testable_x_val, y=testable_complexity,
+                                             func=single_power_law, fitted_para=single_para)
+        except (Warning, RuntimeError, TypeError):
+            is_single_fit_success = 0
+            single_dc_fitted = None
+            single_para = None
+            single_r_squared = None
 
-    # ignore first entry (cluster size of one patch - used for diversity, but no meaning for intra-cluster complexity)
-    if not (y_val[1:] == 0).any():
-        # shift up to a minimum value of 1
-        testable_complexity = y_val[1:]
-        comp_y_val = np.log(testable_complexity - np.min(testable_complexity) + 1.0)
-        lm_complexity = linear_model_report(x_val=x_val[1:],
-                                            y_val=comp_y_val,
-                                            is_record_vectors=is_record_lm_vectors,
-                                            model_type_str="log-log")
-        # complexity dimension is +gradient
-        lm_complexity["complexity_dimension"] = lm_complexity["slope"]
-
-        # fit log-log plots and determine d_c across rolling intervals of cluster size [2, 2+N], [3, 3+N], [4, 4+N], ...
-        max_lm_slope = -float('inf')
-        # also report the spectrum of complexity for comparable simulations:
-        dc_estimate_list = []
-        for k in range(len(x_val) - 1 - spectrum_interval_length):
-            x_start = k + 1
-            x_end = x_start + spectrum_interval_length
-            log_n = x_val[x_start:x_end]
-            log_c = comp_y_val[x_start:x_end]
-            lm_slope = linregress(x=log_n, y=log_c).slope
-            dc_estimate_list.append(lm_slope)
-            # we try to identify the interval where the rate of growth is greatest
-            if lm_slope > max_lm_slope:
-                max_lm_slope = lm_slope
-                dc_natural_range_est = [int(x_start + 1), int(x_end)]
-        # how significant is this "greatest" dc estimate (i.e. how many s.d. above the mean)?
-        if np.sum(dc_estimate_list) != 0.0:
-            dc_significance = (max_lm_slope - np.mean(dc_estimate_list))/np.std(dc_estimate_list)
+        if len(testable_x_val) > 6:
+            # fit a dual power law if more than six data points
+            try:
+                # parameters are: k, alpha_1, alpha_2, dc_1, dc_2, beta
+                dual_para = curve_fit(dual_power_law, testable_x_val, testable_complexity, p0=dual_initial_guess,
+                                      bounds=((0.0000001, 0.0, 0.0, 0.0, 0.0, -10.0),
+                                              (10.0, np.inf, np.inf, 10.0, 10.0, 10.0)))[0]
+                is_dual_fit_success = 1
+                dual_r_squared = get_r_squared(x=testable_x_val, y=testable_complexity,
+                                               func=dual_power_law, fitted_para=dual_para)
+            except (Warning, RuntimeError, TypeError):
+                is_dual_fit_success = 0
+                dual_para = None
+                dual_r_squared = None
         else:
-            dc_significance = 0
-        # possibly it should NOT be normalised as dc = 2.0 is the universal approximate behaviour
-        dc_significance_un_norm = max_lm_slope - np.mean(dc_estimate_list)
+            is_dual_fit_success = 0
+            dual_para = None
+            dual_r_squared = None
 
-        #
-        # Now we take our candidates for clustering, conduct further testing and report the best choice along with an
-        # indicator of its significance.
-        if len(dc_natural_range_est) > 0:
+        # record spectrum of complexity change per n at each value of n
+        delta_complexity_per_n = np.zeros(len(testable_complexity))
+        for j in range(len(delta_complexity_per_n)-1):
+            # from j=2 to end-1 determine the per patch change over [j, j+1]
+            delta_complexity_per_n[j] = (testable_complexity[j+1] - testable_complexity[j])/(j+1)
+        # record first location of maximum gain per n (as possible upper bound)
+        dc_per_n_max_loc = int(np.where(delta_complexity_per_n == np.max(delta_complexity_per_n))[0][0])
 
-            # try both the single best value and the integer closest to the centre of the best interval
-            test_m_list = [natural_cluster_size, int((dc_natural_range_est[0] + dc_natural_range_est[1]) / 2)]
-            report_list = []
-            for test_m in test_m_list:
+        complexity_max_results = {
+            "dc_largest_gain": delta_complexity_per_n[dc_per_n_max_loc],
+            "dc_largest_gain_n": dc_per_n_max_loc + 1,
+        }
 
-                # fit for [2, test_m-1] and [test_m, 2*test_m-1] (with overlap)
-                if test_m > 0:
-                    lower_log_n = x_val[1:test_m-1]
-                    lower_log_c = comp_y_val[1:test_m-1]
-                    lower_lm_slope = linregress(x=lower_log_n, y=lower_log_c).slope
-                    upper_log_n = x_val[test_m-1:min(2*test_m, len(x_val), len(comp_y_val))]
-                    upper_log_c = comp_y_val[test_m-1:min(2*test_m, len(x_val), len(comp_y_val))]
-                    upper_lm_slope = linregress(x=upper_log_n, y=upper_log_c).slope
-                    significance_value = upper_lm_slope - lower_lm_slope
-                    is_significant = int(significance_value > test_threshold)
-                    report_list.append([significance_value, test_m, is_significant, lower_lm_slope, upper_lm_slope])
-                else:
-                    # if no natural cluster was identified
-                    report_list.append([0.0, test_m, 0, None, None])
+        # fit incremental power laws and determine spectrum of d_c over interval of [1, M] for M in [3, end]
+        dc_fit = np.zeros(len(testable_complexity))
+        for k in range(3, len(dc_fit)):
+            # fit dc for C = alpha*(n - 1)^dc over [1, k+1] so at least 3 points
+            try:
+                dc_fit_para = curve_fit(single_power_law, testable_x_val[0:k], testable_complexity[0:k], p0=[1, 2],
+                                        bounds=((0.0, 0.0),(np.inf, 10.0)))[0]
+                dc_fit[k] = dc_fit_para[1]
+            except (Warning, RuntimeError, TypeError):
+                pass
+        # record first location of maximum fitted d_c (as possible upper bound)
+        dc_fit_max_loc = int(np.where(dc_fit == np.max(dc_fit))[0][0])
+        complexity_max_results["dc_largest_fit"] = dc_fit[dc_fit_max_loc]
+        complexity_max_results["dc_largest_fit_n"] = dc_fit_max_loc + 1
+        # if there is a point where fitted d_c is first > 2, save that (as possible lower bound)
+        dc_fit_two_plus = np.where(dc_fit > 2)[0]
+        if len(dc_fit_two_plus) > 0:
+            dc_fit_two_plus_loc = int(dc_fit_two_plus[0])
+        else:
+            dc_fit_two_plus_loc = 0
+        complexity_max_results["interval_est"] = [max(0, dc_fit_two_plus_loc + 1),
+                                                  min(dc_per_n_max_loc + 1, dc_fit_max_loc + 1)]
 
-            # report the stronger result
-            if report_list[0][0] > report_list[1][0]:
-                final_report = report_list[0][1:]
-            else:
-                final_report = report_list[1][1:]
-
-    return (lm_complexity, dc_estimate_list, dc_natural_range_est, dc_significance_un_norm,
-            dc_significance, natural_cluster_size, final_report)
-
+        graphical_results ={
+            # for producing bespoke plots
+            "is_complexity_graphical": True,  # this is for search algorithms to identify this dictionary
+            "n_vector": [int(x) for x in testable_x_val],  # need to convert int64 elements to int for final JSON saving
+            "complexity_vector": list(testable_complexity),
+            "delta_c_per_n": list(delta_complexity_per_n),
+            "dc_fit": list(dc_fit),
+            "is_single_fit_success": is_single_fit_success,
+            "single_para": single_para,
+            "single_r_squared": single_r_squared,
+            "is_dual_fit_success": is_dual_fit_success,
+            "dual_para": dual_para,
+            "dual_r_squared": dual_r_squared,
+        }
+    else:
+        single_dc_fitted = None
+        graphical_results = {}
+        complexity_max_results = {}
+    return single_dc_fitted, graphical_results, complexity_max_results
 
 def determine_complexity(sub_network, cluster, is_normalised, num_species):
     # sum the absolute state difference values over all unique patch pairs in the cluster
