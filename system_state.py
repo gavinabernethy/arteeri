@@ -1083,27 +1083,24 @@ class System_state:
         return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
 
     def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors, num_species):
-        # This function takes a set of sub_network partitions and, if it is possible to do so with at least three data
-        # points after random sampling (multiple attempts for each) of several random clusters of connected patches
-        # within the sub_network, conducts a linear regression to analyse:
-        # - the SAR (species abundance relation, i.e. how does species diversity increase with patch size)
-        # - possibly two forms of complexity/information dimension:
+        # This function takes a set of sub_network partitions and, if it is possible to do so with sufficient data
+        # points after organised iterative sampling (multiple attempts for each) of box clusters of highly-connected
+        # patch within the sub_network, analyses:
+        # - SAR (species abundance relation, i.e. how does species diversity increase with patch size)
+        # - Two forms of complexity/information dimension:
         #       - a binary version based on community states, only calculated if a corresponding_binary matrix is
         #           passed in, as we assume sub_networks to contain population sizes rather than binary occupancies.
         #           The expectation is that this is conducted only for the final meta-community snapshot, and not for
         #            time-averaged versions for which we would also conduct population (rather than binary) analysis.
         #       - a population-weighted version using the sub_networks' populations, normalised for each sub_network.
         #
-        # Summary of the primary analysis:
-        # - Use_binary for final, but pop_weighted for _average.
-        # - Natural range is calculated as a spectrum of rolling averages and we seek the highest value of fitted
-        #   complexity scaling (i.e. the interval range with the fastest growth).
-        # - Once a possible d_c interval around M is found, or the best individual value of M is found, we test both by
-        #   fitting d_c over [2, M-1] and [M, min(N, 2M)] then compare the change in fitted d_c across this break.
-        # - For the best of the (potentially two) candidates, if there is a definite change (above some tolerance
-        #   threshold), we say it is the natural cluster size. The raw change then quantifies the clustering strength.
-        # - We also report the spectrum of fitted d_c values to facilitate potential comparison between simulations
-        #   for how complexity rates increase at particular spatial scales.
+        # Summary of the complexity analysis:
+        # - Fit both single and dual power laws for the full range of complexity.
+        # - Produce the spectrum of fitted complexity dimension (dc) across [2,k] and of the change in C(n) per n for
+        #   all values of k>2. These have some characteristics that indicate but do not guarantee clustering.
+        #   Eventually we zoom out enough that the system appears uniform (noted below), and so delta C/n will tend to
+        #   a constant value. Before that happens, see a rapid rise before the cluster size, and plateauing around it,
+        #   but we cannot obtain a fully-reliable indicator.
         complexity_report = {}
 
         # need to treat each sub_network entirely separately
