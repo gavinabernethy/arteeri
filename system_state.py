@@ -6,7 +6,7 @@ from data_save_functions import update_local_population_nets
 from system_state_functions import (tuple_builder, linear_model_report, determine_complexity,
                                     rank_abundance, inter_species_predictions_correlation_coefficients,
                                     complexity_scaling_vector_analysis)
-from cluster_functions import generate_box_cluster
+from cluster_functions import generate_fast_cluster, draw_partition, partition_analysis
 
 class System_state:
 
@@ -468,8 +468,9 @@ class System_state:
     def update_distance_metrics(self, parameters):
         # Call this to conduct extensive population distribution and community state spatial distribution analysis.
         [network_analysis_species, network_analysis_community_distance, network_analysis_state_probability,
-         shannon_entropy, inter_species_predictions_final, inter_species_predictions_average,
-         complexity_final, complexity_average, rank_abundance_final, rank_abundance_average] = self.distance_metrics(
+         shannon_entropy, inter_species_predictions_final, inter_species_predictions_average, sar_final, sar_average,
+         complexity_final, complexity_average, partition_final, partition_average,
+         rank_abundance_final, rank_abundance_average] = self.distance_metrics(
             parameters=parameters)
         self.distance_metrics_store = {
             "network_analysis_species": network_analysis_species,
@@ -478,8 +479,12 @@ class System_state:
             "shannon_entropy": shannon_entropy,
             "inter_species_predictions_final": inter_species_predictions_final,
             "inter_species_predictions_average": inter_species_predictions_average,
+            "sar_final": sar_final,
+            "sar_average": sar_average,
             "complexity_final": complexity_final,
             "complexity_average": complexity_average,
+            "partition_final": partition_final,
+            "partition_average": partition_average,
             "rank_abundance_final": rank_abundance_final,
             "rank_abundance_average": rank_abundance_average,
         }
@@ -526,6 +531,8 @@ class System_state:
         #       - complexity information dimension, as the scaling of state complexity (both binary and
         #           population-weighted versions) with cluster size, where complexity is the summed difference between
         #           all the patch-pairs in the cluster.
+        #       - partition analysis - identifying the cluster size that yields the maximum possible complexity when
+        #           the spatial network is partitioned into clusters and thus viewed at different "resolutions".
         # * species rank-abundance
         #       - the rate of decrease of abundance (total global population) with species' rank by abundance.
 
@@ -604,7 +611,7 @@ class System_state:
         ordered_state_list = list(extant_state_set)
         ordered_state_list.sort()
         network_analysis_state_probability = {}
-        for state in [0, 1, 2, 3]:  # ordered_state_list
+        for state in ordered_state_list:
             state_array = np.zeros(num_patches)
             for patch_index, patch_state in enumerate(community_state_binary):
                 if patch_state == state:
@@ -670,7 +677,7 @@ class System_state:
         # Now use both the final and time-averaged community populations to determine SAR, binary and
         # population-weighted information dimension (community spatial complexity), and species-rank abundance
         print(f"Begin complexity-final analysis.")
-        complexity_final = self.complexity_analysis(
+        sar_final, complexity_final, partition_final = self.complexity_analysis(
             sub_networks=community_state_sub_networks,
             corresponding_binary=community_presence_sub_networks,
             is_record_lm_vectors=is_record_lm_vectors,
@@ -678,7 +685,7 @@ class System_state:
         )
         print(f"Completed complexity-final analysis.")
         print(f"Begin complexity-average analysis.")
-        complexity_average = self.complexity_analysis(
+        sar_average, complexity_average, partition_average = self.complexity_analysis(
             sub_networks=time_averaged_sub_networks,
             corresponding_binary=None,
             is_record_lm_vectors=is_record_lm_vectors,
@@ -696,7 +703,8 @@ class System_state:
 
         return [network_analysis_species, network_analysis_community_distance, network_analysis_state_probability,
                 shannon_entropy, inter_species_predictions_final, inter_species_predictions_average,
-                complexity_final, complexity_average, rank_abundance_final, rank_abundance_average]
+                sar_final, sar_average, complexity_final, complexity_average, partition_final, partition_average,
+                rank_abundance_final, rank_abundance_average]
 
     def network_analysis(self, patch_value_array, patch_habitat, patch_neighbours, is_presence, is_distribution):
         # need value, habitat type, and neighbours of each patch for presence, auto_correlation, clustering analysis
@@ -1101,7 +1109,22 @@ class System_state:
         #   Eventually we zoom out enough that the system appears uniform (noted below), and so delta C/n will tend to
         #   a constant value. Before that happens, see a rapid rise before the cluster size, and plateauing around it,
         #   but we cannot obtain a fully-reliable indicator.
+        #
+        # Summary of the partition analysis:
+        # - For a range of partition sizes (delta), draw clusters of size delta (or smaller if necessary) that are
+        #   themselves maximally uniform, to create maximally complex partitions of the network for the given delta.
+        # - Determine the patch-averaged value (per species) in each cluster of the partition.
+        # - Determine the mean (over all adjacent pairs in the partition) difference between neighbouring clusters.
+        # - Determine the maximum mean-difference over all partitions created for this delta. Store the spectrum.
+        # - Determine the smallest delta that yields (for SOME partition) the largest difference between neighbouring
+        #   clusters. This is the natural (maximum-complexity) spatial "resolution" at which to view the system!
+        # TODO: make some notes on how to roll this into a more general aggregation of the spatial system - this might
+        #   be something that we wish to do in general, to compare systems of different sizes, or for a general avenue
+        #   of theoretical ecology investigations reminiscent of what happened with food-web complex network theory...
+        sar_report = {}
         complexity_report = {}
+        partition_report = {}
+        is_partition_analysis = self.complexity_parameters["IS_PARTITION_ANALYSIS"]
 
         # need to treat each sub_network entirely separately
         for network_key in sub_networks.keys():
@@ -1109,6 +1132,13 @@ class System_state:
 
             current_num_patches = sub_networks[network_key]["num_patches"]
             max_delta = int(min(current_num_patches / 2, self.complexity_parameters["MAX_DELTA"]))
+            num_clusters = self.complexity_parameters["NUM_CLUSTER_DRAWS"]  # how many samples we try to draw?
+            cluster_per_patch = max(1, int(np.floor(num_clusters / current_num_patches)))
+            num_partitions = self.complexity_parameters["MAX_NUM_PARTITIONS"]
+            if num_partitions < current_num_patches:
+                partition_step = np.ceil(current_num_patches / num_partitions)
+            else:
+                partition_step = 1
 
             # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
             if max_delta > 2:
@@ -1118,19 +1148,65 @@ class System_state:
                 species_diversity = np.zeros(max_delta)
                 binary_complexity = np.zeros(max_delta)
                 population_weighted_complexity = np.zeros(max_delta)
+                sup_part_binary_complexity = np.zeros(max_delta)
+                sup_part_pw_complexity = np.zeros(max_delta)
+                inf_part_binary_complexity = np.ones(max_delta)
+                inf_part_pw_complexity = np.ones(max_delta)
 
                 # iterate over cluster radius, starting at delta=1 and indexing at 0
                 for delta in range(1, max_delta + 1):
-                    num_clusters = self.complexity_parameters["NUM_CLUSTER_DRAWS"]  # how many samples we try to draw?
-
-                    # iterate over BOX clusters of this radius
-                    cluster_per_patch = max(1, int(np.floor(num_clusters / current_num_patches)))
+                    # iterate over initial patches
                     for i in range(current_num_patches):
+
+                        # ------- PARTITION: generate a single partition starting from this patch, consisting of
+                        # clusters assembled to have minimum possible internal complexity (i.e. maximally homogeneous)
+                        if is_partition_analysis and np.mod(i, partition_step) == 0:
+                            # Note that at least the first patch 0 will always be used to start a partition, even if
+                            # somehow partition_step > N because num_partitions < 1 (which should not happen anyway).
+
+                            # TODO: add a function to visualise a partition!
+                            norm_partition, norm_partition_lookup = draw_partition(
+                                sub_network=sub_networks[network_key], size=delta, initial_patch=i,
+                                num_species=num_species, is_normalised=True)
+                            part_pw_complexity = partition_analysis(sub_network=sub_networks[network_key],
+                                                                    partition=norm_partition,
+                                                                    partition_lookup=norm_partition_lookup,
+                                                                    num_species=num_species,
+                                                                    is_normalised=True)
+                            sup_part_pw_complexity[delta - 1] = max(float(sup_part_pw_complexity[delta - 1]),
+                                                                    part_pw_complexity)
+                            inf_part_pw_complexity[delta - 1] = min(float(inf_part_pw_complexity[delta - 1]),
+                                                                    part_pw_complexity)
+
+                            if corresponding_binary is not None:
+                                un_norm_partition, un_norm_partition_lookup = draw_partition(
+                                    sub_network=corresponding_binary[network_key], size=delta, initial_patch=i,
+                                    num_species=num_species, is_normalised=False)
+                                part_binary_complexity = partition_analysis(
+                                    sub_network=corresponding_binary[network_key],
+                                                                     partition=un_norm_partition,
+                                                                     partition_lookup=un_norm_partition_lookup,
+                                                                     num_species=num_species,
+                                                                     is_normalised=False)
+                                sup_part_binary_complexity[delta - 1] = max(float(
+                                    sup_part_binary_complexity[delta - 1]), part_binary_complexity)
+                                inf_part_binary_complexity[delta - 1] = min(float(
+                                    inf_part_binary_complexity[delta - 1]), part_binary_complexity)
+
+                        # ------- COMPLEXITY: generate clusters from this patch
                         for j in range(cluster_per_patch):
-                            cluster, is_success = generate_box_cluster(
-                                sub_network=sub_networks[network_key], size=delta,
+                            cluster, is_success = generate_fast_cluster(
+                                sub_network=sub_networks[network_key],
+                                size=delta,
                                 max_attempts=self.complexity_parameters["NUM_CLUSTER_DRAW_ATTEMPTS"],
+                                admissible_elements=[_ for _ in range(sub_networks[network_key]["num_patches"])],
+                                num_species=num_species,
+                                is_box=True,
+                                is_uniform=False,
+                                all_elements_admissible=True,
                                 initial_patch=i,
+                                return_undersized_cluster=False,
+                                is_normalised=False,
                             )
 
                             if is_success:
@@ -1181,7 +1257,10 @@ class System_state:
                                                                         delta - 1] / successful_clusters[delta - 1]
                     else:
                         # if you couldn't EVER find a cluster of size D, you'll probably not find one of size >D...
+                        # this also applies to partitioning - if no clusters could be found then no possible partition
+                        # could have been made
                         break
+
 
                 # prepare x-dimension array
                 x_val = np.linspace(1, max_delta, max_delta)
@@ -1190,6 +1269,10 @@ class System_state:
                 species_diversity = np.array([])
                 binary_complexity = np.array([])
                 population_weighted_complexity = np.array([])
+                sup_part_binary_complexity = np.array([])
+                sup_part_pw_complexity = np.array([])
+                inf_part_binary_complexity = np.array([])
+                inf_part_pw_complexity = np.array([])
 
             # check arrays still have sufficiently-many entries, then slice the longest non-zero vector
             if max_delta > 2 and len(x_val) > 2:
@@ -1225,10 +1308,15 @@ class System_state:
                     x_val=x_val, y_val=population_weighted_complexity,
                 )
 
-                # record
-                complexity_report[network_key] = {
+                # record SAR
+                sar_report[network_key] = {
                     "is_cluster_success": 1,
                     "lm_sar": lm_sar,
+                }
+
+                # record complexity
+                complexity_report[network_key] = {
+                    "is_cluster_success": 1,
                     "binary_complexity": binary_complexity,
                     "binary_dc_graphical": binary_dc_graphical,
                     "binary_complexity_max": binary_complexity_max,
@@ -1237,9 +1325,13 @@ class System_state:
                     "pop_weight_complexity_max": pop_weight_complexity_max,
                 }
             else:
-                complexity_report[network_key] = {
+                # set the default values
+                sar_report[network_key] = {
                     "is_cluster_success": 0,
                     "lm_sar": {},
+                }
+                complexity_report[network_key] = {
+                    "is_cluster_success": 0,
                     "binary_complexity": {},
                     "binary_dc_graphical": None,
                     "binary_complexity_max": None,
@@ -1247,7 +1339,27 @@ class System_state:
                     "pop_weight_dc_graphical": None,
                     "pop_weight_complexity_max": None,
                 }
-        return complexity_report
+
+            if is_partition_analysis and max_delta > 2:
+                # determine the smallest delta at which maximum (possible or essential) partition complexity is attained
+                temp_report = {}
+                type_vector = {
+                    "binary_sup": sup_part_binary_complexity,
+                    "binary_inf": inf_part_binary_complexity,
+                    "pw_sup": sup_part_pw_complexity,
+                    "pw_inf": inf_part_pw_complexity,
+                }
+                for type_name in type_vector.keys():
+                    sup_value = np.max(type_vector[type_name])
+                    min_delta = 1 + np.min(np.where(type_vector[type_name] == sup_value)[0])
+                    temp_report[type_name + '_minmax_delta'] = int(min_delta)
+                    temp_report[type_name + '_spectrum'] = type_vector[type_name]
+                temp_report["is_partition_graphical"] = True  # identifier for plotting
+                partition_report[network_key] = temp_report
+            else:
+                partition_report[network_key] = {}
+
+        return sar_report, complexity_report, partition_report
 
     def count_diversity(self, sub_network, cluster):
         # count the number of species present in the population array of this sub_network, whose relatively-nth patches

@@ -44,7 +44,7 @@ master_para = {
             "HABITAT_CLUSTER_SIZE": [25],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
                 # This should be either a single value for all clusters to be the same, or a list of the desired cluster
                 # sizes to be sequentially alternated through. If IS_BIND_HABITAT_TO_CLUSTER_SIZE then this needs to be
-                # the same length as the number of habitats at generation. Otherwise this is not bound to specific
+                # the same length as the number of habitats at generation. Otherwise, this is not bound to specific
                 # habitat types, so simply list the range of same-habitat sizes desired and each cluster is assigned
                 # a habitat type to minimise overlapping boundaries.
             "HABITAT_CLUSTER_TYPE_STR": "chess_box",  # cluster topology (box, star, chain, random, disconnected).
@@ -166,9 +166,11 @@ master_para = {
 
             # Parameters for conducting the complexity analysis - increasing these can be computationally-expensive.
             "COMPLEXITY_ANALYSIS": {
-                "NUM_CLUSTER_DRAWS": 1000,  # how many samples do we try to draw for each delta?
+                "NUM_CLUSTER_DRAWS": 100,  # how many samples do we try to draw for each delta?
                 "NUM_CLUSTER_DRAW_ATTEMPTS": 20,  # how many attempts to draw each sample (may fail if disconnected)?
                 "MAX_DELTA": 64,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
+                "IS_PARTITION_ANALYSIS": True,  # toggle partition analysis to determine resolution for max complexity
+                "MAX_NUM_PARTITIONS": 100,  # max number of partitions is min(num_patches_in_subnetwork, this_value)
             },
         },
     "plot_save_para":

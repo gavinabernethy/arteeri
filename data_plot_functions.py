@@ -915,6 +915,42 @@ def plot_accessible_sub_graphs(patch_list, parameters, species, sim_path, step):
 
 # ------------------------- PRODUCING DISTANCE, NETWORK, COMPLEXITY LINEAR REGRESSION PLOTS ------------------------- #
 
+def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
+    # Plots the spectrum of max and min possible complexity of delta-partitions
+    list_of_key_paths = recursive_dict_search(nested_dict=distance_metrics_store,
+                                              seek_contains_key="is_partition_graphical",
+                                              upper_key_path=None)
+    if len(list_of_key_paths) > 0:
+        # results found
+        for path in list_of_key_paths:
+            key_list = path.split("|")
+            target_dict = return_dict_from_address(key_list, distance_metrics_store)
+            # now target_dict is the results dictionary for this sub_network
+            num_delta = len(target_dict["pw_sup_spectrum"])
+            n_values = np.linspace(1, num_delta, num_delta)
+            # pop-weighted and binary (if applicable)
+            if len(target_dict["binary_sup_spectrum"]) > 0:
+                y_key_list = ["pw", "binary"]
+            else:
+                y_key_list = ["pw"]
+            for y_key in y_key_list:
+                y_values_inf = np.asarray(target_dict[f"{y_key}_inf_spectrum"])
+                y_values_sup = np.asarray(target_dict[f"{y_key}_sup_spectrum"])
+                fig = plt.figure()
+                plt.plot(n_values, y_values_inf, c='g', markersize=5, marker='o', mfc='r', mec='k')
+                plt.plot(n_values, y_values_sup, c='b', markersize=5, marker='o', mfc='r', mec='k')
+                plt.xlabel("Partition cluster radius")
+                plt.ylabel("Partition complexity")
+                plt.legend(["Infimum", "Supremum"])
+                print_name = path.replace('|', '_')
+                file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}.png"
+                print_and_close(fig, file_path)
+    else:
+        # If IS_PARTITION_ANALYSIS was false but IS_PLOT_DISTANCE_METRICS_LM was true, this routine will fail to find
+        # anything, as the default partition outputs will be empty dictionaries without the identifying keys.
+        print("Complexity analysis - no partition data found for printing spectra.")
+        pass
+
 def complexity_plotting(distance_metrics_store, sim_path, step):
     # While plot_distance_metrics_lm() will plot SAR and complexity dimension across the full range, we need this
     # additional function to plot the dc spectrum and Delta_C_per_N.
@@ -944,6 +980,8 @@ def complexity_plotting(distance_metrics_store, sim_path, step):
                     fig = plt.figure()
                     plt.plot(n_values, plot_y[law_type], c='b')
                     plt.scatter(n_values, np.asarray(target_dict["complexity_vector"]), c='r', s=5, edgecolors='k')
+                    plt.xlabel(r"$n$")
+                    plt.ylabel(r"$C(n)$")
                     r_str = "{0:.5g}".format(target_dict[f"{law_type}_r_squared"])
                     plt.legend((f'Fit: $R^{2}$ = {r_str}', 'Actual values'))
                     print_name = path.replace('|', '_')
