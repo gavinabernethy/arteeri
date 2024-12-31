@@ -368,7 +368,7 @@ class Simulation_obj:
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
                 plot_network_properties(patch_list=self.system_state.patch_list, sim_path=self.sim_path, step=-1,
                                         adjacency_path_list=adjacency_path_list, is_biodiversity=True,
-                                        is_reserves=True, is_retro=False)
+                                        is_reserves=True, is_partition=False, is_retro=False)
 
         # MAIN LOOP - conduct simulation
         for step in range(self.total_steps):
@@ -434,7 +434,7 @@ class Simulation_obj:
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)
                 plot_network_properties(patch_list=self.system_state.patch_list, sim_path=self.sim_path, step=step,
                                         adjacency_path_list=adjacency_path_list, is_biodiversity=True,
-                                        is_reserves=True, is_retro=False)
+                                        is_reserves=True, is_partition=False, is_retro=False)
 
             # print current step
             if np.mod(step, 100) == 99:

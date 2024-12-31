@@ -26,7 +26,7 @@ master_para = {
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
-            "IS_LATTICE_WRAPPED": False,
+            "IS_LATTICE_WRAPPED": True,
             "RANDOM_GRAPH_CONNECTIVITY": None,
             "SMALL_WORLD_NUM_NEIGHBOURS": None,  # if num_patches > 2, this need to be at least 2 or graph fails
             "SMALL_WORLD_SHORTCUT_PROBABILITY": None,

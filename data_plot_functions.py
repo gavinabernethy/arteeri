@@ -514,7 +514,7 @@ def plot_current_local_population_attribute(patch_list, sim_path, attribute_name
 # ---------------------------------------------- CREATING PATCH PLOTS ---------------------------------------------- #
 
 def plot_network_properties(patch_list, sim_path, step, adjacency_path_list,
-                            is_biodiversity, is_reserves, is_label_habitat_patches=True, is_retro=False):
+                            is_biodiversity, is_reserves, is_partition, is_label_habitat_patches=True, is_retro=False):
     properties = {
         'habitat_type_numbered':
             {'attribute_id': 'habitat_type_num',
@@ -628,6 +628,19 @@ def plot_network_properties(patch_list, sim_path, step, adjacency_path_list,
             'patch_label_color': None,
         }
 
+    if is_partition:
+        properties['final_all_binary_partition'] = {
+             'attribute_id': 'partition_code',
+             "sub_attribute_list": [None],  # this should be a list containing None
+             'use_color_bar': True,
+             'label_patches': True,
+             'patch_label_attr': 'partition_code',
+             'path_list': adjacency_path_list,
+             'path_color': [0.7, 0.7, 0.7],
+             'use_colors': True,  # easier to visualise differences
+             'patch_label_color': None,
+        }
+
     file_pre_suffix = ""
     if is_retro:
         # modify the file name so that retrospective and 'live' plots are distinguishable
@@ -706,7 +719,7 @@ def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_p
                                                      patch_adjacency_matrix=mod_patch_adjacency_matrix)
     plot_network_properties(patch_list=modified_patch_list, sim_path=sim_path, step=step,
                             adjacency_path_list=adjacency_path_list,
-                            is_biodiversity=False, is_reserves=False, is_retro=True)
+                            is_biodiversity=False, is_reserves=False, is_partition=False, is_retro=True)
 
 
 # --------------------------------------- SPECIALIST PATCH PLOTTING FUNCTIONS --------------------------------------- #
@@ -937,11 +950,11 @@ def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
                 y_values_inf = np.asarray(target_dict[f"{y_key}_inf_spectrum"])
                 y_values_sup = np.asarray(target_dict[f"{y_key}_sup_spectrum"])
                 fig = plt.figure()
-                plt.plot(n_values, y_values_inf, c='g', markersize=5, marker='o', mfc='r', mec='k')
                 plt.plot(n_values, y_values_sup, c='b', markersize=5, marker='o', mfc='r', mec='k')
+                plt.plot(n_values, y_values_inf, c='g', markersize=5, marker='o', mfc='r', mec='k')
                 plt.xlabel("Partition cluster radius")
                 plt.ylabel("Partition complexity")
-                plt.legend(["Infimum", "Supremum"])
+                plt.legend(["Supremum", "Infimum"])
                 print_name = path.replace('|', '_')
                 file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}.png"
                 print_and_close(fig, file_path)

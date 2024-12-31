@@ -29,7 +29,7 @@ class Patch:
         self.this_habitat_species_feeding = {}
         self.this_habitat_species_traversal = {}
         self.stepping_stone_list = []
-        self.biodiversity = 0.
+        self.biodiversity = 0
         self.is_reserve = 0  # set to 1 if is a reserve
         self.reserve_order = []  # empty list if not a reserve, otherwise [cluster_num, patch_num_within_cluster]
         self.num_times_perturbed = 0  # add 1 every time this patch is chosen to be subject to a perturbation
@@ -53,6 +53,9 @@ class Patch:
         #
         # The largest object when printing to JSON:
         self.species_movement_scores = {}
+        #
+        # If you want to record the highest-complexity partition for later visualisation:
+        self.partition_code = None
 
     def update_biodiversity(self):
         num_species_counted = 0

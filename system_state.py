@@ -17,6 +17,7 @@ class System_state:
                  habitat_species_feeding=None,
                  current_patch_list=None,
                  dimensions=None,
+                 sim_path=None,
                  ):
         self.step = step
         self.time = 0
@@ -681,7 +682,8 @@ class System_state:
             sub_networks=community_state_sub_networks,
             corresponding_binary=community_presence_sub_networks,
             is_record_lm_vectors=is_record_lm_vectors,
-            num_species=num_species
+            num_species=num_species,
+            is_record_partition=True,
         )
         print(f"Completed complexity-final analysis.")
         print(f"Begin complexity-average analysis.")
@@ -689,7 +691,9 @@ class System_state:
             sub_networks=time_averaged_sub_networks,
             corresponding_binary=None,
             is_record_lm_vectors=is_record_lm_vectors,
-            num_species=num_species)
+            num_species=num_species,
+            is_record_partition=False,
+        )
         print(f"Completed complexity-average analysis.")
 
         # Species-rank abundance - fit a log-linear model to the curve of relative global abundance vs. species rank
@@ -1090,7 +1094,8 @@ class System_state:
         # output FIVE nested dictionaries of results
         return presence_store, similarity_store, prediction_store, correlation_store, linear_model_store
 
-    def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors, num_species):
+    def complexity_analysis(self, sub_networks, corresponding_binary, is_record_lm_vectors,
+                            num_species, is_record_partition):
         # This function takes a set of sub_network partitions and, if it is possible to do so with sufficient data
         # points after organised iterative sampling (multiple attempts for each) of box clusters of highly-connected
         # patch within the sub_network, analyses:
@@ -1118,13 +1123,11 @@ class System_state:
         # - Determine the maximum mean-difference over all partitions created for this delta. Store the spectrum.
         # - Determine the smallest delta that yields (for SOME partition) the largest difference between neighbouring
         #   clusters. This is the natural (maximum-complexity) spatial "resolution" at which to view the system!
-        # TODO: make some notes on how to roll this into a more general aggregation of the spatial system - this might
-        #   be something that we wish to do in general, to compare systems of different sizes, or for a general avenue
-        #   of theoretical ecology investigations reminiscent of what happened with food-web complex network theory...
         sar_report = {}
         complexity_report = {}
         partition_report = {}
         is_partition_analysis = self.complexity_parameters["IS_PARTITION_ANALYSIS"]
+        max_comp_binary_lookup = None
 
         # need to treat each sub_network entirely separately
         for network_key in sub_networks.keys():
@@ -1158,28 +1161,30 @@ class System_state:
                     # iterate over initial patches
                     for i in range(current_num_patches):
 
-                        # ------- PARTITION: generate a single partition starting from this patch, consisting of
+                        # ------- PARTITION: generate a single partition starting from this patch, consisting of box
                         # clusters assembled to have minimum possible internal complexity (i.e. maximally homogeneous)
                         if is_partition_analysis and np.mod(i, partition_step) == 0:
                             # Note that at least the first patch 0 will always be used to start a partition, even if
                             # somehow partition_step > N because num_partitions < 1 (which should not happen anyway).
-
-                            # TODO: add a function to visualise a partition!
-                            norm_partition, norm_partition_lookup = draw_partition(
+                            norm_partition, norm_partition_lookup, is_partition_success = draw_partition(
                                 sub_network=sub_networks[network_key], size=delta, initial_patch=i,
                                 num_species=num_species, is_normalised=True)
-                            part_pw_complexity = partition_analysis(sub_network=sub_networks[network_key],
-                                                                    partition=norm_partition,
-                                                                    partition_lookup=norm_partition_lookup,
-                                                                    num_species=num_species,
-                                                                    is_normalised=True)
-                            sup_part_pw_complexity[delta - 1] = max(float(sup_part_pw_complexity[delta - 1]),
-                                                                    part_pw_complexity)
-                            inf_part_pw_complexity[delta - 1] = min(float(inf_part_pw_complexity[delta - 1]),
-                                                                    part_pw_complexity)
+
+                            # We require at least half the elements to have been placed in clusters of the desired size
+                            # for the partition to be acceptable:
+                            if is_partition_success:
+                                part_pw_complexity = partition_analysis(sub_network=sub_networks[network_key],
+                                                                        partition=norm_partition,
+                                                                        partition_lookup=norm_partition_lookup,
+                                                                        num_species=num_species,
+                                                                        is_normalised=True)
+                                sup_part_pw_complexity[delta - 1] = max(float(sup_part_pw_complexity[delta - 1]),
+                                                                        part_pw_complexity)
+                                inf_part_pw_complexity[delta - 1] = min(float(inf_part_pw_complexity[delta - 1]),
+                                                                        part_pw_complexity)
 
                             if corresponding_binary is not None:
-                                un_norm_partition, un_norm_partition_lookup = draw_partition(
+                                un_norm_partition, un_norm_partition_lookup, is_partition_success = draw_partition(
                                     sub_network=corresponding_binary[network_key], size=delta, initial_patch=i,
                                     num_species=num_species, is_normalised=False)
                                 part_binary_complexity = partition_analysis(
@@ -1188,10 +1193,17 @@ class System_state:
                                                                      partition_lookup=un_norm_partition_lookup,
                                                                      num_species=num_species,
                                                                      is_normalised=False)
-                                sup_part_binary_complexity[delta - 1] = max(float(
-                                    sup_part_binary_complexity[delta - 1]), part_binary_complexity)
-                                inf_part_binary_complexity[delta - 1] = min(float(
-                                    inf_part_binary_complexity[delta - 1]), part_binary_complexity)
+
+                                if is_partition_success:
+                                    sup_part_binary_complexity[delta - 1] = max(float(
+                                        sup_part_binary_complexity[delta - 1]), part_binary_complexity)
+                                    inf_part_binary_complexity[delta - 1] = min(float(
+                                        inf_part_binary_complexity[delta - 1]), part_binary_complexity)
+                                    # Record highest-complexity binary partition (over all delta) from 'all' subnetwork
+                                    if is_record_partition and network_key == "all":
+                                        if part_binary_complexity == max(sup_part_binary_complexity):
+                                            # note that this will overwrite if precisely occurs at larger delta
+                                            max_comp_binary_lookup = deepcopy(un_norm_partition_lookup)
 
                         # ------- COMPLEXITY: generate clusters from this patch
                         for j in range(cluster_per_patch):
@@ -1356,6 +1368,11 @@ class System_state:
                     temp_report[type_name + '_spectrum'] = type_vector[type_name]
                 temp_report["is_partition_graphical"] = True  # identifier for plotting
                 partition_report[network_key] = temp_report
+
+                if is_record_partition and network_key == "all":
+                    # Highest-complexity binary partition from the 'all' subnetwork is recorded
+                    for patch in self.patch_list:
+                        patch.partition_code = int(max_comp_binary_lookup[patch.number])
             else:
                 partition_report[network_key] = {}
 
