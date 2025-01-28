@@ -390,7 +390,7 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
     for species in species_list:
         if None in [species.current_prey_dict, species.current_foraging_mobility, species.current_foraging_kappa,
                     species.current_max_foraging_path_length, species.current_minimum_link_strength_foraging,
-                    species.current_predation_rate, species.current_predation_efficiency,
+                    species.current_predation_rate, species.current_predation_pragmatism,
                     species.current_predation_focus]:
             species.current_prey_dict = temporal_function(species.predation_para["PREY_DICT"], None, time)
             species.current_foraging_mobility = temporal_function(
@@ -400,8 +400,8 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                 species.predation_para["MAX_FORAGING_PATH_LENGTH"], None, time)
             species.current_minimum_link_strength_foraging = temporal_function(
                 species.predation_para["MINIMUM_LINK_STRENGTH_FORAGING"], None, time)
-            species.current_predation_efficiency = temporal_function(
-                species.predation_para["PREDATION_EFFICIENCY"], None, time)
+            species.current_predation_pragmatism = temporal_function(
+                species.predation_para["PREDATION_PRAGMATISM"], None, time)
             species.current_predation_focus = temporal_function(
                 species.predation_para["PREDATION_FOCUS"], None, time)
             species.current_predation_rate = temporal_function(species.predation_para["PREDATION_RATE"], None, time)
@@ -416,6 +416,19 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
             this_patch_species_traversal = patch.this_habitat_species_traversal[local_pop.species.name]
             this_patch_species_feeding = patch.this_habitat_species_feeding[local_pop.species.name]
 
+            # store home range score for this local population
+            if is_local_foraging_ensured:
+                # with this global option set to true, within-patch feeding is always set to 1.0 for any species
+                local_pop.home_range_score = 1.0
+            else:
+                # normally, within-patch search score is species_mu * this_habitat_traversal / patch.size
+                if local_pop.species.current_foraging_mobility is None:
+                    local_pop.home_range_score = None
+                else:
+                    local_pop.home_range_score = (local_pop.species.current_foraging_mobility *
+                                                  this_patch_species_traversal / patch.size)
+
+            # now loop over all possible target patches
             for patch_to_num in patch.adjacency_lists[local_pop.name]:
                 patch_to = patch_list[patch_to_num]
 
@@ -438,23 +451,16 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                         if patch_to_num == patch.number:
                             # for WITHIN-PATCH FEEDING:
                             if is_local_foraging_ensured:
-                                # with this global option set to true, within-patch feeding is always set to
-                                # precisely 1.0 for any species, as in earlier versions of Artemis
                                 local_pop_score = 1.0
                                 local_pop_to_score = 1.0
                             else:
-                                # normally, within-patch score is now master_mu * species_mu * this_habitat_traversal
-                                if local_pop.species.current_foraging_mobility is None:
-                                    local_pop_score = None
-                                else:
-                                    local_pop_score = \
-                                        local_pop.species.current_foraging_mobility * this_patch_species_traversal
-
+                                local_pop_score = local_pop.home_range_score
+                                # and for the other population to reach this one:
                                 if local_pop_to.species.current_foraging_mobility is None:
                                     local_pop_to_score = None
                                 else:
-                                    local_pop_to_score = \
-                                        local_pop_to.species.current_foraging_mobility * patch_to_species_traversal
+                                    local_pop_to_score = (local_pop_to.species.current_foraging_mobility *
+                                                          patch_to_species_traversal / patch.size)
                         else:
                             if local_pop.species.is_nonlocal_foraging:
                                 # score dictionary for THIS species' local population to THAT patch
@@ -550,7 +556,7 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
     for species in species_list:
         update_and_check = [
             ['current_r_value', 'growth_para', 'R'],
-            ['current_predation_efficiency', 'predation_para', 'PREDATION_EFFICIENCY'],
+            ['current_predation_pragmatism', 'predation_para', 'PREDATION_PRAGMATISM'],
             ['current_predation_focus', 'predation_para', 'PREDATION_FOCUS'],
             ['current_predation_rate', 'predation_para', 'PREDATION_RATE'],
         ]
@@ -564,10 +570,9 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
                               species=species,
                               time=time,
                               is_change=False)
-        # check predation efficiency and focus are suitable only when set (instead of for every predation loop)
-        if species.current_predation_efficiency is not None and (
-                species.current_predation_efficiency < 0.0 or species.current_predation_efficiency > 1.0):
-            raise Exception("ERROR: species predation_efficiency should be in the interval [0, 1] or None")
+        # check predation pragmatism and focus are suitable only when set (instead of for every predation loop)
+        if species.current_predation_pragmatism is not None and species.current_predation_pragmatism < 0.0:
+            raise Exception("ERROR: species predation_pragmatism should be non-negative or None")
 
         if species.current_predation_focus is not None and species.current_predation_focus < 0.0:
             raise Exception("ERROR: species predation_focus should be non-negative or None")

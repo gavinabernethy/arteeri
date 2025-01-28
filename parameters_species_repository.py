@@ -52,8 +52,7 @@ default_species = {
             "PREDATION_FUNCTION": "lotka_volterra",
             "PREY_DICT": {
                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-                "constant_value": {},  # dictionary with name and preference weighting - total weighting should
-                # not matter, so long as the relative weightings are correct.
+                "constant_value": {},  # dictionary with name: [z-score, preference boost]
                 "period": None,
                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -125,10 +124,9 @@ default_species = {
                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
             },
-            "PREDATION_EFFICIENCY": {
+            "PREDATION_PRAGMATISM": {
                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                "constant_value": 0.5,  # in the range [0,1] - determines how pragmatic when foraging vs.
-                # the weight given to prey preferences and to distant populations. If at 1, seeks to maximise scores.
+                "constant_value": 0.5,  # in the range [0,+INF). Determines when preferences considered.
                 "period": None,
                 "amplitude": None,
                 "phase_shift": None,
@@ -373,7 +371,7 @@ ARTEMIS_01_MASTER = {
                 "PREDATION_FUNCTION": None,
                 "PREY_DICT": {
                     "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
-                    "constant_value": None,  # dictionary with name and preference weighting
+                    "constant_value": None,  # dictionary with name: [z-score, preference boost]
                     "period": None,
                     "vector_exp": None,  # [value_0, value_1, ..., value_period]
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -444,9 +442,9 @@ ARTEMIS_01_MASTER = {
                     "logistic_r": None,  # r-value of the logistic map to generate the time-series
                     "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                 },
-                "PREDATION_EFFICIENCY": {
+                "PREDATION_PRAGMATISM": {
                     "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,  # in the range [0,1]
+                    "constant_value": None,  # in the range [0,+INF). Determines when preferences considered.
                     "period": None,
                     "amplitude": None,
                     "phase_shift": None,
@@ -640,7 +638,7 @@ ARTEMIS_01_MASTER = {
     #             "PREDATION_FUNCTION": "lotka_volterra",
     #             "PREY_DICT": {
     #                 "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-    #                 "constant_value": {'prey': 1.0},  # dictionary with name and preference weighting
+    #                 "constant_value": {'prey': [1.0, 0.0]},  # dictionary with name: [z-score, preference boost]
     #                 "period": None,
     #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
     #                 "vector_imp": {},  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -712,10 +710,9 @@ ARTEMIS_01_MASTER = {
     #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
     #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
     #             },
-    #             "PREDATION_EFFICIENCY": {
+    #             "PREDATION_PRAGMATISM": {
     #                 "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-    #                 "constant_value": 1.0,  # in the range [0,1] - determines how pragmatic when foraging vs. the
-    #                 # weight given to prey preferences and to distant populations. If at 1, seeks to maximise scores.
+    #                 "constant_value": 1.0,  # in the range [0,+INF). Determines when preferences considered.
     #                 "period": None,
     #                 "amplitude": None,
     #                 "phase_shift": None,
@@ -915,8 +912,7 @@ WATER_VOLE_MINK_MASTER = {
                     "PREDATION_FUNCTION": None,
                     "PREY_DICT": {
                         "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
-                        "constant_value": None,  # dictionary with name and preference weighting - total weighting
-                        # should not matter, so long as the relative weightings are correct.
+                        "constant_value": None,  # dictionary with name: [z-score, preference boost]
                         "period": None,
                         "vector_exp": None,  # [value_0, value_1, ..., value_period]
                         "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -988,9 +984,9 @@ WATER_VOLE_MINK_MASTER = {
                         "logistic_r": None,  # r-value of the logistic map to generate the time-series
                         "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                     },
-                    "PREDATION_EFFICIENCY": {
+                    "PREDATION_PRAGMATISM": {
                         "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                        "constant_value": None,  # in the range [0,1]
+                        "constant_value": None,  # in the range [0,+INF). Determines when preferences considered.
                         "period": None,
                         "amplitude": None,
                         "phase_shift": None,
@@ -1190,7 +1186,7 @@ WATER_VOLE_MINK_MASTER = {
                     "PREDATION_FUNCTION": "lotka_volterra",
                     "PREY_DICT": {
                         "type": 'constant',  # {'constant', 'vector_exp', 'vector_imp'}
-                        "constant_value": {'water_vole': 1.0},  # dictionary with name and preference weighting
+                        "constant_value": {'water_vole': [1.0, 0.0]},  # dictionary with name: [z-score, preference boost]
                         "period": None,
                         "vector_exp": None,  # [value_0, value_1, ..., value_period]
                         "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
@@ -1262,9 +1258,9 @@ WATER_VOLE_MINK_MASTER = {
                         "logistic_r": None,  # r-value of the logistic map to generate the time-series
                         "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
                     },
-                    "PREDATION_EFFICIENCY": {
+                    "PREDATION_PRAGMATISM": {
                         "type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                        "constant_value": 1.0,  # highly efficient predator - focuses on killing locally first,
+                        "constant_value": 10.0,  # highly pragmatic predator - focuses on killing locally first,
                         "period": None,
                         "amplitude": None,
                         "phase_shift": None,

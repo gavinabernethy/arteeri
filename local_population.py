@@ -130,6 +130,7 @@ class Local_population:
         self.survivors = 0.0
         self.prey_shortfall = 0.0
         self.predator_shortfall = 0.0
+        self.home_range_score = 0.0  # used when calculating preference boost for effort
 
     def set_initial_population(self, patch, current_patch_list):
         # how to specify (or reset) the initial population in the patch based on species-specific scheme
@@ -381,6 +382,20 @@ class Local_population:
                                  self.holding_population * population["object"].holding_population
         return direct_impact
 
+    def preference_boost(self, population, this_prey_scores):
+        # Calculate the effort boost. This is designed so that:
+        # - Low pragmatism => always apply boosts due to prey preferences.
+        # - High efficiency => only applies preferential boosts to easily-accessed local populations.
+        #
+        predation_pragmatism = self.species.current_predation_pragmatism
+        this_preference = this_prey_scores[1]
+        if this_preference > 0.0:
+            preference_boost = 1.0 + this_preference * (
+                    1.0 + self.home_range_score - population["score_to"]) ** (-predation_pragmatism)
+        else:
+            preference_boost = 1.0
+        return preference_boost
+
     def calculate_predation(self, time):
         # this function:
         # - sums up the total prey available to this local predator population
@@ -400,41 +415,61 @@ class Local_population:
 
             total_prey_hunted = 0.0
             total_effort = 0.0
-            predation_efficiency = self.species.current_predation_efficiency
             predation_focus = self.species.current_predation_focus
             predation_focus_type = self.species.predation_focus_type
+
+            # pre-loop here if max_yield to build both summations
+            under_sum = 0.0
+            inner_sum = 0.0
+            if predation_focus_type == "best_yield":
+                for population in self.interacting_populations:
+                    if population["score_to"] == self.home_range_score:
+                        this_prey_scores = self.species.current_prey_dict[population["object"].name]
+                        this_z_score = this_prey_scores[0]
+                        preference_boost = self.preference_boost(population, this_prey_scores)
+                        under_sum += this_z_score * population["object"].holding_population
+                        inner_sum += (population["object"].holding_population * preference_boost *
+                                      this_z_score * population["score_to"])
 
             for population in self.interacting_populations:
                 # this accounts already if nonlocal feeding is allowed in general, for this species, at this range
                 if population["object"].holding_population > 0.0:
                     if population["object"].name in self.species.current_prey_dict:
+
                         # What is predator's preference for this species?
-                        this_preference = self.species.current_prey_dict[population["object"].name]
-                        # Calculate the effort function. This is designed so that:
-                        # - Low efficiency => prioritise prey based on preferred prey species and population size.
-                        # - High efficiency => prioritise prey based on accessibility score and population size.
-                        #
+                        this_prey_scores = self.species.current_prey_dict[population["object"].name]
+                        # prey_dict entries have the form {prey_name: [z-score, preference]}
+                        this_z_score = this_prey_scores[0]
 
                         if predation_focus_type == "best_score":
-                            # As rho -> +infty, focuses on the closest (best score / least path cost)
-                            # non-zero prey population, even if very small in size. Tends to local predation, if
-                            # any local prey are available, regardless of the sizes of the prey. This could mean
-                            # focusing exclusively on local prey even if a MUCH greater prey population was available
-                            # nearby.
+                            # As rho -> +infty, focuses on the closest (best score / least path cost) non-zero prey
+                            # population, even if very small in size. Tends to local predation (within the home range),
+                            # [OR AT LEAST OF THE BEST PATH-AND-SPECIES-Z-SCORE] if any such prey are available,
+                            # regardless of the sizes of the prey. This could mean disregarding a MUCH greater prey
+                            # population nearby.
+                            preference_boost = self.preference_boost(population, this_prey_scores)
                             this_effort = population["object"].holding_population * (
-                                    predation_efficiency * population["score_to"] + (1.0 - predation_efficiency) *
-                                    this_preference) ** predation_focus
+                                    preference_boost * this_z_score * population["score_to"]) ** predation_focus
+
                         elif predation_focus_type == "best_yield":
                             # As rho -> +infty, focuses on the best returning prey population, from scaling the
                             # combination of BOTH prey score and population to the power of rho.
-                            this_effort = (population["object"].holding_population * (
-                                    predation_efficiency * population["score_to"] + (1.0 - predation_efficiency) *
-                                    this_preference)) ** predation_focus
+                            # However we must manually pre-pool all prey populations within the home range together,
+                            # as they may now be distinguished from each other in terms of population size (and also
+                            # species-pair z-scores).
+                            # BE AWARE THAT THIS METHOD DOES NOT DISTINGUISH BETWEEN Z-SCORES WHEN DOING THE POOLING.
+                            # (WHICH IS SLIGHTLY DIFFERENT FROM THE OTHER METHOD IN SOME CIRCUMSTANCES) BUT IT DOES
+                            # STILL ACCOUNT FOR THEM AT THE SUBSEQUENT DISTRIBUTION BY Z-SCORE * POPULATION SIZE.
+                            if under_sum > 0.0:
+                                this_effort = (this_z_score * population["object"].holding_population *
+                                               (inner_sum ** predation_focus) / under_sum)
+                            else:
+                                this_effort = 0.0
                         else:
                             raise Exception(f"Error in species {self.species.name} predation_focus_type specification.")
 
                         # Allocate relative prey hunted:
-                        this_prey_hunted = this_effort * population["score_to"] * population[
+                        this_prey_hunted = this_effort * this_z_score * population["score_to"] * population[
                             "object"].holding_population
                         # Update running totals:
                         total_effort += this_effort
