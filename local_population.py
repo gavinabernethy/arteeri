@@ -202,7 +202,7 @@ class Local_population:
     def growth_malthusian(self, r_value, patch_competitors, alpha):
         r_ = r_value * self.r_mod
         l_ = self.species.lifespan
-        k_ = k_ = self.carrying_capacity  # not used in Malthusian growth
+        k_ = self.carrying_capacity  # not used in Malthusian growth
         competitors = 0.0
         gain = r_ * self.holding_population
         mortality = (1 / l_) * self.holding_population
