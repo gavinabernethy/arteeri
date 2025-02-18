@@ -3,108 +3,98 @@ class Species:
     def __init__(self,
                  name=None,
                  species_num=None,
-                 lifespan=0.0,
-                 minimum_population_size=0.0,
-                 predator_list=None,
-                 resource_usage_conversion=0.0,
-                 is_dispersal=False,
-                 dispersal_para=None,
-                 is_dispersal_path_restricted=False,
-                 always_move_with_minimum=False,
-                 dispersal_penalty=0.0,
-                 initial_population_mechanism=None,
+                 core_para=None,
                  initial_population_para=None,
-                 seasonal_period=None,
-                 growth_function=None,
                  growth_para=None,
-                 is_growth_offset=False,
-                 growth_annual_duration=None,
-                 growth_offset_species=None,
-                 is_growth_offset_local=False,
-                 growth_offset_local=None,
                  predation_para=None,
-                 is_predation_only_prevents_death=False,
-                 is_nonlocal_foraging=False,
-                 is_foraging_path_restricted=False,
-                 predation_focus_type=None,
-                 is_pure_direct_impact=False,
+                 dispersal_para=None,
                  pure_direct_impact_para=None,
-                 is_direct_offset=False,
-                 direct_annual_duration=None,
-                 direct_offset_species=None,
-                 direct_offset_local=None,
-                 is_direct_offset_local=False,
                  direct_impact_on_me=None,
-                 is_perturbs_environment=False,
                  perturbation_para=None,
+                 population_dynamics_para=None,  # not stored, only used in construction
                  ):
 
-        # core:
+        # fundamentals:
         self.name = name
         self.species_num = species_num
 
+        # core:
+        self.minimum_population_size = set_default_value(core_para, "MINIMUM_POPULATION_SIZE", 0.0)
+        self.lifespan = set_default_value(core_para, "LIFESPAN", 0.0)
+        self.seasonal_period = set_default_value(core_para, "SEASONAL_PERIOD", 0)
+        self.predator_list = set_default_value(core_para, "PREDATOR_LIST", None)
+
         # initial:
-        self.initial_population_mechanism = initial_population_mechanism
         self.initial_population_para = initial_population_para
+        self.initial_population_mechanism = set_default_value(
+            initial_population_para, "INITIAL_POPULATION_MECHANISM", None)
 
         # growth:
-        self.minimum_population_size = minimum_population_size
-        self.lifespan = lifespan
-        self.seasonal_period = seasonal_period
-        self.resource_usage_conversion = resource_usage_conversion
-        self.growth_function = growth_function
         self.growth_para = growth_para
+        self.resource_usage_conversion = set_default_value(
+            growth_para, "RESOURCE_USAGE_CONVERSION", None)
+        self.growth_function = set_default_value(growth_para, "GROWTH_FUNCTION", None)
 
         # growth - offset:
-        self.is_growth_offset = is_growth_offset
-        if growth_annual_duration is not None:
-            self.growth_annual_duration = int(growth_annual_duration)
-        else:
-            self.growth_annual_duration = growth_annual_duration
-        self.growth_vector_offset_species = growth_offset_species
-        self.is_growth_offset_local = is_growth_offset_local
-        self.growth_vector_offset_local = growth_offset_local
-
-        # basic population dynamics:
-        self.predator_list = predator_list
-
-        # dispersal:
-        self.is_dispersal = is_dispersal
-        self.dispersal_para = dispersal_para
-        self.is_dispersal_path_restricted = is_dispersal_path_restricted
-        self.always_move_with_minimum = always_move_with_minimum
-        self.dispersal_efficiency = 1.0 - min(0.999999999, dispersal_penalty)  # convert penalty to efficiency in [0, 1]
+        self.is_growth_offset = set_default_value(
+            growth_para, ["ANNUAL_OFFSET", "IS_GROWTH_OFFSET"], False)
+        self.growth_annual_duration = set_default_value(
+            growth_para, ["ANNUAL_OFFSET", "ANNUAL_DURATION"], False)
+        self.growth_vector_offset_species = set_default_value(
+            growth_para, ["ANNUAL_OFFSET", "GROWTH_OFFSET_SPECIES"], False)
+        self.is_growth_offset_local = set_default_value(
+            growth_para, ["ANNUAL_OFFSET", "IS_GROWTH_OFFSET_LOCAL"], False)
+        self.growth_vector_offset_local = set_default_value(
+            growth_para, ["ANNUAL_OFFSET", "GROWTH_OFFSET_LOCAL"], False)
 
         # predation:
         self.predation_para = predation_para
-        self.is_predation_only_prevents_death = is_predation_only_prevents_death
-        self.is_nonlocal_foraging = is_nonlocal_foraging
-        self.is_foraging_path_restricted = is_foraging_path_restricted
-        self.predation_focus_type = predation_focus_type
+        self.is_predation_only_prevents_death = set_default_value(
+            predation_para, "IS_PREDATION_ONLY_PREVENTS_DEATH", False)
+        self.is_nonlocal_foraging = set_default_value(
+            predation_para, "IS_NONLOCAL_FORAGING", False)
+        self.is_foraging_path_restricted = set_default_value(
+            predation_para, "IS_NONLOCAL_FORAGING_PATH_RESTRICTED", False)
+        self.predation_focus_type = set_default_value(
+            predation_para, "PREDATION_FOCUS_TYPE", False)
+
+
+        # dispersal:
+        self.dispersal_para = dispersal_para
+        self.is_dispersal = set_default_value(dispersal_para, "IS_DISPERSAL", None)
+        self.is_dispersal_path_restricted = set_default_value(
+            dispersal_para, "IS_DISPERSAL_PATH_RESTRICTED", False)
+        self.always_move_with_minimum = set_default_value(
+            dispersal_para, "ALWAYS_MOVE_WITH_MINIMUM", False)
+        dispersal_penalty = max(set_default_value(dispersal_para, "SS_DISPERSAL_PENALTY", 0.0),
+                                population_dynamics_para["GENERAL_DISPERSAL_PENALTY"])
+        self.dispersal_efficiency = 1.0 - min(0.999999999, dispersal_penalty)  # convert penalty to efficiency in [0, 1]
+
 
         # direct impact:
-        self.is_pure_direct_impact = is_pure_direct_impact
         self.pure_direct_impact_para = pure_direct_impact_para
-        self.is_direct_offset = is_direct_offset
-        if direct_annual_duration is not None:
-            self.direct_annual_duration = int(direct_annual_duration)
-        else:
-            self.direct_annual_duration = direct_annual_duration
-        self.direct_vector_offset_species = direct_offset_species
-        self.is_direct_offset_local = is_direct_offset_local
-        self.direct_vector_offset_local = direct_offset_local
+        self.is_pure_direct_impact =  set_default_value(pure_direct_impact_para, "IS_PURE_DIRECT_IMPACT", False)
+        self.is_direct_offset = set_default_value(pure_direct_impact_para, ["ANNUAL_OFFSET", "IS_DIRECT_OFFSET"], False)
+        self.direct_annual_duration = set_default_value(
+            pure_direct_impact_para, ["ANNUAL_OFFSET", "ANNUAL_DURATION"], 0)
+        self.direct_vector_offset_species = set_default_value(
+            pure_direct_impact_para, ["ANNUAL_OFFSET", "DIRECT_OFFSET_SPECIES"], None)
+        self.is_direct_offset_local = set_default_value(
+            pure_direct_impact_para, ["ANNUAL_OFFSET", "IS_DIRECT_OFFSET_LOCAL"], False)
+        self.direct_vector_offset_local = set_default_value(
+            pure_direct_impact_para, ["ANNUAL_OFFSET", "DIRECT_OFFSET_LOCAL"], None)
         self.direct_impact_on_me = direct_impact_on_me
 
         # perturbation:
-        self.is_perturbs_environment = is_perturbs_environment
         self.perturbation_para = perturbation_para
+        self.is_perturbs_environment = set_default_value(perturbation_para, "IS_PERTURBS_ENVIRONMENT", False)
 
         # CURRENT holding values - growth:
         self.current_r_value = None
 
         # CURRENT holding values - foraging
         self.current_prey_dict = None
-        self.current_predation_efficiency = None
+        self.current_predation_pragmatism = None
         self.current_predation_focus = None
         self.current_predation_rate = None
         self.current_foraging_mobility = None
@@ -119,3 +109,22 @@ class Species:
         self.current_coefficients_lists = None
         self.current_max_dispersal_path_length = None
         self.current_minimum_link_strength_dispersal = None
+
+def set_default_value(parameter_dict, target_name, default_value):
+    # checks the key (which can be one or two levels) and sets the default value if it does not exist.
+    if parameter_dict is None:
+        return default_value
+    else:
+        if type(target_name) == str:
+            try:
+                output = parameter_dict[target_name]
+            except KeyError:
+                output = default_value
+        elif type(target_name) == list and len(target_name) == 2:
+            try:
+                output = parameter_dict[target_name[0]][target_name[1]]
+            except KeyError:
+                output = default_value
+        else:
+            raise Exception(f"Expecting {target_name} to be either a string or a two-element list.")
+        return output

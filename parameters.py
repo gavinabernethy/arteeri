@@ -41,7 +41,7 @@ master_para = {
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             "IS_HABITAT_CLUSTERS": True,  # if True then all else ignored except the following two options...
-            "HABITAT_CLUSTER_SIZE": [25],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+            "HABITAT_CLUSTER_SIZE": [16],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
                 # This should be either a single value for all clusters to be the same, or a list of the desired cluster
                 # sizes to be sequentially alternated through. If IS_BIND_HABITAT_TO_CLUSTER_SIZE then this needs to be
                 # the same length as the number of habitats at generation. Otherwise, this is not bound to specific
@@ -85,7 +85,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 625,
+            "NUM_PATCHES": 40,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?

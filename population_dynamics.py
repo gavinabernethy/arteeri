@@ -35,38 +35,45 @@ def reset_dispersal_values(patch_list):
             local_pop.population_enter = 0.0
 
 
-def temporal_function(parameter, previous_value, time):
+def temporal_function(para_dict, para_name, previous_value, time):
     # retrieves the current value of a potentially temporally-varying species-specific parameter
-    if parameter["type"] is None:
-        value = None
-    elif parameter["type"] == "constant":
-        value = parameter["constant_value"]
-    elif parameter["type"] == "sine":
-        value = parameter["amplitude"] * np.sin(time * (2.0 * np.pi / parameter["period"]) + parameter["phase_shift"]) \
-                + parameter["vertical_shift"]
-    elif parameter["type"] == "vector_exp":
-        index = np.mod(time, np.floor(parameter["period"]))
-        value = parameter["vector_exp"][index]
-    elif parameter["type"] == "vector_imp":
-        # find the current time in the cycle
-        index = np.mod(time, np.floor(parameter["period"]))  # find largest key below or equal to the index.
-        # Note that dictionaries are unordered, so filter the starting_values less than or equal to the index
-        # and then choose the largest to get the key for our current time period
-        key = max(filter(lambda x: x <= index, parameter["vector_imp"].keys()))
-        # pass this back to the dictionary of values
-        value = parameter["vector_imp"][key]
-    elif parameter["type"] == "logistic_map":
-        if previous_value is None:
-            previous_value = parameter["logistic_initial"]
-        # obtain previous value rescaled to [0, 1]
-        re_scaled_previous_value = min(1.0, max(0.0, previous_value / parameter["logistic_max"]))
-        # calculate next value (in [0, 1]) from the logistic map sequence
-        normalised_value = parameter["logistic_r"] * re_scaled_previous_value * (1.0 - re_scaled_previous_value)
-        # rescale this output
-        value = parameter["logistic_max"] * normalised_value
+    if para_dict is None:
+        return None
     else:
-        raise Exception("Type not recognised.")  # Note that we accept 'None' as valid!
-    return value
+        try:
+            parameter = para_dict[para_name]
+        except KeyError:
+            return None
+        if parameter["type"] is None:
+            value = None
+        elif parameter["type"] == "constant":
+            value = parameter["constant_value"]
+        elif parameter["type"] == "sine":
+            value = parameter["amplitude"] * np.sin(time * (2.0 * np.pi / parameter["period"]
+                                                            ) + parameter["phase_shift"]) + parameter["vertical_shift"]
+        elif parameter["type"] == "vector_exp":
+            index = np.mod(time, np.floor(parameter["period"]))
+            value = parameter["vector_exp"][index]
+        elif parameter["type"] == "vector_imp":
+            # find the current time in the cycle
+            index = np.mod(time, np.floor(parameter["period"]))  # find the largest key below or equal to the index.
+            # Note that dictionaries are unordered, so filter the starting_values less than or equal to the index
+            # and then choose the largest to get the key for our current time period
+            key = max(filter(lambda x: x <= index, parameter["vector_imp"].keys()))
+            # pass this back to the dictionary of values
+            value = parameter["vector_imp"][key]
+        elif parameter["type"] == "logistic_map":
+            if previous_value is None:
+                previous_value = parameter["logistic_initial"]
+            # obtain previous value rescaled to [0, 1]
+            re_scaled_previous_value = min(1.0, max(0.0, previous_value / parameter["logistic_max"]))
+            # calculate next value (in [0, 1]) from the logistic map sequence
+            normalised_value = parameter["logistic_r"] * re_scaled_previous_value * (1.0 - re_scaled_previous_value)
+            # rescale this output
+            value = parameter["logistic_max"] * normalised_value
+        else:
+            raise Exception("Type not recognised.")  # Note that we accept 'None' as valid!
+        return value
 
 
 # ------------------------ DISPERSAL TYPES ------------------------ #
@@ -334,17 +341,17 @@ def build_actual_dispersal_targets(patch_list, species_list, is_dispersal, time)
                         species.current_max_dispersal_path_length, species.current_minimum_link_strength_dispersal,
                         species.current_dispersal_direction, species.current_coefficients_lists]:
                 species.current_dispersal_mechanism = temporal_function(
-                    species.dispersal_para["DISPERSAL_MECHANISM"], None, time)
+                    species.dispersal_para, "DISPERSAL_MECHANISM", None, time)
                 species.current_dispersal_mobility = temporal_function(
-                    species.dispersal_para["DISPERSAL_MOBILITY"], None, time)
+                    species.dispersal_para, "DISPERSAL_MOBILITY", None, time)
                 species.current_max_dispersal_path_length = temporal_function(
-                    species.dispersal_para["MAX_DISPERSAL_PATH_LENGTH"], None, time)
+                    species.dispersal_para, "MAX_DISPERSAL_PATH_LENGTH", None, time)
                 species.current_minimum_link_strength_dispersal = temporal_function(
-                    species.dispersal_para["MINIMUM_LINK_STRENGTH_DISPERSAL"], None, time)
+                    species.dispersal_para, "MINIMUM_LINK_STRENGTH_DISPERSAL", None, time)
                 species.current_dispersal_direction = temporal_function(
-                    species.dispersal_para['DISPERSAL_DIRECTION'], None, time)
+                    species.dispersal_para, 'DISPERSAL_DIRECTION', None, time)
                 species.current_coefficients_lists = temporal_function(
-                    species.dispersal_para['COEFFICIENTS_LISTS'], None, time)
+                    species.dispersal_para, 'COEFFICIENTS_LISTS', None, time)
         for patch in patch_list:
             for local_pop in patch.local_populations.values():
                 # reset them
@@ -392,19 +399,19 @@ def build_interacting_populations_list(patch_list, species_list, is_nonlocal_for
                     species.current_max_foraging_path_length, species.current_minimum_link_strength_foraging,
                     species.current_predation_rate, species.current_predation_pragmatism,
                     species.current_predation_focus]:
-            species.current_prey_dict = temporal_function(species.predation_para["PREY_DICT"], None, time)
+            species.current_prey_dict = temporal_function(species.predation_para, "PREY_DICT", None, time)
             species.current_foraging_mobility = temporal_function(
-                species.predation_para['FORAGING_MOBILITY'], None, time)
-            species.current_foraging_kappa = temporal_function(species.predation_para["FORAGING_KAPPA"], None, time)
+                species.predation_para, 'FORAGING_MOBILITY', None, time)
+            species.current_foraging_kappa = temporal_function(species.predation_para, "FORAGING_KAPPA", None, time)
             species.current_max_foraging_path_length = temporal_function(
-                species.predation_para["MAX_FORAGING_PATH_LENGTH"], None, time)
+                species.predation_para, "MAX_FORAGING_PATH_LENGTH", None, time)
             species.current_minimum_link_strength_foraging = temporal_function(
-                species.predation_para["MINIMUM_LINK_STRENGTH_FORAGING"], None, time)
+                species.predation_para, "MINIMUM_LINK_STRENGTH_FORAGING", None, time)
             species.current_predation_pragmatism = temporal_function(
-                species.predation_para["PREDATION_PRAGMATISM"], None, time)
+                species.predation_para, "PREDATION_PRAGMATISM", None, time)
             species.current_predation_focus = temporal_function(
-                species.predation_para["PREDATION_FOCUS"], None, time)
-            species.current_predation_rate = temporal_function(species.predation_para["PREDATION_RATE"], None, time)
+                species.predation_para, "PREDATION_FOCUS", None, time)
+            species.current_predation_rate = temporal_function(species.predation_para, "PREDATION_RATE", None, time)
 
     # reset interacting population lists
     for patch in patch_list:
@@ -537,12 +544,12 @@ def update_and_check_func(species, time, update_and_check_list, is_change):
             # i.e. if we need to access a dictionary-nested attribute
             previous_value = getattr(species, _[0])
             result, is_change = checker(
-                previous_value, temporal_function(getattr(species, _[1])[_[2]], previous_value, time), is_change)
+                previous_value, temporal_function(getattr(species, _[1]), _[2], previous_value, time), is_change)
         else:
             # or if we can access the attribute for comparison directly
             previous_value = getattr(species, _[0])
             result, is_change = checker(
-                previous_value, temporal_function(getattr(species, _[1]), previous_value, time), is_change)
+                previous_value, temporal_function(species, _[1], previous_value, time), is_change)
         setattr(species, _[0], result)
     return is_change
 

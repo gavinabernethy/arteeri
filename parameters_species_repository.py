@@ -4,9 +4,13 @@ import numpy as np
 # ----------------------------------------- DEFAULT ----------------------------------------- #
 
 default_species = {
-    "MINIMUM_POPULATION_SIZE": 1.0,
-    "LIFESPAN": 1,
-    "PREDATOR_LIST": [],  # What species are predators of this species?
+    "CORE_PARA": {
+        "MINIMUM_POPULATION_SIZE": 1.0,
+        "LIFESPAN": 1,
+        "PREDATOR_LIST": [],  # What species are predators of this species?
+        "SEASONAL_PERIOD": 0,  # used in the growth and direct impact offsets
+    },
+
     "INITIAL_POPULATION_PARA": {
         "INITIAL_POPULATION_MECHANISM": "random_binomial",
         "IS_ENSURE_MINIMUM_POPULATION": False,  # note that this overwrites even an explicit patch_vector
@@ -18,7 +22,7 @@ default_species = {
         "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},  # probability of occurrence in patch of given habitat_type_num
         "PATCH_VECTOR": [],
     },
-    "SEASONAL_PERIOD": 0,  # used in the growth and direct impact offsets
+
     "GROWTH_PARA":
         {
             "GROWTH_FUNCTION": "logistic",
@@ -157,7 +161,7 @@ default_species = {
             # that converts directly to new biomass of this species
             "IS_PREDATION_ONLY_PREVENTS_DEATH": False,  # cant gain new members due to pred. (only to r)
             # If false, this represents a long-lived species who need to eat to live, but they only reproduce and grow
-            # the population when explicitly allowed to breed using R and the growt
+            # the population when explicitly allowed to breed using R and the growth function.
         },
     "DISPERSAL_PARA":
         {
@@ -261,9 +265,9 @@ default_species = {
                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
             },
         },
-    "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species. e.g. culling
     "PURE_DIRECT_IMPACT_PARA":
         {
+            "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species. e.g. culling
             "TYPE": "vector",
             "IMPACT": 0.0,
             "PROBABILITY": 0.0,
@@ -280,8 +284,8 @@ default_species = {
             },
         },
     "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-    "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
     "PERTURBATION_PARA": {
+        "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
         "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
         "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
             # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
@@ -323,9 +327,12 @@ default_species = {
 
 ARTEMIS_01_MASTER = {
     "prey": {
-        "MINIMUM_POPULATION_SIZE": 0.000001,
-        "LIFESPAN": 100,
-        "PREDATOR_LIST": ['predator'],
+        "CORE_PARA":{
+            "MINIMUM_POPULATION_SIZE": 0.000001,
+            "LIFESPAN": 100,
+            "PREDATOR_LIST": ['predator'],
+            "SEASONAL_PERIOD": 0,
+        },
         "INITIAL_POPULATION_PARA": {
             "INITIAL_POPULATION_MECHANISM": "gaussian",
             "IS_ENSURE_MINIMUM_POPULATION": True,
@@ -337,7 +344,6 @@ ARTEMIS_01_MASTER = {
             "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
             "PATCH_VECTOR": None,
         },
-        "SEASONAL_PERIOD": 0,
         "GROWTH_PARA":
             {
                 "GROWTH_FUNCTION": "logistic",
@@ -366,114 +372,7 @@ ARTEMIS_01_MASTER = {
                     "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
                 },
             },
-        "PREDATION_PARA":
-            {
-                "PREDATION_FUNCTION": None,
-                "PREY_DICT": {
-                    "type": None,  # {'constant', 'vector_exp', 'vector_imp'}
-                    "constant_value": None,  # dictionary with name: [z-score, preference boost]
-                    "period": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                },
-                "IS_NONLOCAL_FORAGING": False,
-                "MINIMUM_LINK_STRENGTH_FORAGING": {
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "IS_NONLOCAL_FORAGING_PATH_RESTRICTED": False,
-                "MAX_FORAGING_PATH_LENGTH": {
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "FORAGING_MOBILITY": {
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "FORAGING_KAPPA": {  # should typically be zero, unless you want to EFFORTLESSLY forage over a range
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "PREDATION_RATE": {
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "PREDATION_PRAGMATISM": {
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,  # in the range [0,+INF). Determines when preferences considered.
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "PREDATION_FOCUS_TYPE": None,  # must be either "best_score" or "best_yield" - determines the
-                    # precise form of the effort function, so that rho -> +infty leads to either local (if non-zero prey)
-                    # foraging or focus on only the best return single prey population (from both score and population).
-                "PREDATION_FOCUS": {
-                    "type": None,  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
-                    "constant_value": None,  # should be non-negative
-                    "period": None,
-                    "amplitude": None,
-                    "phase_shift": None,
-                    "vertical_shift": None,
-                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
-                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
-                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
-                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
-                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
-                },
-                "ECOLOGICAL_EFFICIENCY": None,
-                "IS_PREDATION_ONLY_PREVENTS_DEATH": False,  # cant gain new members due to pred. (only to r)
-            },
+        "PREDATION_PARA": None,
         "DISPERSAL_PARA":
             {
                 "IS_DISPERSAL": False,
@@ -550,43 +449,9 @@ ARTEMIS_01_MASTER = {
                     "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                 },
             },
-        "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
-        "PURE_DIRECT_IMPACT_PARA":
-            {
-                "TYPE": None,
-                "IMPACT": None,
-                "PROBABILITY": None,
-                "DIRECT_VECTOR": [],
-                "ANNUAL_OFFSET": {
-                    "IS_DIRECT_OFFSET": False,  # is there an annual offset to early/late seasonal
-                    # behaviour, for example to delay mating season or late spring etc.
-                    "ANNUAL_DURATION": None,  # This is how long each year is
-                    "DIRECT_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
-                    "IS_DIRECT_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
-                    "DIRECT_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
-                },
-            },
+        "PURE_DIRECT_IMPACT_PARA": None,
         "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-        "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
-        "PERTURBATION_PARA": {
-            "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
-            "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
-                # for each potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
-                # dependent upon the density, that is x = local population / carrying_capacity
-                "SAME": [0, 0, 0, 0],
-                "ADJACENT": [0, 0, 0, 0],
-                "XY_ADJACENT": [0, 0, 0, 0],
-            },
-            "PERTURBATION": {
-                "IS_REMOVAL": False,
-                "IS_HABITAT_TYPE_CHANGE": False,
-                "HABITAT_TYPE_NUM_TO_CHANGE_TO": None,  # integer habitat type number
-                "IS_QUALITY_CHANGE": False,
-                "RELATIVE_QUALITY_CHANGE": None,  # ± float amount?
-                "IS_ADJACENCY_CHANGE": False,
-                "ABSOLUTE_ADJACENCY_CHANGE": None,  # 1 or 0
-            },
-        },
+        "PERTURBATION_PARA": None,
     },
 
     # "predator": {
@@ -865,9 +730,12 @@ ARTEMIS_01_MASTER = {
 WATER_VOLE_MINK_MASTER = {
     "water_vole":
         {
-            "MINIMUM_POPULATION_SIZE": 1.0,
-            "LIFESPAN": 100,
-            "PREDATOR_LIST": ['mink'],
+            "CORE_PARA": {
+                "MINIMUM_POPULATION_SIZE": 1.0,
+                "LIFESPAN": 100,
+                "PREDATOR_LIST": ['mink'],
+                "SEASONAL_PERIOD": 360,
+            },
             "INITIAL_POPULATION_PARA": {
                 "INITIAL_POPULATION_MECHANISM": "constant_binomial",
                 "IS_ENSURE_MINIMUM_POPULATION": False,
@@ -879,7 +747,6 @@ WATER_VOLE_MINK_MASTER = {
                 "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
                 "PATCH_VECTOR": [],
             },
-            "SEASONAL_PERIOD": 360,
             "GROWTH_PARA":
                 {
                     "GROWTH_FUNCTION": "logistic",
@@ -1098,9 +965,9 @@ WATER_VOLE_MINK_MASTER = {
                         "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                     },
                 },
-            "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
             "PURE_DIRECT_IMPACT_PARA":
                 {
+                    "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species
                     "TYPE": "vector",
                     "IMPACT": 0.0,
                     "PROBABILITY": 0.0,
@@ -1116,8 +983,8 @@ WATER_VOLE_MINK_MASTER = {
                     },
                 },
             "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-            "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
             "PERTURBATION_PARA": {
+                "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
                 "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
                 "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
                     # for potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3
@@ -1139,9 +1006,12 @@ WATER_VOLE_MINK_MASTER = {
         },
     "mink":
         {
-            "MINIMUM_POPULATION_SIZE": 1.0,
-            "LIFESPAN": 600,
-            "PREDATOR_LIST": [],
+            "CORE_PARA":{
+                "MINIMUM_POPULATION_SIZE": 1.0,
+                "LIFESPAN": 600,
+                "PREDATOR_LIST": [],
+                "SEASONAL_PERIOD": 360,
+            },
             "INITIAL_POPULATION_PARA": {
                 "INITIAL_POPULATION_MECHANISM": "constant_binomial",
                 "IS_ENSURE_MINIMUM_POPULATION": False,
@@ -1153,7 +1023,6 @@ WATER_VOLE_MINK_MASTER = {
                 "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},
                 "PATCH_VECTOR": [],
             },
-            "SEASONAL_PERIOD": 360,
             "GROWTH_PARA":
                 {
                     "GROWTH_FUNCTION": "logistic",
@@ -1372,9 +1241,9 @@ WATER_VOLE_MINK_MASTER = {
                         "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
                     },
                 },
-            "IS_PURE_DIRECT_IMPACT": True,  # direct impact but not from any species (e.g. culling in this case)
             "PURE_DIRECT_IMPACT_PARA":
                 {
+                    "IS_PURE_DIRECT_IMPACT": True,  # direct impact but not from any species (e.g. culling in this case)
                     "TYPE": "binomial",
                     "IMPACT": -0.5,
                     "PROBABILITY": 0.0001,  # be aware that this can kill everything if probability too large
@@ -1389,8 +1258,8 @@ WATER_VOLE_MINK_MASTER = {
                     },
                 },
             "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-            "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
             "PERTURBATION_PARA": {
+                "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
                 "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
                 "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {
                     # for potentially-impacted patch, occurs with probability = X_0*chi(x) + X_1*x + X_2*x^2 + X_3*x^3

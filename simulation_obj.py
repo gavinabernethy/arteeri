@@ -149,60 +149,15 @@ class Simulation_obj:
             new_species = Species(
                 name=species_name,
                 species_num=species_num,
-                lifespan=self.parameters["species_para"][species_name]["LIFESPAN"],
-                minimum_population_size=self.parameters["species_para"][species_name]["MINIMUM_POPULATION_SIZE"],
-                predator_list=self.parameters["species_para"][species_name]["PREDATOR_LIST"],
-                resource_usage_conversion=self.parameters["species_para"][species_name]["GROWTH_PARA"][
-                    "RESOURCE_USAGE_CONVERSION"],
-                is_dispersal=self.parameters["species_para"][species_name]["DISPERSAL_PARA"]["IS_DISPERSAL"],
-                dispersal_para=self.parameters["species_para"][species_name]["DISPERSAL_PARA"],
-                is_dispersal_path_restricted=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                    "IS_DISPERSAL_PATH_RESTRICTED"],
-                always_move_with_minimum=self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                    "ALWAYS_MOVE_WITH_MINIMUM"],
-                dispersal_penalty=max(self.parameters["species_para"][species_name]["DISPERSAL_PARA"][
-                                          "SS_DISPERSAL_PENALTY"],
-                                      self.parameters["pop_dyn_para"]["GENERAL_DISPERSAL_PENALTY"]),
-                initial_population_mechanism=self.parameters["species_para"][species_name]["INITIAL_POPULATION_PARA"][
-                    "INITIAL_POPULATION_MECHANISM"],
+                core_para=self.parameters["species_para"][species_name]["CORE_PARA"],
                 initial_population_para=self.parameters["species_para"][species_name]["INITIAL_POPULATION_PARA"],
-                growth_function=self.parameters["species_para"][species_name]["GROWTH_PARA"]["GROWTH_FUNCTION"],
                 growth_para=self.parameters["species_para"][species_name]["GROWTH_PARA"],
-                seasonal_period=self.parameters["species_para"][species_name]["SEASONAL_PERIOD"],
-                is_growth_offset=self.parameters["species_para"][species_name]["GROWTH_PARA"]["ANNUAL_OFFSET"][
-                    "IS_GROWTH_OFFSET"],
-                growth_annual_duration=self.parameters["species_para"][species_name]["GROWTH_PARA"]["ANNUAL_OFFSET"][
-                    "ANNUAL_DURATION"],
-                growth_offset_species=self.parameters["species_para"][species_name]["GROWTH_PARA"]["ANNUAL_OFFSET"][
-                    "GROWTH_OFFSET_SPECIES"],
-                is_growth_offset_local=self.parameters["species_para"][species_name]["GROWTH_PARA"]["ANNUAL_OFFSET"][
-                    "IS_GROWTH_OFFSET_LOCAL"],
-                growth_offset_local=self.parameters["species_para"][species_name]["GROWTH_PARA"]["ANNUAL_OFFSET"][
-                    "GROWTH_OFFSET_LOCAL"],
                 predation_para=self.parameters["species_para"][species_name]["PREDATION_PARA"],
-                is_predation_only_prevents_death=self.parameters["species_para"][species_name]["PREDATION_PARA"][
-                    "IS_PREDATION_ONLY_PREVENTS_DEATH"],
-                is_nonlocal_foraging=self.parameters["species_para"][species_name]["PREDATION_PARA"][
-                    "IS_NONLOCAL_FORAGING"],
-                is_foraging_path_restricted=self.parameters["species_para"][species_name]["PREDATION_PARA"][
-                    "IS_NONLOCAL_FORAGING_PATH_RESTRICTED"],
-                predation_focus_type=self.parameters["species_para"][species_name]["PREDATION_PARA"][
-                    "PREDATION_FOCUS_TYPE"],
-                is_pure_direct_impact=self.parameters["species_para"][species_name]["IS_PURE_DIRECT_IMPACT"],
+                dispersal_para = self.parameters["species_para"][species_name]["DISPERSAL_PARA"],
                 pure_direct_impact_para=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"],
-                is_direct_offset=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][
-                    "ANNUAL_OFFSET"]["IS_DIRECT_OFFSET"],
-                direct_annual_duration=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][
-                    "ANNUAL_OFFSET"]["ANNUAL_DURATION"],
-                direct_offset_species=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][
-                    "ANNUAL_OFFSET"]["DIRECT_OFFSET_SPECIES"],
-                is_direct_offset_local=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][
-                    "ANNUAL_OFFSET"]["IS_DIRECT_OFFSET_LOCAL"],
-                direct_offset_local=self.parameters["species_para"][species_name]["PURE_DIRECT_IMPACT_PARA"][
-                    "ANNUAL_OFFSET"]["DIRECT_OFFSET_LOCAL"],
                 direct_impact_on_me=self.parameters["species_para"][species_name]["DIRECT_IMPACT_ON_ME"],
-                is_perturbs_environment=self.parameters["species_para"][species_name]["IS_PERTURBS_ENVIRONMENT"],
                 perturbation_para=self.parameters["species_para"][species_name]["PERTURBATION_PARA"],
+                population_dynamics_para=self.parameters["pop_dyn_para"],  # this is only temporary
             )
             species_list.append(new_species)
             species_dictionary[species_name] = new_species
@@ -243,7 +198,7 @@ class Simulation_obj:
     ######################################################################################################
 
     def species_pathing(self):
-        # generate shortest path cost for each species using Dijkstra's algorithm, and list of reachable patches
+        # generate the shortest path cost for each species using Dijkstra's algorithm, and list of reachable patches
         is_generate_fresh = True
         if self.parameters["main_para"]["IS_LOAD_ADJ_VARIABLES"]:
             print("Attempting to load pre-existing adjacency variables.")

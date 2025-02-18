@@ -318,7 +318,7 @@ class Local_population:
         if self.species.growth_para["R"]["type"] in ["vector_exp", "vector_imp"] and self.species.is_growth_offset:
             self.set_current_vector_offset(time=time, vector_statement="GROWTH")
             year_time = np.mod(time + self.current_growth_vector_offset, self.species.growth_annual_duration)
-            r_value = temporal_function(self.species.growth_para["R"], year_time)
+            r_value = temporal_function(self.species.growth_para, "R", 0.0, year_time)
 
         # Final growth function (accounting for reduced r due to predation, and including mortality which is impacted
         # by carrying capacity if relevant).
