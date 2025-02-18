@@ -199,7 +199,7 @@ class Local_population:
         self.population_enter_history.append(self.population_enter)
         self.potential_dispersal_history.append(self.potential_dispersal)
 
-    def growth_malthusian(self, r_value, patch_competitors, alpha):
+    def growth_malthusian(self, r_value, patch_competitors, alpha, cml_para):
         r_ = r_value * self.r_mod
         l_ = self.species.lifespan
         k_ = self.carrying_capacity  # not used in Malthusian growth
@@ -209,7 +209,7 @@ class Local_population:
         growth = gain - mortality
         return growth, r_, l_, k_, competitors
 
-    def growth_logistic(self, r_value, patch_competitors, alpha):
+    def growth_logistic(self, r_value, patch_competitors, alpha, cml_para):
         r_ = r_value * self.r_mod
         l_ = self.species.lifespan
         k_ = self.carrying_capacity
@@ -229,6 +229,32 @@ class Local_population:
                            self.resource_usage_conversion * self.holding_population) / self.resource_usage_conversion
         growth = self.holding_population * (r_ - 1.0 / l_ - np.max([1.0, (r_ - 1.0 / l_)]) * competitors / k_)
         return growth, r_, l_, k_, competitors
+
+    def growth_sine_map(self, r_value, patch_competitors, alpha, cml_para):
+        # Uses four CML_PARAs.
+        # x_{n+1} = a*sin(bx + c) + d
+        growth = cml_para[0] * np.sin(cml_para[1] * self.holding_population + cml_para[2]) + cml_para[3]
+        return growth, None, None, None, None
+
+    def growth_tent_map(self, r_value, patch_competitors, alpha, cml_para):
+        # Uses three CML_PARAs.
+        # x_{n+1} = a*min( x_{n}, b - x_{n} ) + c
+        growth = cml_para[0] * min(self.holding_population, cml_para[1] - self.holding_population) + cml_para[2]
+        return growth, None, None, None, None
+
+    def growth_shift_map(self, r_value, patch_competitors, alpha, cml_para):
+        # Uses a single CML_PARA.
+        # x_{n+1} = {
+        #   ax_{n} if x_{n} < 1/a
+        #   ax_{n} - 1 if 1/a < x_{n}
+        # }
+        if cml_para[0] == 0.0:
+            growth = 0.0
+        elif self.holding_population < 1.0/cml_para[0]:
+            growth = cml_para[0] * self.holding_population
+        else:
+            growth = cml_para[0] * self.holding_population - 1.0
+        return growth, None, None, None, None
 
     def set_current_vector_offset(self, time, vector_statement):
         # For both growth and direct impact, we have the additional options of an offset to the annual periodic vectors
@@ -327,11 +353,15 @@ class Local_population:
         # Within this function, the final effective value of r will also take into account the patch quality
         # and species-specific habitat feeding score.
 
+        # If using abstracted discrete maps (sine, shift, tent), load the list of parameters for these:
+        cml_para = self.species.current_cml_para
+
         local_growth, r_final, l_final, k_final, competitors_final = self.growth_function[
             self.species.growth_function](
             r_value=r_value,
             patch_competitors=patch_competitors,
             alpha=alpha,
+            cml_para=cml_para,
         )
         if parameters["main_para"]["MODEL_TIME_TYPE"] == "discrete":
             local_growth_change = local_growth - self.holding_population

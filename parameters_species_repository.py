@@ -49,7 +49,22 @@ default_species = {
                 "GROWTH_OFFSET_SPECIES": [],  # list - each entry is the annual offset. Can be stochastic!
                 "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
                 "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
-            }
+            },
+            "CML_PARA": [
+                    # This should be an ordered list of the 1 (shift), 3 (tent) or 4 (sine) parameters used in these maps:
+                    {"type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                },
+            ],
         },
     "PREDATION_PARA":
         {
@@ -371,6 +386,21 @@ ARTEMIS_01_MASTER = {
                     "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
                     "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
                 },
+                "CML_PARA": [
+                    # This should be an ordered list of the 1 (shift), 3 (tent) or 4 (sine) parameters used in these maps:
+                    {"type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+                    "constant_value": 0,
+                    "period": None,
+                    "amplitude": None,
+                    "phase_shift": None,
+                    "vertical_shift": None,
+                    "vector_exp": None,  # [value_0, value_1, ..., value_period]
+                    "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+                    "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+                    "logistic_r": None,  # r-value of the logistic map to generate the time-series
+                    "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+                    },
+                ],
             },
         "PREDATION_PARA": None,
         "DISPERSAL_PARA":
@@ -497,6 +527,21 @@ ARTEMIS_01_MASTER = {
     #                 "IS_GROWTH_OFFSET_LOCAL": False,  # is there an annual offset that varies by patch?
     #                 "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
     #             },
+    #             "CML_PARA": [
+    #                 # This should be an ordered list of the 1 (shift), 3 (tent) or 4 (sine) parameters used in these maps:
+    #                 {"type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
+    #                 "constant_value": 0,
+    #                 "period": None,
+    #                 "amplitude": None,
+    #                 "phase_shift": None,
+    #                 "vertical_shift": None,
+    #                 "vector_exp": None,  # [value_0, value_1, ..., value_period]
+    #                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
+    #                 "logistic_initial": None,  # initial value of this parameter (WILL BE RE-SCALED BY THE MAXIMUM)
+    #                 "logistic_r": None,  # r-value of the logistic map to generate the time-series
+    #                 "logistic_max": None,  # theoretical maximum value of this parameter, to re-scale all to [0, 1]
+    #                 },
+    #             ],
     #         },
     #     "PREDATION_PARA":
     #         {

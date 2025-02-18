@@ -36,7 +36,9 @@ def reset_dispersal_values(patch_list):
 
 
 def temporal_function(para_dict, para_name, previous_value, time):
-    # retrieves the current value of a potentially temporally-varying species-specific parameter
+    # for retrieving current values of species-specific parameters.
+    # This outer function first checks for non-trivial existence of the holding parameter
+    # dictionary (e.g. predation_parameters)
     if para_dict is None:
         return None
     else:
@@ -44,36 +46,41 @@ def temporal_function(para_dict, para_name, previous_value, time):
             parameter = para_dict[para_name]
         except KeyError:
             return None
-        if parameter["type"] is None:
-            value = None
-        elif parameter["type"] == "constant":
-            value = parameter["constant_value"]
-        elif parameter["type"] == "sine":
-            value = parameter["amplitude"] * np.sin(time * (2.0 * np.pi / parameter["period"]
-                                                            ) + parameter["phase_shift"]) + parameter["vertical_shift"]
-        elif parameter["type"] == "vector_exp":
-            index = np.mod(time, np.floor(parameter["period"]))
-            value = parameter["vector_exp"][index]
-        elif parameter["type"] == "vector_imp":
-            # find the current time in the cycle
-            index = np.mod(time, np.floor(parameter["period"]))  # find the largest key below or equal to the index.
-            # Note that dictionaries are unordered, so filter the starting_values less than or equal to the index
-            # and then choose the largest to get the key for our current time period
-            key = max(filter(lambda x: x <= index, parameter["vector_imp"].keys()))
-            # pass this back to the dictionary of values
-            value = parameter["vector_imp"][key]
-        elif parameter["type"] == "logistic_map":
-            if previous_value is None:
-                previous_value = parameter["logistic_initial"]
-            # obtain previous value rescaled to [0, 1]
-            re_scaled_previous_value = min(1.0, max(0.0, previous_value / parameter["logistic_max"]))
-            # calculate next value (in [0, 1]) from the logistic map sequence
-            normalised_value = parameter["logistic_r"] * re_scaled_previous_value * (1.0 - re_scaled_previous_value)
-            # rescale this output
-            value = parameter["logistic_max"] * normalised_value
-        else:
-            raise Exception("Type not recognised.")  # Note that we accept 'None' as valid!
-        return value
+        value = temporal_sub_function(parameter, previous_value, time)
+    return value
+
+def temporal_sub_function(parameter, previous_value, time):
+    # given that the parameter's particular entry exists, retrieves its current potentially temporally-varying value
+    if parameter["type"] is None:
+        value = None
+    elif parameter["type"] == "constant":
+        value = parameter["constant_value"]
+    elif parameter["type"] == "sine":
+        value = parameter["amplitude"] * np.sin(time * (2.0 * np.pi / parameter["period"]
+                                                        ) + parameter["phase_shift"]) + parameter["vertical_shift"]
+    elif parameter["type"] == "vector_exp":
+        index = np.mod(time, np.floor(parameter["period"]))
+        value = parameter["vector_exp"][index]
+    elif parameter["type"] == "vector_imp":
+        # find the current time in the cycle
+        index = np.mod(time, np.floor(parameter["period"]))  # find the largest key below or equal to the index.
+        # Note that dictionaries are unordered, so filter the starting_values less than or equal to the index
+        # and then choose the largest to get the key for our current time period
+        key = max(filter(lambda x: x <= index, parameter["vector_imp"].keys()))
+        # pass this back to the dictionary of values
+        value = parameter["vector_imp"][key]
+    elif parameter["type"] == "logistic_map":
+        if previous_value is None:
+            previous_value = parameter["logistic_initial"]
+        # obtain previous value rescaled to [0, 1]
+        re_scaled_previous_value = min(1.0, max(0.0, previous_value / parameter["logistic_max"]))
+        # calculate next value (in [0, 1]) from the logistic map sequence
+        normalised_value = parameter["logistic_r"] * re_scaled_previous_value * (1.0 - re_scaled_previous_value)
+        # rescale this output
+        value = parameter["logistic_max"] * normalised_value
+    else:
+        raise Exception("Type not recognised.")  # Note that we accept 'None' as valid!
+    return value
 
 
 # ------------------------ DISPERSAL TYPES ------------------------ #
@@ -577,6 +584,19 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
                               species=species,
                               time=time,
                               is_change=False)
+
+        # CML parameters (for sine/tent/shift maps) which will be in a sub-list. Each can be potentially updated:
+        if species.growth_para["CML_PARA"] is not None and len(species.growth_para["CML_PARA"]) > 0:
+            current_cml_para = []
+            for cml_index in range(len(species.growth_para["CML_PARA"])):
+                if species.current_cml_para is None:
+                    previous_value = 0.0
+                else:
+                    previous_value = species.current_cml_para[cml_index]
+                current_cml_para.append(temporal_sub_function(species.growth_para["CML_PARA"][cml_index],
+                                              previous_value, time))
+            species.current_cml_para = current_cml_para
+
         # check predation pragmatism and focus are suitable only when set (instead of for every predation loop)
         if species.current_predation_pragmatism is not None and species.current_predation_pragmatism < 0.0:
             raise Exception("ERROR: species predation_pragmatism should be non-negative or None")

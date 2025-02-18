@@ -91,6 +91,7 @@ class Species:
 
         # CURRENT holding values - growth:
         self.current_r_value = None
+        self.current_cml_para = None  # parameters for sine, tent, shift maps
 
         # CURRENT holding values - foraging
         self.current_prey_dict = None
