@@ -1,8 +1,5 @@
 # generates sample spatial networks and habitat data in .CSV files for testing
 import shutil
-from copy import deepcopy
-from random import randrange, randint
-
 import numpy as np
 import os
 import networkx  # https://networkx.org/documentation/stable/reference/generators.html

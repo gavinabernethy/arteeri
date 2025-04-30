@@ -67,6 +67,7 @@ class System_state:
         self.update_quality_history()
         self.update_size_history()
         self.record_xy_adjacency()
+        self.partition_complexity = {}
 
     def update_biodiversity_history(self):
         # this is called EVERY time-step and updates both the local and global properties
@@ -1155,10 +1156,13 @@ class System_state:
                 sup_part_pw_complexity = np.zeros(max_delta)
                 inf_part_binary_complexity = np.ones(max_delta)
                 inf_part_pw_complexity = np.ones(max_delta)
+                num_successful_partitions = np.zeros(max_delta)
+                running_part_binary_complexity = np.zeros(max_delta)
+                running_part_pw_complexity = np.zeros(max_delta)
 
                 # iterate over cluster radius, starting at delta=1 and indexing at 0
                 for delta in range(1, max_delta + 1):
-                    # iterate over initial patches
+                    # iterate over initial patches from which to begin generating a partition
                     for i in range(current_num_patches):
 
                         # ------- PARTITION: generate a single partition starting from this patch, consisting of box
@@ -1173,11 +1177,13 @@ class System_state:
                             # We require at least half the elements to have been placed in clusters of the desired size
                             # for the partition to be acceptable:
                             if is_partition_success:
+                                num_successful_partitions[delta - 1] += 1
                                 part_pw_complexity = partition_analysis(sub_network=sub_networks[network_key],
                                                                         partition=norm_partition,
                                                                         partition_lookup=norm_partition_lookup,
                                                                         num_species=num_species,
-                                                                        is_normalised=True)
+                                                                        is_normalised=True)[0]
+                                running_part_pw_complexity[delta - 1] += part_pw_complexity
                                 sup_part_pw_complexity[delta - 1] = max(float(sup_part_pw_complexity[delta - 1]),
                                                                         part_pw_complexity)
                                 inf_part_pw_complexity[delta - 1] = min(float(inf_part_pw_complexity[delta - 1]),
@@ -1192,13 +1198,16 @@ class System_state:
                                                                      partition=un_norm_partition,
                                                                      partition_lookup=un_norm_partition_lookup,
                                                                      num_species=num_species,
-                                                                     is_normalised=False)
+                                                                     is_normalised=False)[0]
 
                                 if is_partition_success:
+                                    # Update max, min, and running total (for subsequent mean calculation) at this delta
+                                    running_part_binary_complexity[delta - 1] += part_binary_complexity
                                     sup_part_binary_complexity[delta - 1] = max(float(
                                         sup_part_binary_complexity[delta - 1]), part_binary_complexity)
                                     inf_part_binary_complexity[delta - 1] = min(float(
                                         inf_part_binary_complexity[delta - 1]), part_binary_complexity)
+
                                     # Record highest-complexity binary partition (over all delta) from 'all' subnetwork
                                     if is_record_partition and network_key == "all":
                                         if part_binary_complexity == max(sup_part_binary_complexity):
@@ -1273,6 +1282,16 @@ class System_state:
                         # could have been made
                         break
 
+                    # Summary of partition result arrays for this value of delta:
+                    if num_successful_partitions[delta - 1] > 0:
+                        running_part_pw_complexity[delta - 1] = running_part_pw_complexity[delta - 1
+                                                                    ] / num_successful_partitions[delta - 1]
+                        running_part_binary_complexity[delta - 1] = running_part_binary_complexity[delta - 1
+                                                                    ] / num_successful_partitions[delta - 1]
+                    else:
+                        running_part_binary_complexity[delta - 1] = 0.0
+
+                # ------------ iteration over delta ends.
 
                 # prepare x-dimension array
                 x_val = np.linspace(1, max_delta, max_delta)
@@ -1282,8 +1301,10 @@ class System_state:
                 binary_complexity = np.array([])
                 population_weighted_complexity = np.array([])
                 sup_part_binary_complexity = np.array([])
+                running_part_binary_complexity = np.array([])
                 sup_part_pw_complexity = np.array([])
                 inf_part_binary_complexity = np.array([])
+                running_part_pw_complexity = np.array([])
                 inf_part_pw_complexity = np.array([])
 
             # check arrays still have sufficiently-many entries, then slice the longest non-zero vector
@@ -1353,12 +1374,23 @@ class System_state:
                 }
 
             if is_partition_analysis and max_delta > 2:
-                # determine the smallest delta at which maximum (possible or essential) partition complexity is attained
+                # # save min/mean/max (over partitions) partition-complexity spectrum as an attribute of system_state
+                # # so they can be found by the plotting functions
+                # self.partition_complexity = {
+                #     "min_spectrum": inf_part_binary_complexity,
+                #     "max_spectrum": sup_part_binary_complexity,
+                #     "mean_spectrum": running_part_binary_complexity,
+                # }
+
+                # determine the smallest delta at which maximum (possible or essential) partition complexity is
+                # attained and pass this through as part of the overall report
                 temp_report = {}
                 type_vector = {
                     "binary_sup": sup_part_binary_complexity,
+                    "binary_mean": running_part_binary_complexity,
                     "binary_inf": inf_part_binary_complexity,
                     "pw_sup": sup_part_pw_complexity,
+                    "pw_mean": running_part_pw_complexity,
                     "pw_inf": inf_part_pw_complexity,
                 }
                 for type_name in type_vector.keys():

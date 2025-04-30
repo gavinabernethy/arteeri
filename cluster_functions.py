@@ -76,7 +76,7 @@ def cluster_next_element(adjacency_matrix, patch_list, current_cluster: list,
 def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, num_species, is_box=False,
                           is_uniform=False, all_elements_admissible=False, initial_patch=None,
                           return_undersized_cluster=False, is_normalised=False):
-    # This is a more limited, but more efficient method to generate entire  clusters of the specified size.
+    # This is a more limited, but more efficient method to generate entire clusters of the specified size.
     # Used during complexity_analysis() when we requiring rapidly drawing many 100's of clusters.
     cluster = []
     is_success = False
@@ -282,8 +282,10 @@ def partition_analysis(sub_network, partition, partition_lookup, num_species, is
                 if neighbour_cluster != cluster_num:
                     partition_adjacency[cluster_num, neighbour_cluster] = 1
 
-    # now determine species-averaged difference across adjacent clusters
+    # now determine min, mean, max species-averaged difference across adjacent clusters (i.e. partition complexity)
     total_difference = 0.0
+    min_difference = 0.0
+    max_difference = 0.0
     num_pairs = 0
     for cluster_1 in range(num_clusters-1):
         for cluster_2 in range(cluster_1+1, num_clusters):
@@ -293,9 +295,12 @@ def partition_analysis(sub_network, partition, partition_lookup, num_species, is
                 for species_index in range(num_species):
                     pair_difference += np.abs(partition_values[cluster_1][species_index
                                               ] - partition_values[cluster_2][species_index])
-                total_difference += pair_difference/num_species
+                spec_ave_pair_difference = pair_difference / num_species
+                total_difference += spec_ave_pair_difference
+                min_difference = min(min_difference, spec_ave_pair_difference)
+                max_difference = max(max_difference, spec_ave_pair_difference)
     if num_pairs > 0:
-        total_difference /= num_pairs
+        mean_difference = total_difference / num_pairs
     else:
-        total_difference = 0.0
-    return total_difference
+        mean_difference = 0.0
+    return mean_difference, min_difference, max_difference
