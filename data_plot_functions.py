@@ -7,6 +7,9 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.cm import ScalarMappable
 import os.path
 from copy import deepcopy
+
+from scipy.stats import alpha
+
 from data_core_functions import *
 
 
@@ -950,14 +953,17 @@ def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
                 y_values_inf = np.asarray(target_dict[f"{y_key}_inf_spectrum"])
                 y_values_mean = np.asarray(target_dict[f"{y_key}_mean_spectrum"])
                 y_values_sup = np.asarray(target_dict[f"{y_key}_sup_spectrum"])
-                natural_delta = target_dict[f"{y_key}_mean_minmax_delta"]
+                natural_delta = target_dict[f"{y_key}_sup_minmax_delta"]
                 fig = plt.figure()
-                plt.plot(n_values, y_values_mean, c='k', markersize=5, marker='o', mfc='white', mec='k')
+                plt.plot(n_values, y_values_sup, c='k', markersize=5, marker='o', mfc='white', mec='k')
+                plt.plot(n_values, y_values_mean, c=[0.3, 0.3, 0.3], linewidth=1,
+                         markersize=3, marker='o', mfc='white', mec='k', linestyle=':')
                 plt.fill_between(n_values, y_values_inf, y_values_sup, alpha=0.2, color='grey')
                 plt.axvline(x=natural_delta, color='k', linestyle='--')
                 plt.xlabel("Partition delta")
                 plt.ylabel("Partition complexity")
-                plt.legend(["Mean complexity over partitions"])
+                plt.legend(["Supremum complexity over partitions", "Mean complexity over partitions"],
+                           framealpha=1.0)
                 plt.ylim([0, 1])
                 print_name = path.replace('|', '_')
                 file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}.png"
