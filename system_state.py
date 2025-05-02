@@ -1396,7 +1396,11 @@ class System_state:
                 for type_name in type_vector.keys():
                     sup_value = np.max(type_vector[type_name])
                     min_delta = 1 + np.min(np.where(type_vector[type_name] == sup_value)[0])
+                    # target value for supremum peak classification:
+                    target_value = max(0.5, 1.5 * np.mean(type_vector[type_name]))
                     temp_report[type_name + '_minmax_delta'] = int(min_delta)
+                    temp_report[type_name + '_peak_value'] = sup_value
+                    temp_report[type_name + '_target'] = target_value
                     temp_report[type_name + '_spectrum'] = type_vector[type_name]
                 temp_report["is_partition_graphical"] = True  # identifier for plotting
                 partition_report[network_key] = temp_report

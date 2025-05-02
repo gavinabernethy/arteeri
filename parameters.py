@@ -26,7 +26,7 @@ master_para = {
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
-            "IS_LATTICE_WRAPPED": True,
+            "IS_LATTICE_WRAPPED": False,
             "RANDOM_GRAPH_CONNECTIVITY": None,
             "SMALL_WORLD_NUM_NEIGHBOURS": None,  # if num_patches > 2, this need to be at least 2 or graph fails
             "SMALL_WORLD_SHORTCUT_PROBABILITY": None,
@@ -34,14 +34,33 @@ master_para = {
             "CLUSTER_PROBABILITY": None,
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
-            "HABITAT_TYPE_MANUAL_ALL_SPEC": None,
+            "HABITAT_TYPE_MANUAL_ALL_SPEC": [1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0,
+                                             0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                                             0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                                             0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1,
+                                             1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1],
             # should be None if we want to generate habitats by probability, otherwise a list of the habitat nums
             "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
             "HABITAT_TYPE_MANUAL_OVERWRITE": None,  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
-            "IS_HABITAT_CLUSTERS": True,  # if True then all else ignored except the following two options...
-            "HABITAT_CLUSTER_SIZE": [16],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+            "IS_HABITAT_CLUSTERS": False,  # if True then all else ignored except the following two options...
+            "HABITAT_CLUSTER_SIZE": [],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
                 # This should be either a single value for all clusters to be the same, or a list of the desired cluster
                 # sizes to be sequentially alternated through. If IS_BIND_HABITAT_TO_CLUSTER_SIZE then this needs to be
                 # the same length as the number of habitats at generation. Otherwise, this is not bound to specific
@@ -85,7 +104,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 64,
+            "NUM_PATCHES": 400,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
