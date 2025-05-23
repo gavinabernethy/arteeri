@@ -7,9 +7,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.cm import ScalarMappable
 import os.path
 from copy import deepcopy
-
-from scipy.stats import alpha
-
+from matplotlib.pyplot import xlabel, ylabel
 from data_core_functions import *
 
 
@@ -17,7 +15,7 @@ from data_core_functions import *
 
 def print_and_close(fig, file_path):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    plt.savefig(file_path, dpi=400)
+    plt.savefig(file_path, dpi=400, bbox_inches='tight')
     plt.close(fig)
 
 # ---------------------------------------- BASE FUNCTIONS FOR CREATING PLOTS ---------------------------------------- #
@@ -940,36 +938,78 @@ def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
         # results found
         for path in list_of_key_paths:
             key_list = path.split("|")
-            target_dict = return_dict_from_address(key_list, distance_metrics_store)
-            # now target_dict is the results dictionary for this sub_network
-            num_delta = len(target_dict["pw_sup_spectrum"])
-            n_values = np.linspace(1, num_delta, num_delta)
-            # pop-weighted and binary (if applicable)
-            if len(target_dict["binary_sup_spectrum"]) > 0:
-                y_key_list = ["pw", "binary"]
-            else:
-                y_key_list = ["pw"]
-            for y_key in y_key_list:
-                y_values_inf = np.asarray(target_dict[f"{y_key}_inf_spectrum"])
-                y_values_mean = np.asarray(target_dict[f"{y_key}_mean_spectrum"])
-                y_values_sup = np.asarray(target_dict[f"{y_key}_sup_spectrum"])
-                natural_delta = target_dict[f"{y_key}_sup_minmax_delta"]
-                target_height = target_dict[f"{y_key}_sup_target"]
-                fig = plt.figure()
-                plt.plot(n_values, y_values_sup, c='k', markersize=5, marker='o', mfc='white', mec='k')
-                plt.plot(n_values, y_values_mean, c=[0.3, 0.3, 0.3], linewidth=1,
-                         markersize=3, marker='o', mfc='white', mec='k', linestyle=':')
-                plt.axhline(y=target_height, color=[0.2, 0.2, 0.2], linestyle=':', linewidth=1.5)
-                plt.fill_between(n_values, y_values_inf, y_values_sup, alpha=0.2, color='grey')
-                plt.axvline(x=natural_delta, color='k', linestyle='--')
-                plt.xlabel("Partition delta")
-                plt.ylabel("Partition complexity")
-                plt.legend(["Supremum complexity over partitions", "Mean complexity over partitions",
-                            "Target supremum complexity"], framealpha=1.0)
-                plt.ylim([0, 1])
-                print_name = path.replace('|', '_')
-                file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}.png"
-                print_and_close(fig, file_path)
+            type_target_dict = return_dict_from_address(key_list, distance_metrics_store)
+            type_info = {
+                "partition":
+                    {"y_label": "Partition complexity",
+                     "legend": ["Supremum complexity over partitions", "Mean complexity over partitions",
+                                "Target supremum complexity"],
+                     },
+                "inter":
+                    {"y_label": "Inter-cluster complexity of ideal partition",
+                     "legend": ["Supremum over clusters", "Mean complexity over clusters"],
+                     },
+                "intra":
+                    {"y_label": "Intra-cluster complexity of ideal partition",
+                     "legend": ["Supremum over clusters", "Mean complexity over clusters"],
+                     },
+            }
+            for sub_type in type_info.keys():
+                target_dict = type_target_dict[sub_type]
+
+                # now target_dict is the results dictionary for this sub_network
+                num_delta = len(target_dict["pw_sup_spectrum"])
+                n_values = np.linspace(1, num_delta, num_delta)
+
+                # pop-weighted and binary (if applicable)
+                if len(target_dict["binary_sup_spectrum"]) > 0:
+                    y_key_list = ["pw", "binary"]
+                else:
+                    y_key_list = ["pw"]
+
+                for y_key in y_key_list:
+
+                    # delta-partition complexity plot:
+                    y_values_inf = np.asarray(target_dict[f"{y_key}_inf_spectrum"])
+                    y_values_mean = np.asarray(target_dict[f"{y_key}_mean_spectrum"])
+                    y_values_sup = np.asarray(target_dict[f"{y_key}_sup_spectrum"])
+
+                    fig = plt.figure()
+                    plt.plot(n_values, y_values_sup, c='k', markersize=5, marker='o', mfc='white', mec='k')
+                    plt.plot(n_values, y_values_mean, c=[0.3, 0.3, 0.3], linewidth=1,
+                             markersize=3, marker='o', mfc='white', mec='k', linestyle=':')
+                    plt.fill_between(n_values, y_values_inf, y_values_sup, alpha=0.2, color='grey')
+
+                    if sub_type == "partition":
+                        natural_delta = target_dict[f"{y_key}_sup_minmax_delta"]
+                        target_height = target_dict[f"{y_key}_sup_target"]
+                        plt.axhline(y=target_height, color=[0.2, 0.2, 0.2], linestyle=':', linewidth=1.5)
+                        plt.axvline(x=natural_delta, color='k', linestyle='--')
+
+                    plt.xlabel("Partition delta")
+                    plt.ylabel(type_info[sub_type]["y_label"])
+                    plt.legend(type_info[sub_type]["legend"], framealpha=1.0)
+                    plt.ylim([0, 1])
+                    print_name = path.replace('|', '_')
+                    file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}_{sub_type}.png"
+                    print_and_close(fig, file_path)
+
+                    # delta-threshold internal complexity heatmap:
+                    if sub_type == "intra":
+                        fig = plt.figure()
+                        output_matrix = np.transpose(target_dict[f"{y_key}_internal_matrix"])
+                        plt.imshow(output_matrix, cmap='Greys_r', origin='lower', aspect=1.5)
+                        plt.colorbar(fraction=0.022, pad=0.12)
+                        plt.clim(vmin=0, vmax=1)
+                        xlabel("Partition delta")
+                        ylabel("Cluster complexity threshold")
+                        plt.xticks(list(range(0, np.size(output_matrix, 1), 10)),
+                                   list(range(1, np.size(output_matrix, 1)+1, 10)))
+                        plt.yticks(ticks=[0, 4, 8, 12, 16, 20], labels=[0, 0.2, 0.4, 0.6, 0.8, 1])
+                        plt.tight_layout()
+                        print_name = path.replace('|', '_')
+                        file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{y_key}_internal.png"
+                        print_and_close(fig, file_path)
     else:
         # If IS_PARTITION_ANALYSIS was false but IS_PLOT_DISTANCE_METRICS_LM was true, this routine will fail to find
         # anything, as the default partition outputs will be empty dictionaries without the identifying keys.

@@ -81,6 +81,7 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
     cluster = []
     is_success = False
     num_attempts = 0
+    internal_complexity = 0.0
     neighbour_dict = sub_network["neighbour_dict"]
     if is_uniform:
         if is_normalised:
@@ -102,6 +103,7 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
             # initialise arrays of length equal to the possible_neighbours list
             adjacency_counter = np.array([])
             difference_sum = np.array([])
+            internal_complexity = 0.0
 
             # loop through drawing the 1st to Nth elements of the sample
             for num_element in range(size):
@@ -132,6 +134,9 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                     cluster.append(draw_num)
                     potential_neighbours.pop(draw_index)
                     adjacency_counter = np.delete(adjacency_counter, draw_index)
+                    if is_uniform:
+                        # update internal complexity with difference between the newly-added element and all current
+                        internal_complexity += difference_sum[draw_index]
                     difference_sum = np.delete(difference_sum, draw_index)
                 else:
                     if len(cluster) == 0:
@@ -189,7 +194,10 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                         difference_sum[potential_index] += determine_difference(
                             cluster[-1], potential_neighbour, target_array, num_species)
 
-    return cluster, is_success
+    # normalise internal complexity
+    if is_uniform:
+        internal_complexity = internal_complexity * 4.0 / (num_species * (size ** 2 - np.mod(size, 2)))
+    return cluster, is_success, internal_complexity
 
 def determine_difference(patch_1, patch_2, target_array, num_species):
     total_difference = 0.0
@@ -212,10 +220,11 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
     cluster_init_patch = initial_patch
     cluster_num = 0
     total_elements_partitioned = 0
+    partition_internal_complexity = []
 
     while len(elements_to_partition) > 0:
         # generate each box cluster
-        cluster, is_success = generate_fast_cluster(
+        cluster, is_success, internal_complexity = generate_fast_cluster(
             sub_network=sub_network,
             size=size,
             max_attempts=1,
@@ -229,6 +238,10 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
             is_normalised=is_normalised,
         )
         total_elements_partitioned += size * is_success  # how many patches put into full-size clusters so far?
+        if is_success:
+            # only record internal complexity for the properly partitioned elements - i.e. so that we can give a
+            # conservative estimate of how much of the system can be partitioned for a given delta
+            partition_internal_complexity.append(internal_complexity)
 
         for element in cluster:
             elements_to_partition.remove(element)
@@ -254,7 +267,7 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
 
     # did we partition more than half the patches into clusters of the required size?
     is_partition_success = (total_elements_partitioned > np.floor(len(elements_to_partition)/2))
-    return partition, partition_lookup, is_partition_success
+    return partition, partition_lookup, is_partition_success, partition_internal_complexity
 
 def partition_analysis(sub_network, partition, partition_lookup, num_species, is_normalised):
     # Determine the per-species patch-mean value in each cluster, and the adjacency relationships between clusters,
@@ -303,4 +316,4 @@ def partition_analysis(sub_network, partition, partition_lookup, num_species, is
         mean_difference = total_difference / num_pairs
     else:
         mean_difference = 0.0
-    return mean_difference, min_difference, max_difference
+    return min_difference, mean_difference, max_difference
