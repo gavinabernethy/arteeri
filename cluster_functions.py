@@ -297,7 +297,7 @@ def partition_analysis(sub_network, partition, partition_lookup, num_species, is
 
     # now determine min, mean, max species-averaged difference across adjacent clusters (i.e. partition complexity)
     total_difference = 0.0
-    min_difference = 0.0
+    min_difference = float('inf')
     max_difference = 0.0
     num_pairs = 0
     for cluster_1 in range(num_clusters-1):
