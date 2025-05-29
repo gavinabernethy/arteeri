@@ -214,8 +214,8 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
     #
     # partition consists of a numbered dictionary of cluster lists
     partition = {}
-
-    elements_to_partition = [_ for _ in range(sub_network["num_patches"])]
+    total_patches = sub_network["num_patches"]
+    elements_to_partition = [_ for _ in range(total_patches)]
     partition_lookup = np.zeros(sub_network["num_patches"])  # returns cluster of the patch
     cluster_init_patch = initial_patch
     cluster_num = 0
@@ -265,8 +265,9 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
             else:
                 cluster_init_patch = temp_init_lower
 
-    # did we partition more than half the patches into clusters of the required size?
-    is_partition_success = (total_elements_partitioned > np.floor(len(elements_to_partition)/2))
+    # did we partition more than 90% of the POSSIBLE patches (with remainder zero) into clusters of the required size?
+    partition_target = size * np.divmod(total_patches, size)[0]  # the amount which COULD be precisely partitioned
+    is_partition_success = (total_elements_partitioned > 0.9 * np.floor(partition_target))
     return partition, partition_lookup, is_partition_success, partition_internal_complexity
 
 def partition_analysis(sub_network, partition, partition_lookup, num_species, is_normalised):

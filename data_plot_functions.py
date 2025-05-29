@@ -939,77 +939,98 @@ def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
         for path in list_of_key_paths:
             key_list = path.split("|")
             type_target_dict = return_dict_from_address(key_list, distance_metrics_store)
+
             type_info = {
-                "partition":
+                "part_complexity":
                     {"y_label": r"Partition value $P_{\delta}$",
                      "legend": ["Supremum value over all partitions", "Mean value over all partitions"],
+                     "is_sup": True,
+                     "is_inf": False,
                      },
-                "inter":
+                "inter_ideal_complexity":
                     {"y_label": r"Inter-cluster complexity of supremum-$P_{\delta}$ partition",
-                     "legend": ["Supremum over all clusters", "Mean complexity over all clusters"],
+                     "legend": ["Supremum over all clusters", "Mean complexity over all clusters",
+                                "Infimum complexity over all clusters"],
+                     "is_sup": True,
+                     "is_inf": True,
                      },
-                "intra":
+                "intra_ideal_complexity":
                     {"y_label": r"Intra-cluster complexity of supremum $P_{\delta}$ partition",
-                     "legend": ["Supremum over all clusters", "Mean complexity over all clusters"],
+                     "legend": ["Supremum over all clusters", "Mean complexity over all clusters", "Infimum complexity over all clusters"],
+                     "is_sup": True,
+                     "is_inf": True,
+                     },
+                "inter_dist_complexity":
+                    {"y_label": r"Mean inter-cluster complexity over all partitions",
+                     "legend": ["Supremum over all partitions", "Mean complexity over all partitions"],
+                     "is_sup": True,
+                     "is_inf": False,
+                     },
+                "intra_dist_complexity":
+                    {"y_label": r"Mean intra-cluster complexity over all partitions",
+                     "legend": ["Mean complexity over all partitions", "Infimum over all partitions"],
+                     "is_sup": False,
+                     "is_inf": True,
                      },
             }
-            for base_type in type_info.keys():
+            num_delta = np.size(type_target_dict["pw"]["part_complexity"], 1)
+            n_values = np.linspace(1, num_delta, num_delta)
+            for base_type in ["pw", "binary"]:
                 base_dict = type_target_dict[base_type]
+                if base_dict["execute"]:
+                    for data_type in type_info.keys():
+                        # pop-weighted and binary (if applicable)
+                        sub_array = base_dict[data_type]
+                        plot_legend = deepcopy(type_info[data_type]["legend"])
 
-                # now target_dict is the results dictionary for this sub_network
-                num_delta = len(base_dict["pw"]["sup_spectrum"])
-                n_values = np.linspace(1, num_delta, num_delta)
+                        # delta-partition complexity plot:
+                        y_val_inf = sub_array[0,:]
+                        y_val_mean = sub_array[1,:]
+                        y_val_sup = sub_array[2,:]
 
-                # pop-weighted and binary (if applicable)
-                for sub_type in ["pw", "binary"]:
-                    sub_dict = base_dict[sub_type]
-                    plot_legend = deepcopy(type_info[base_type]["legend"])
+                        fig = plt.figure()
+                        if type_info[data_type]["is_sup"]:
+                            plt.plot(n_values, y_val_sup, c='k', markersize=5, marker='o', mfc='white', mec='k')
+                        plt.plot(n_values, y_val_mean, c=[0.3, 0.3, 0.3], linewidth=1,
+                                 markersize=3, marker='o', mfc='white', mec='k', linestyle=':')
+                        if type_info[data_type]["is_inf"]:
+                            plt.plot(n_values, y_val_inf, c='k', markersize=4, marker='D', mfc='white', mec='k')
+                        plt.fill_between(n_values, y_val_inf, y_val_sup, alpha=0.2, color='grey',
+                                         label='_nolegend_')
 
-                    # delta-partition complexity plot:
-                    y_values_inf = np.asarray(sub_dict["inf_spectrum"])
-                    y_values_mean = np.asarray(sub_dict["mean_spectrum"])
-                    y_values_sup = np.asarray(sub_dict["sup_spectrum"])
+                        if data_type == "part_complexity":
+                            natural_delta = base_dict["part_minmax_delta"]  # delta with single best partition value
+                            target_height = base_dict["part_target"]  # above line may classify peaks for natural scale
+                            plt.axhline(y=target_height, color=[0.2, 0.2, 0.2], linestyle=':',
+                                        linewidth=1.5, label='_nolegend_')
+                            plt.axvline(x=natural_delta, color='k', linestyle='--', label='_nolegend_')
+                            plt.plot([], [], ' ')
+                            plot_legend.append(r'$(\delta, P_{\delta})$ of peaks: ' + str([(x[0], float(
+                                f'{"{:.2f}".format(x[1])}')) for x in base_dict["part_peak_spectrum"]]))
 
-                    fig = plt.figure()
-                    plt.plot(n_values, y_values_sup, c='k', markersize=5, marker='o', mfc='white', mec='k')
-                    plt.plot(n_values, y_values_mean, c=[0.3, 0.3, 0.3], linewidth=1,
-                             markersize=3, marker='o', mfc='white', mec='k', linestyle=':')
-                    plt.fill_between(n_values, y_values_inf, y_values_sup, alpha=0.2, color='grey', label='_nolegend_')
-
-                    if base_type == "partition":
-                        natural_delta = sub_dict["sup_minmax_delta"]  # delta with single best partition value
-                        target_height = sub_dict["sup_target"]  # above this line may classify peaks for natural scale
-                        plt.axhline(y=target_height, color=[0.2, 0.2, 0.2], linestyle=':',
-                                    linewidth=1.5, label='_nolegend_')
-                        plt.axvline(x=natural_delta, color='k', linestyle='--', label='_nolegend_')
-                        plt.plot([], [], ' ')
-                        plot_legend.append(r'$(\delta, P_{\delta})$ of peaks: ' + str([(x[0], float(
-                            f'{"{:.2f}".format(x[1])}')) for x in sub_dict["peak_spectrum"]]))
-
-                    plt.xlabel(r"$\delta$")
-                    plt.ylabel(type_info[base_type]["y_label"])
-                    plt.legend(plot_legend, framealpha=1.0)
-                    plt.ylim([0, 1.3])  # give space for the extensive legend
-                    print_name = path.replace('|', '_')
-                    file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{sub_type}_{base_type}.png"
-                    print_and_close(fig, file_path)
+                        plt.xlabel(r"$\delta$")
+                        plt.ylabel(type_info[data_type]["y_label"])
+                        plt.legend(plot_legend, framealpha=1.0)
+                        plt.ylim([0, 1.3])  # give space for the extensive legend
+                        print_name = path.replace('|', '_')
+                        file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{base_type}_{data_type}.png"
+                        print_and_close(fig, file_path)
 
                     # delta-threshold internal complexity heatmap:
-                    if base_type == "intra":
-                        fig = plt.figure()
-                        output_matrix = np.transpose(sub_dict["internal_matrix"])
-                        plt.imshow(output_matrix, cmap='Greys_r', origin='lower', aspect=1.5)
-                        plt.colorbar(fraction=0.022, pad=0.12)
-                        plt.clim(vmin=0, vmax=1)
-                        xlabel(r"$\delta$")
-                        ylabel("Intra-cluster complexity threshold")
-                        plt.xticks(list(range(0, np.size(output_matrix, 1), 10)),
-                                   list(range(1, np.size(output_matrix, 1) + 1, 10)))
-                        plt.yticks(ticks=[0, 4, 8, 12, 16, 20], labels=[0, 0.2, 0.4, 0.6, 0.8, 1])
-                        plt.tight_layout()
-                        print_name = path.replace('|', '_')
-                        file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{sub_type}_internal.png"
-                        print_and_close(fig, file_path)
+                    fig = plt.figure()
+                    output_matrix = np.transpose(base_dict["internal_matrix"])
+                    plt.imshow(output_matrix, cmap='Greys_r', origin='lower', aspect=1.5)
+                    plt.colorbar(fraction=0.022, pad=0.12)
+                    plt.clim(vmin=0, vmax=1)
+                    xlabel(r"$\delta$")
+                    ylabel("Intra-cluster complexity threshold")
+                    plt.xticks(list(range(0, np.size(output_matrix, 1), 10)),
+                               list(range(1, np.size(output_matrix, 1) + 1, 10)))
+                    plt.yticks(ticks=[0, 4, 8, 12, 16, 20], labels=[0, 0.2, 0.4, 0.6, 0.8, 1])
+                    plt.tight_layout()
+                    print_name = path.replace('|', '_')
+                    file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{base_type}_internal.png"
+                    print_and_close(fig, file_path)
     else:
         # If IS_PARTITION_ANALYSIS was false but IS_PLOT_DISTANCE_METRICS_LM was true, this routine will fail to find
         # anything, as the default partition outputs will be empty dictionaries without the identifying keys.

@@ -1142,145 +1142,22 @@ class System_state:
             max_delta = int(min(current_num_patches / 2, self.complexity_parameters["MAX_DELTA"]))
             num_clusters = self.complexity_parameters["NUM_CLUSTER_DRAWS"]  # how many samples we try to draw?
             cluster_per_patch = max(1, int(np.floor(num_clusters / current_num_patches)))
-            num_partitions = self.complexity_parameters["MAX_NUM_PARTITIONS"]
-            if num_partitions < current_num_patches:
-                partition_step = np.ceil(current_num_patches / num_partitions)
-            else:
-                partition_step = 1
 
+            #
+            #
+            # ------- COMPLEXITY: generate clusters from this patch
             # do we have at least three data points for reasonable size of clusters IN THIS SUB_NETWORK?
             if max_delta > 2:
-
                 # prepare holding arrays
                 successful_clusters = np.zeros(max_delta)
                 species_diversity = np.zeros(max_delta)
                 binary_complexity = np.zeros(max_delta)
                 population_weighted_complexity = np.zeros(max_delta)
-                # partitioning value distribution across all partitions
-                sup_part_binary_complexity = np.zeros(max_delta)
-                sup_part_pw_complexity = np.zeros(max_delta)
-                inf_part_binary_complexity = np.ones(max_delta)
-                inf_part_binary_complexity[0] = 0.0  # default value for delta=1 which will not be iterated over
-                inf_part_pw_complexity = np.ones(max_delta)
-                inf_part_pw_complexity[0] = 0.0  # default value for delta=1 which will not be iterated over
-                num_successful_partitions = np.zeros(max_delta)
-                running_part_binary_complexity = np.zeros(max_delta)
-                running_part_pw_complexity = np.zeros(max_delta)
-                # inter-cluster complexity for partition with best partitioning value
-                inf_inter_binary_complexity = np.zeros(max_delta)
-                mean_inter_binary_complexity = np.zeros(max_delta)
-                sup_inter_binary_complexity = np.zeros(max_delta)
-                inf_inter_pw_complexity = np.zeros(max_delta)
-                mean_inter_pw_complexity = np.zeros(max_delta)
-                sup_inter_pw_complexity = np.zeros(max_delta)
-                # intra-cluster complexity for partition with best partitioning value
-                inf_intra_binary_complexity = np.zeros(max_delta)
-                mean_intra_binary_complexity = np.zeros(max_delta)
-                sup_intra_binary_complexity = np.zeros(max_delta)
-                inf_intra_pw_complexity = np.zeros(max_delta)
-                mean_intra_pw_complexity = np.zeros(max_delta)
-                sup_intra_pw_complexity = np.zeros(max_delta)
-                sup_part_binary_internal_complexity = {}  # dictionary of lists
-                sup_part_pw_internal_complexity = {}  # dictionary of lists
 
-                # iterate over cluster radius, starting at delta=1 and indexing at 0
+                #  iterate over cluster radius, starting at delta=1 and indexing at 0
                 for delta in range(1, max_delta + 1):
                     # iterate over initial patches from which to begin generating a partition
                     for i in range(current_num_patches):
-
-                        # ------- PARTITION: generate a single partition starting from this patch, consisting of box
-                        # clusters assembled to have minimum possible internal complexity (i.e. maximally homogeneous)
-                        if delta > 1 and is_partition_analysis and np.mod(i, partition_step) == 0:
-                            # Note that at least the first patch 0 will always be used to start a partition, even if
-                            # somehow partition_step > N because num_partitions < 1 (which should not happen anyway).
-                            (pw_partition, pw_partition_lookup, is_pw_partition_success,
-                             pw_partition_intra_complexity) = draw_partition(
-                                sub_network=sub_networks[network_key], size=delta, initial_patch=i,
-                                num_species=num_species, is_normalised=True)
-
-                            # We require at least half the elements to have been placed in clusters of the desired size
-                            # for the partition to be acceptable:
-                            if is_pw_partition_success:
-                                num_successful_partitions[delta - 1] += 1
-                                pw_inter_complexity = partition_analysis(sub_network=sub_networks[network_key],
-                                                                        partition=pw_partition,
-                                                                        partition_lookup=pw_partition_lookup,
-                                                                        num_species=num_species,
-                                                                        is_normalised=True)
-
-                                # calculate the partitioning value:
-                                pw_partition_delta = pw_inter_complexity[1] * (
-                                        1.0 - np.mean(pw_partition_intra_complexity))
-                                # then update the partitioning values range for this delta
-                                running_part_pw_complexity[delta - 1] += pw_partition_delta
-                                sup_part_pw_complexity[delta - 1] = max(float(sup_part_pw_complexity[delta - 1]),
-                                                                        pw_partition_delta)
-                                inf_part_pw_complexity[delta - 1] = min(float(inf_part_pw_complexity[delta - 1]),
-                                                                        pw_partition_delta)
-
-                                # we record the list of internal cluster complexities for best partition at this n
-                                if pw_partition_delta == sup_part_pw_complexity[delta - 1]:
-                                    # the list of internal cluster complexities - this is a dictionary (not matrix)
-                                    # so just index directly by the actual value of delta
-                                    sup_part_pw_internal_complexity[delta] = pw_partition_intra_complexity
-                                    # inter-cluster complexity (these are matrices, so first index is 0)
-                                    inf_inter_pw_complexity[delta - 1] = pw_inter_complexity[0]
-                                    mean_inter_pw_complexity[delta - 1] = pw_inter_complexity[1]
-                                    sup_inter_pw_complexity[delta - 1] = pw_inter_complexity[2]
-                                    # intra-cluster complexity (these are matrices, so first index is 0)
-                                    inf_intra_pw_complexity[delta - 1] = min(pw_partition_intra_complexity)
-                                    mean_intra_pw_complexity[delta - 1] = np.mean(pw_partition_intra_complexity)
-                                    sup_intra_pw_complexity[delta - 1] = max(pw_partition_intra_complexity)
-
-                            if corresponding_binary is not None:
-                                (binary_partition, binary_partition_lookup, is_binary_partition_success,
-                                 binary_partition_intra_complexity) = draw_partition(
-                                    sub_network=corresponding_binary[network_key], size=delta, initial_patch=i,
-                                    num_species=num_species, is_normalised=False)
-                                binary_inter_complexity = partition_analysis(
-                                    sub_network=corresponding_binary[network_key],
-                                                                     partition=binary_partition,
-                                                                     partition_lookup=binary_partition_lookup,
-                                                                     num_species=num_species,
-                                                                     is_normalised=False)
-
-                                if is_binary_partition_success:
-                                    # calculate the partitioning value:
-                                    binary_partition_delta = binary_inter_complexity[1] * (
-                                                1.0 - np.mean(binary_partition_intra_complexity))
-                                    # Update max, min, and running total (for subsequent mean calculation) at this delta
-                                    # of the partitioning values range
-                                    running_part_binary_complexity[delta - 1] += binary_partition_delta
-                                    sup_part_binary_complexity[delta - 1] = max(float(
-                                        sup_part_binary_complexity[delta - 1]), binary_partition_delta)
-                                    inf_part_binary_complexity[delta - 1] = min(float(
-                                        inf_part_binary_complexity[delta - 1]), binary_partition_delta)
-
-                                    # we record more detailed information about the best partition at this n:
-                                    if binary_partition_delta == sup_part_binary_complexity[delta - 1]:
-                                        # the list of internal cluster complexities - this is a dictionary (not matrix)
-                                        # so just index directly by the actual value of delta
-                                        sup_part_binary_internal_complexity[
-                                            delta] = binary_partition_intra_complexity
-                                        # inter-cluster complexity
-                                        inf_inter_binary_complexity[delta - 1] = binary_inter_complexity[0]
-                                        mean_inter_binary_complexity[delta - 1] = binary_inter_complexity[1]
-                                        sup_inter_binary_complexity[delta - 1] = binary_inter_complexity[2]
-                                        # intra-cluster complexity
-                                        inf_intra_binary_complexity[delta - 1] = min(
-                                            binary_partition_intra_complexity)
-                                        mean_intra_binary_complexity[delta - 1] = np.mean(
-                                            binary_partition_intra_complexity)
-                                        sup_intra_binary_complexity[delta - 1] = max(
-                                            binary_partition_intra_complexity)
-
-                                    # Record binary partition with supremum value (over all delta) from 'all' subnetwork
-                                    if is_record_partition and network_key == "all":
-                                        if binary_partition_delta == max(sup_part_binary_complexity):
-                                            # note that this will overwrite if precisely occurs at larger delta
-                                            max_comp_binary_lookup = deepcopy(binary_partition_lookup)
-
-                        # ------- COMPLEXITY: generate clusters from this patch
                         for j in range(cluster_per_patch):
                             cluster, is_success = generate_fast_cluster(
                                 sub_network=sub_networks[network_key],
@@ -1344,55 +1221,12 @@ class System_state:
                                                                         delta - 1] / successful_clusters[delta - 1]
                     else:
                         # if you couldn't EVER find a cluster of size D, you'll probably not find one of size >D...
-                        # this also applies to partitioning - if no clusters could be found then no possible partition
-                        # could have been made
                         break
 
-                    # Summary of partition result arrays for this value of delta:
-                    if num_successful_partitions[delta - 1] > 0:
-                        running_part_pw_complexity[delta - 1] = running_part_pw_complexity[delta - 1
-                                                                    ] / num_successful_partitions[delta - 1]
-                        running_part_binary_complexity[delta - 1] = running_part_binary_complexity[delta - 1
-                                                                    ] / num_successful_partitions[delta - 1]
-                    else:
-                        running_part_binary_complexity[delta - 1] = 0.0
-
-                # ------------ iteration over delta ends.
-
+                #------ delta iteration ends. Now complexity analysis:
                 # prepare x-dimension array
                 x_val = np.linspace(1, max_delta, max_delta)
-            else:
-                x_val = np.array([])
-                species_diversity = np.array([])
-                binary_complexity = np.array([])
-                population_weighted_complexity = np.array([])
-                # partitioning value distribution across all partitions
-                sup_part_binary_complexity = np.array([])
-                running_part_binary_complexity = np.array([])
-                sup_part_pw_complexity = np.array([])
-                inf_part_binary_complexity = np.array([])
-                running_part_pw_complexity = np.array([])
-                inf_part_pw_complexity = np.array([])
-                # inter-cluster complexity for partition with best partitioning value
-                sup_inter_binary_complexity = np.array([])
-                mean_inter_binary_complexity = np.array([])
-                inf_inter_binary_complexity = np.array([])
-                sup_inter_pw_complexity = np.array([])
-                mean_inter_pw_complexity = np.array([])
-                inf_inter_pw_complexity = np.array([])
-                # intra-cluster complexity distribution for partition with best partitioning value
-                sup_intra_binary_complexity = np.array([])
-                mean_intra_binary_complexity = np.array([])
-                inf_intra_binary_complexity = np.array([])
-                sup_intra_pw_complexity = np.array([])
-                mean_intra_pw_complexity = np.array([])
-                inf_intra_pw_complexity = np.array([])
-                # dictionary of lists of the cluster internal complexities for partition with best partitioning value
-                sup_part_binary_internal_complexity = {}
-                sup_part_pw_internal_complexity = {}
-
-            # check arrays still have sufficiently-many entries, then slice the longest non-zero vector
-            if max_delta > 2 and len(x_val) > 2:
+                # check arrays still have sufficiently-many entries, then slice the longest non-zero vector
                 diversity_zero_index = np.where(species_diversity == 0)[0]
                 if len(diversity_zero_index) == 0:
                     sar_x_val = x_val
@@ -1404,7 +1238,8 @@ class System_state:
                 if len(sar_y_val) > 0:
                     # for the SAR, fitted relationship is diversity = exp(intercept) * size ^ (gradient)
                     lm_sar = linear_model_report(x_val=np.log(sar_x_val), y_val=np.log(sar_y_val),
-                                                 is_record_vectors=is_record_lm_vectors, model_type_str="log-log")
+                                                 is_record_vectors=is_record_lm_vectors,
+                                                 model_type_str="log-log")
                 else:
                     lm_sar = {"is_success": 0}
 
@@ -1457,130 +1292,180 @@ class System_state:
                     "pop_weight_complexity_max": None,
                 }
 
-            if is_partition_analysis and max_delta > 2:
-                # convert the dictionaries of lists of intra-cluster complexity into a matrix for plot generation:
-                internal_complexity_output = {
-                    "binary": {
-                        "output_matrix": np.zeros([max_delta, 21]),  # [2, ..., N; 0, 0.05, 0.1, ... 1]
-                        "cluster_list": sup_part_binary_internal_complexity,
-                    },
-                    "pw": {
-                        "output_matrix": np.zeros([max_delta, 21]),  # [2, ..., N; 0, 0.05, 0.1, ... 1]
-                        "cluster_list": sup_part_pw_internal_complexity,
-                    }
-                }
-                complexity_threshold = np.linspace(0, 1, 21)
-                for complexity_type, complexity_objects in internal_complexity_output.items():
-                    # the _internal_complexity dicts have keys for actual delta from 1 to max_delta
+            #
+            #
+            # ----------------------------- PARTITION analysis ----------------------------- #
+            num_partitions = self.complexity_parameters["MAX_NUM_PARTITIONS"]
+            if num_partitions < current_num_patches:
+                partition_step = np.ceil(current_num_patches / num_partitions)
+            else:
+                partition_step = 1
+            partition_report = {
+                "pw": {},
+                "binary": {},
+            }
+            for base_type, base_values in partition_report.items():
+                # [ inf / mean / sup, :] # partitioning value distribution across ALL partitions:
+                base_values["part_complexity"] = np.zeros([3,  max_delta])
+                # dist of inter-cluster complexity (between clusters) for single partition with best partitioning value:
+                base_values["inter_ideal_complexity"] = np.zeros([3, max_delta])
+                # dist of intra-cluster complexity (within clusters) for single partition with best partitioning value:
+                base_values["intra_ideal_complexity"] = np.zeros([3, max_delta])
+                base_values["sup_part_internal_complexity"] = {}  # dictionary of lists
+                # distribution of mean inter-cluster complexity (between clusters) across ALL partitions:
+                base_values["inter_dist_complexity"] = np.zeros([3, max_delta])
+                # distribution of mean intra-cluster complexity (within clusters) across ALL partitions:
+                base_values["intra_dist_complexity"] = np.zeros([3, max_delta])
+                base_values["part_complexity"][0, 1:] = 1.0  # for inf, the default value for delta=1 won't be iterated
+                base_values["inter_dist_complexity"][0, 1:] = 1.0  # ... over, so set that to 0, whilst the remainder
+                base_values["intra_dist_complexity"][0, 1:] = 1.0  # ... need to be 1 for the min() comparison to work.
+                base_values['part_minmax_delta'] = None
+                base_values['part_peak_value'] = None
+                base_values['part_target'] = None
+                base_values['part_peak_spectrum'] = None
+                base_values["num_successful_partitions"] = np.zeros(max_delta)
+            partition_report["pw"]["network"] = sub_networks[network_key]
+            partition_report["pw"]["normalised"] = True
+            partition_report["pw"]["execute"] = True
+            if corresponding_binary is not None:
+                partition_report["binary"]["network"] = corresponding_binary[network_key]
+                partition_report["binary"]["normalised"] = False
+                partition_report["binary"]["execute"] = True
+            else:
+                partition_report["binary"]["execute"] = False
+
+            if max_delta > 2 and is_partition_analysis:
+                for base_type, base_values in partition_report.items():
+                    # pw and (possibly) binary
+                    if not base_values["execute"]:
+                        continue  # skip the binary if False
+
+                    # iterate over cluster radius, starting at delta=2 and indexing at 1
+                    for delta in range(2, max_delta + 1):
+                        # iterate over initial patches from which to begin generating a partition
+                        for i in range(current_num_patches):
+                            # generate a single partition starting from this patch, consisting of box
+                            # clusters assembled to have minimum possible internal complexity (maximally homogeneous)
+
+                            if np.mod(i, partition_step) == 0:
+                                # Note that at least the first patch 0 will always be used to start a partition, even if
+                                # somehow partition_step > N because num_partitions < 1 (which should not happen anyway)
+
+                                (partition, partition_lookup, is_partition_success, partition_intra_complexity
+                                 ) = draw_partition(sub_network=base_values["network"], size=delta, initial_patch=i,
+                                    num_species=num_species, is_normalised=base_values["normalised"])
+
+                                # We require at least half the elements to have been placed in clusters of the desired
+                                # size for the partition to be acceptable:
+                                if is_partition_success:
+                                    base_values["num_successful_partitions"][delta - 1] += 1
+
+                                    inter_complexity = partition_analysis(sub_network=base_values["network"],
+                                                                            partition=partition,
+                                                                            partition_lookup=partition_lookup,
+                                                                            num_species=num_species,
+                                                                            is_normalised=base_values["normalised"])
+
+                                    # calculate the partitioning value:
+                                    partition_delta = inter_complexity[1] * (1.0 - np.mean(partition_intra_complexity))
+                                    # then update the partitioning values range for this delta
+                                    base_values["part_complexity"] = distribution_recorder(
+                                        base_values["part_complexity"], partition_delta, delta - 1)
+                                    # update inter_dist and intra_dist
+                                    intra_current = np.mean(partition_intra_complexity)  # use the mean
+                                    base_values["intra_dist_complexity"] = distribution_recorder(
+                                        base_values["intra_dist_complexity"], intra_current, delta - 1)
+                                    inter_current = inter_complexity[1]  # use the mean
+                                    base_values["inter_dist_complexity"] = distribution_recorder(
+                                        base_values["inter_dist_complexity"], inter_current, delta - 1)
+
+                                    # we record the list of internal cluster complexities for best partition at this n
+                                    if partition_delta == base_values["part_complexity"][2, delta - 1]:
+                                        # the list of internal cluster complexities - this is a dictionary (not matrix)
+                                        # so just index directly by the actual value of delta
+                                        base_values["sup_part_internal_complexity"][
+                                            delta] = partition_intra_complexity
+                                        # inter-cluster complexity (these are matrices, so first index is 0)
+                                        base_values["inter_ideal_complexity"][:, delta - 1] = inter_complexity
+                                        # intra-cluster complexity (these are matrices, so first index is 0)
+                                        base_values["intra_ideal_complexity"][0, delta - 1] = min(
+                                            partition_intra_complexity)
+                                        base_values["intra_ideal_complexity"][1, delta - 1] = np.mean(
+                                            partition_intra_complexity)
+                                        base_values["intra_ideal_complexity"][2, delta - 1] = max(
+                                            partition_intra_complexity)
+
+                                        # Record binary partition with sup value (over all delta) from 'all' subnetwork
+                                        if is_record_partition and network_key == "all" and base_type == "binary":
+                                            if partition_delta == max(base_values["part_complexity"][2, :]):
+                                                # note that this will overwrite if precisely occurs at larger delta
+                                                max_comp_binary_lookup = deepcopy(partition_lookup)
+
+                        if base_values["num_successful_partitions"][delta - 1] == 0:
+                            # no point looking for bigger partitions
+                            break
+                        else:
+                            # normalise running sums [1, :] to obtain mean values over set of partitions at this delta:
+                            base_values["part_complexity"][1, delta - 1] = base_values["part_complexity"][1, delta - 1
+                                                                           ] / base_values["num_successful_partitions"][
+                                                                               delta - 1]
+                            base_values["inter_dist_complexity"][1, delta - 1] = base_values["inter_dist_complexity"][1,
+                            delta - 1] / base_values["num_successful_partitions"][delta - 1]
+                            base_values["intra_dist_complexity"][1, delta - 1] = base_values["intra_dist_complexity"][1,
+                            delta - 1] / base_values["num_successful_partitions"][delta - 1]
+
+                    #--- iteration over delta ends.
+
+                    # convert the dictionaries of lists of intra-cluster complexity into a matrix for plot generation:
+                    complexity_threshold = np.linspace(0, 1, 21)
+                    output_matrix = np.zeros([max_delta, 21])  # [2, ..., N; 0, 0.05, 0.1, ... 1]
                     for delta in range(1, max_delta + 1):
                         for j in range(len(complexity_threshold)):
-                            if delta not in complexity_objects["cluster_list"]:
+                            if delta not in base_values["sup_part_internal_complexity"]: # keys for actual delta
                                 break
-                            for cluster in complexity_objects["cluster_list"][delta]:
+                            for cluster in base_values["sup_part_internal_complexity"][delta]:
                                 if cluster <= complexity_threshold[j]:
                                     # output matrix holds (for (delta, threshold)) the fraction of the patches which are
                                     # successfully placed in a delta-sized cluster with <= threshold internal complexity
-                                    complexity_objects["output_matrix"][delta-1, j] += (delta /
-                                                                                        len(self.current_patch_list))
-                # reporting the spectra of partition values, and the inter- and intra- cluster complexity for the
-                # partition at each delta with the best partition value:
-                type_vector = {
-                    "partition":{
-                        # partitioning value between partitions
-                        "binary": {
-                            "sup": sup_part_binary_complexity,
-                            "mean": running_part_binary_complexity,
-                            "inf": inf_part_binary_complexity,
-                        },
-                        "pw": {
-                            "sup": sup_part_pw_complexity,
-                            "mean": running_part_pw_complexity,
-                            "inf": inf_part_pw_complexity,
-                        },
-                    },
-                    "inter": {
-                        # within the ideal partitions - complexity between clusters
-                        "binary": {
-                            "sup": sup_inter_binary_complexity,
-                            "mean": mean_inter_binary_complexity,
-                            "inf": inf_inter_binary_complexity,
-                        },
-                        "pw": {
-                            "sup": sup_inter_pw_complexity,
-                            "mean": mean_inter_pw_complexity,
-                            "inf": inf_inter_pw_complexity,
-                        },
-                    },
-                    "intra": {
-                        # within the ideal partitions - complexity within clusters
-                        "binary": {
-                            "sup": sup_intra_binary_complexity,
-                            "mean": mean_intra_binary_complexity,
-                            "inf": inf_intra_binary_complexity,
-                        },
-                        "pw": {
-                            "sup": sup_intra_pw_complexity,
-                            "mean": mean_intra_pw_complexity,
-                            "inf": inf_intra_pw_complexity,
-                        },
-                    },
-                }
-                temp_report = {}  # partition, inter, intra
-                for base_type, base_vector in type_vector.items():
+                                    output_matrix[delta-1, j] += (delta /len(self.current_patch_list))
+                    base_values["internal_matrix"] = output_matrix
 
-                    sub_report = {}  # binary, pw
-                    for sub_type, sub_vector in base_vector.items():
+                    # determine the absolute best partitioning value:
+                    partition_sup_vector = base_values["part_complexity"][2, :]
+                    sup_value = np.max(partition_sup_vector)
+                    min_delta = 1 + np.min(np.where(partition_sup_vector == sup_value)[0])
+                    #  identify all classified peaks of the supremum partitioning value
+                    target_value = 0.5
+                    peak_range_requirement = 5  # how many elements on each side (this value - 1) we check
+                    peak_spectrum = []
 
-                        size_report = {}  # sup, mean, inf
-                        for size_type, size_vector in sub_vector.items():
+                    for delta_index, delta_value in enumerate(partition_sup_vector):
+                        comparison_vector_lower = partition_sup_vector[max(
+                            0, delta_index - peak_range_requirement + 1): max(0, delta_index)]
+                        comparison_vector_upper = partition_sup_vector[min(
+                            delta_index + 1, len(partition_sup_vector)
+                        ): min(delta_index + peak_range_requirement, len(partition_sup_vector))]
+                        comparison_vector = np.concatenate((comparison_vector_lower,
+                                                            comparison_vector_upper))
 
-                            if base_type == "partition" and size_type == "sup":
-                                # determine the absolute best partitioning value:
-                                sup_value = np.max(size_vector)
-                                min_delta = 1 + np.min(np.where(size_vector == sup_value)[0])
-                                #  identify all classified peaks of the supremum partitioning value
-                                target_value = 0.5
-                                peak_range_requirement = 5  # how many elements on each side (this value - 1) we check
-                                peak_spectrum = []
+                        if len(comparison_vector) > 0 and delta_value > max(np.max(
+                                comparison_vector), target_value):
+                            # peak identified, subject to some criteria
+                            peak_spectrum.append((delta_index + 1, delta_value))
 
-                                for delta_index, delta_value in enumerate(size_vector):
-                                    comparison_vector_lower = size_vector[max(
-                                        0, delta_index - peak_range_requirement + 1) : max(0, delta_index)]
-                                    comparison_vector_upper = size_vector[min(
-                                        delta_index + 1, len(size_vector)
-                                    ) : min(delta_index + peak_range_requirement, len(size_vector))]
-                                    comparison_vector = np.concatenate((comparison_vector_lower,
-                                                                        comparison_vector_upper))
+                    base_values['part_minmax_delta'] = int(min_delta)
+                    base_values['part_peak_value'] = sup_value
+                    base_values['part_target'] = target_value
+                    base_values['part_peak_spectrum'] = peak_spectrum
 
-                                    if len(comparison_vector) > 0 and delta_value > max(np.max(
-                                            comparison_vector), target_value):
-                                        # peak identified, subject to some criteria
-                                        peak_spectrum.append((delta_index + 1, delta_value))
+                # --- iteration over "pw", "binary" (if applicable) ends.
 
-                                size_report[f'{size_type}_minmax_delta'] = int(min_delta)
-                                size_report[f'{size_type}_peak_value'] = sup_value
-                                size_report[f'{size_type}_target'] = target_value
-                                size_report['peak_spectrum'] = peak_spectrum
-                            size_report[f'{size_type}_spectrum'] = size_vector
-                        sub_report[sub_type] = size_report
-                    temp_report[base_type] = sub_report
-
-                # within clusters
-                temp_report["intra"]["binary"]["internal_matrix"] = internal_complexity_output[
-                    "binary"]["output_matrix"]
-                temp_report["intra"]["pw"]["internal_matrix"] = internal_complexity_output["pw"]["output_matrix"]
-                temp_report["is_partition_graphical"] = True  # identifier for plotting
-
-                # store
-                partition_report[network_key] = temp_report
-
-                if is_record_partition and network_key == "all":
+                if is_record_partition and network_key == "all" and max_comp_binary_lookup is not None:
                     # Highest-complexity binary partition from the 'all' subnetwork is recorded
                     for patch in self.patch_list:
                         patch.partition_code = int(max_comp_binary_lookup[patch.number])
-            else:
-                partition_report[network_key] = {}
 
+            partition_report["is_partition_graphical"] = True  # identifier for plotting
         return sar_report, complexity_report, partition_report
 
     def count_diversity(self, sub_network, cluster):
@@ -1707,3 +1592,10 @@ class System_state:
             else:
                 sub_networks[network_key] = {"num_patches": 0}
         return sub_networks
+
+def distribution_recorder(input_array, update_value, array_index):
+    # use this to update the 3xN array holding min, running_sum, max values over a distribution and for the range N
+    input_array[0, array_index] = min(float(input_array[0, array_index]), update_value)
+    input_array[1, array_index] += update_value  # running total - will need normalised
+    input_array[2, array_index] = max(float(input_array[2, array_index]), update_value)
+    return input_array
