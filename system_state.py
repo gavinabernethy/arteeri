@@ -1308,11 +1308,11 @@ class System_state:
                 partition_step = np.ceil(current_num_patches / num_partitions)
             else:
                 partition_step = 1
-            partition_report = {
+            partition_dict = {
                 "pw": {},
                 "binary": {},
             }
-            for base_type, base_values in partition_report.items():
+            for base_type, base_values in partition_dict.items():
                 # [ inf / mean / sup, :] # partitioning value distribution across ALL partitions:
                 base_values["part_complexity"] = np.zeros([3,  max_delta])
                 # dist of inter-cluster complexity (between clusters) for single partition with best partitioning value:
@@ -1332,18 +1332,18 @@ class System_state:
                 base_values['part_target'] = None
                 base_values['part_peak_spectrum'] = None
                 base_values["num_successful_partitions"] = np.zeros(max_delta)
-            partition_report["pw"]["network"] = sub_networks[network_key]
-            partition_report["pw"]["normalised"] = True
-            partition_report["pw"]["execute"] = True
+            partition_dict["pw"]["network"] = sub_networks[network_key]
+            partition_dict["pw"]["normalised"] = True
+            partition_dict["pw"]["execute"] = True
             if corresponding_binary is not None:
-                partition_report["binary"]["network"] = corresponding_binary[network_key]
-                partition_report["binary"]["normalised"] = False
-                partition_report["binary"]["execute"] = True
+                partition_dict["binary"]["network"] = corresponding_binary[network_key]
+                partition_dict["binary"]["normalised"] = False
+                partition_dict["binary"]["execute"] = True
             else:
-                partition_report["binary"]["execute"] = False
+                partition_dict["binary"]["execute"] = False
 
             if max_delta > 2 and is_partition_analysis:
-                for base_type, base_values in partition_report.items():
+                for base_type, base_values in partition_dict.items():
                     # pw and (possibly) binary
                     if not base_values["execute"]:
                         continue  # skip the binary if False
@@ -1473,7 +1473,8 @@ class System_state:
                     for patch in self.patch_list:
                         patch.partition_code = int(max_comp_binary_lookup[patch.number])
 
-            partition_report["is_partition_graphical"] = True  # identifier for plotting
+            partition_dict["is_partition_graphical"] = True  # identifier for plotting
+            partition_report[network_key] = partition_dict  # save the results, identified by network key (0, 1, all)
         return sar_report, complexity_report, partition_report
 
     def count_diversity(self, sub_network, cluster):
