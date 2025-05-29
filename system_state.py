@@ -1126,8 +1126,16 @@ class System_state:
         # - Determine the maximum partition value over all partitions created for this delta, and store the spectrum.
         # - At each delta, we store the spectrum over delta of the distribution (min/mean/max) of intra- and inter-
         #       cluster complexities for the partition with the greatest partition value at that delta.
+        #       Purpose - to enable greater understanding of the characteristics of the "best" partition for each delta.
+        # - We also store (for each delta) the spectrum over delta of the distribution (min/mean/max) of the (mean
+        #       over clusters within each partition) intra- and inter- cluster complexities over all partitions at that
+        #       value of delta.
+        #       Purpose - be able to detect, for example, delta values where partitions can be obtained that minimise
+        #       the intra-cluster complexities. This could be used to identify "embedded" cluster patterns.
         # - Determine the smallest delta that yields (for SOME partition) the greatest overall partition value.
         #       This is the natural (maximum-complexity) spatial "resolution" at which to view the system!
+        #       We also record any values of delta that could be considered peaks (local maxima with large enough
+        #       value) of this spectrum.
         sar_report = {}
         complexity_report = {}
         partition_report = {}
