@@ -265,9 +265,9 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
             else:
                 cluster_init_patch = temp_init_lower
 
-    # did we partition more than 90% of the POSSIBLE patches (with remainder zero) into clusters of the required size?
+    # did we partition more than 75% of the POSSIBLE patches (with remainder zero) into clusters of the required size?
     partition_target = size * np.divmod(total_patches, size)[0]  # the amount which COULD be precisely partitioned
-    is_partition_success = (total_elements_partitioned > 0.9 * np.floor(partition_target))
+    is_partition_success = (total_elements_partitioned > 0.75 * np.floor(partition_target))
     return partition, partition_lookup, is_partition_success, partition_internal_complexity
 
 def partition_analysis(sub_network, partition, partition_lookup, num_species, is_normalised):
