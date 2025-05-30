@@ -1173,7 +1173,8 @@ class System_state:
                                 max_attempts=self.complexity_parameters["NUM_CLUSTER_DRAW_ATTEMPTS"],
                                 admissible_elements=[_ for _ in range(sub_networks[network_key]["num_patches"])],
                                 num_species=num_species,
-                                is_box=True,
+                                is_box_ensured=True,  # for complexity analysis (unlike partition), PRIORITISE boxes
+                                is_box_preferred=False,
                                 is_uniform=False,
                                 all_elements_admissible=True,
                                 initial_patch=i,
@@ -1304,6 +1305,7 @@ class System_state:
             #
             # ----------------------------- PARTITION analysis ----------------------------- #
             num_partitions = self.complexity_parameters["MAX_NUM_PARTITIONS"]
+            partition_success_threshold = self.complexity_parameters["PARTITION_SUCCESS_THRESHOLD"]
             if num_partitions < current_num_patches:
                 partition_step = np.ceil(current_num_patches / num_partitions)
             else:
@@ -1361,7 +1363,8 @@ class System_state:
 
                                 (partition, partition_lookup, is_partition_success, partition_intra_complexity
                                  ) = draw_partition(sub_network=base_values["network"], size=delta, initial_patch=i,
-                                    num_species=num_species, is_normalised=base_values["normalised"])
+                                    num_species=num_species, is_normalised=base_values["normalised"],
+                                                    partition_success_threshold=partition_success_threshold)
 
                                 # We require at least half the elements to have been placed in clusters of the desired
                                 # size for the partition to be acceptable:

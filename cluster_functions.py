@@ -73,8 +73,8 @@ def cluster_next_element(adjacency_matrix, patch_list, current_cluster: list,
     return type_patch_nums
 
 
-def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, num_species, is_box=False,
-                          is_uniform=False, all_elements_admissible=False, initial_patch=None,
+def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, num_species, is_box_ensured=False,
+                          is_box_preferred=False, is_uniform=False, all_elements_admissible=False, initial_patch=None,
                           return_undersized_cluster=False, is_normalised=False):
     # This is a more limited, but more efficient method to generate entire clusters of the specified size.
     # Used during complexity_analysis() when we requiring rapidly drawing many 100's of clusters.
@@ -115,17 +115,23 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                     base_score = np.ones(len(potential_neighbours))
 
                     # Modifiers
-                    if is_box:
-                        # if applicable, FIRST restrict to only the greatest adjacency
+                    if is_box_ensured:
+                        # FIRST restrict to only the greatest adjacency
                         adj_maximiser = (adjacency_counter == np.max(adjacency_counter))
                         base_score = base_score * adj_maximiser
+                        if is_uniform:
+                            # to choose best score GIVEN the best adjacency!
+                            favour_score = adj_maximiser * (1.0 + np.max(difference_sum) - difference_sum)
+                            # if applicable, THEN restrict to the highest score for intra-cluster uniformity
+                            base_score = base_score * (favour_score == np.max(favour_score))
                     else:
-                        adj_maximiser = np.ones_like(difference_sum)
-                    if is_uniform:
-                        # to choose best score GIVEN the best adjacency!
-                        favour_score = adj_maximiser * (1.0 + np.max(difference_sum) - difference_sum)
-                        # if applicable, THEN restrict to the highest score for intra-cluster uniformity
-                        base_score = base_score * (favour_score == np.max(favour_score))
+                        if is_uniform:
+                            # FIRST restrict to the highest score for intra-cluster uniformity
+                            favour_score = 1.0 + np.max(difference_sum) - difference_sum
+                            base_score = base_score * (favour_score == np.max(favour_score))
+                        if is_box_preferred:
+                            # if applicable, then further scale by the adjacency
+                            base_score = base_score * adjacency_counter
 
                     # after possible modifications, draw one of the best
                     short_list = np.where(base_score == np.max(base_score))[0]
@@ -182,7 +188,7 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                             # find the existing index for this neighbour
                             potential_index = potential_neighbours.index(potential_element)
 
-                        if is_box:
+                        if is_box_ensured or is_box_preferred:
                             # for box style, must update all neighbours of the added patch with their additional
                             # adjacency, which may go from 0 to 1 (for new neighbours) or simply be incremented
                             adjacency_counter[potential_index] += 1
@@ -205,7 +211,7 @@ def determine_difference(patch_1, patch_2, target_array, num_species):
         total_difference += np.abs(target_array[patch_1, species_index] - target_array[patch_2, species_index])
     return total_difference
 
-def draw_partition(sub_network, size, initial_patch, num_species, is_normalised):
+def draw_partition(sub_network, size, initial_patch, num_species, is_normalised, partition_success_threshold):
     # As far as possible, cluster the elements of the network into highly-uniform clusters of the given size.
     # Note that we opt for box-clusters only as this is less ambiguous in what we 'expect' to see, and it feels like
     # a more natural interpretation of the space than the visually-strange but topologically-admissible patterns that
@@ -230,7 +236,8 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
             max_attempts=1,
             admissible_elements=elements_to_partition,
             num_species=num_species,
-            is_box=True,  # less regular systems sensitive to this - depends on the topological restrictions desired
+            is_box_ensured=False,  # irregular systems sensitive to this - depends on topological restrictions desired
+            is_box_preferred=True,  # in this case, we want uniformity to take precedence, THEN box as far as possible
             is_uniform=True,
             all_elements_admissible=False,
             initial_patch=cluster_init_patch,
@@ -265,9 +272,9 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised)
             else:
                 cluster_init_patch = temp_init_lower
 
-    # did we partition more than 75% of the POSSIBLE patches (with remainder zero) into clusters of the required size?
+    # did we partition > required fraction of the POSSIBLE patches (with remainder zero) into clusters of required size?
     partition_target = size * np.divmod(total_patches, size)[0]  # the amount which COULD be precisely partitioned
-    is_partition_success = (total_elements_partitioned > 0.75 * np.floor(partition_target))
+    is_partition_success = (total_elements_partitioned > partition_success_threshold * np.floor(partition_target))
     return partition, partition_lookup, is_partition_success, partition_internal_complexity
 
 def partition_analysis(sub_network, partition, partition_lookup, num_species, is_normalised):
