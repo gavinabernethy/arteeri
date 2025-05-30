@@ -117,20 +117,22 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                     # Modifiers
                     if is_box_ensured:
                         # FIRST restrict to only the greatest adjacency
-                        adj_maximiser = (adjacency_counter == np.max(adjacency_counter))
-                        base_score = base_score * adj_maximiser
+                        base_score = base_score * (adjacency_counter == np.max(adjacency_counter))
                         if is_uniform:
-                            # to choose best score GIVEN the best adjacency!
-                            favour_score = adj_maximiser * (1.0 + np.max(difference_sum) - difference_sum)
-                            # if applicable, THEN restrict to the highest score for intra-cluster uniformity
-                            base_score = base_score * (favour_score == np.max(favour_score))
+                            # if applicable, THEN further scale by the highest score (min. 1) for uniformity
+                            base_score = base_score * (1.0 + np.max(difference_sum) - difference_sum)
                     else:
                         if is_uniform:
-                            # FIRST restrict to the highest score for intra-cluster uniformity
-                            favour_score = 1.0 + np.max(difference_sum) - difference_sum
-                            base_score = base_score * (favour_score == np.max(favour_score))
+                            # FIRST restrict to the highest score (i.e. lowest difference) for intra-cluster uniformity
+                            base_score = base_score * (difference_sum == np.min(difference_sum))
+                            # note this should work, since "difference_sum" is only associated with ACTUAL candidates
+                            # (i.e. it would be a problem if the vector was the length of all possible patches, with 0
+                            # score for patches that are not actually eligible neighbours and no actual candidates
+                            # happening to also have a score of zero - as then no real candidate would be able to match
+                            # the apparent "best" minimum added complexity).
+
                         if is_box_preferred:
-                            # if applicable, then further scale by the adjacency
+                            # if applicable, THEN further scale by the adjacency (min. 1)
                             base_score = base_score * adjacency_counter
 
                     # after possible modifications, draw one of the best
