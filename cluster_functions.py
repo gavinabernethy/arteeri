@@ -1,4 +1,6 @@
 import random
+from logging import raiseExceptions
+
 import numpy as np
 
 
@@ -73,11 +75,13 @@ def cluster_next_element(adjacency_matrix, patch_list, current_cluster: list,
     return type_patch_nums
 
 
-def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, num_species, is_box_ensured=False,
-                          is_box_preferred=False, is_uniform=False, all_elements_admissible=False, initial_patch=None,
+def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, num_species,
+                          box_uniform_state=None, is_uniform=False, is_box=False,
+                          all_elements_admissible=False, initial_patch=None,
                           return_undersized_cluster=False, is_normalised=False):
     # This is a more limited, but more efficient method to generate entire clusters of the specified size.
     # Used during complexity_analysis() when we requiring rapidly drawing many 100's of clusters.
+
     cluster = []
     is_success = False
     num_attempts = 0
@@ -115,25 +119,41 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                     base_score = np.ones(len(potential_neighbours))
 
                     # Modifiers
-                    if is_box_ensured:
+                    # if either is_box or is_uniform or both, need to specify implementation with box_uniform_state
+                    if box_uniform_state == "balance" and is_box and is_uniform:
+                        if np.max(adjacency_counter) - np.min(adjacency_counter) != 0.0:
+                            adj_modifier = ((adjacency_counter - np.min(adjacency_counter)) /
+                                            (np.max(adjacency_counter) - np.min(adjacency_counter)))
+                            base_score = base_score * adj_modifier
+                        if np.max(difference_sum) - np.min(difference_sum) != 0.0:
+                            uni_modifier = 1.0 - ((difference_sum - np.min(difference_sum)) /
+                                            (np.max(difference_sum) - np.min(difference_sum)))
+                            base_score = base_score * uni_modifier
+                    elif box_uniform_state == "ensure_box" and is_box:
                         # FIRST restrict to only the greatest adjacency
                         base_score = base_score * (adjacency_counter == np.max(adjacency_counter))
                         if is_uniform:
                             # if applicable, THEN further scale by the highest score (min. 1) for uniformity
                             base_score = base_score * (1.0 + np.max(difference_sum) - difference_sum)
-                    else:
-                        if is_uniform:
-                            # FIRST restrict to the highest score (i.e. lowest difference) for intra-cluster uniformity
-                            base_score = base_score * (difference_sum == np.min(difference_sum))
-                            # note this should work, since "difference_sum" is only associated with ACTUAL candidates
-                            # (i.e. it would be a problem if the vector was the length of all possible patches, with 0
-                            # score for patches that are not actually eligible neighbours and no actual candidates
-                            # happening to also have a score of zero - as then no real candidate would be able to match
-                            # the apparent "best" minimum added complexity).
-
-                        if is_box_preferred:
+                    elif box_uniform_state == "ensure_uniform" and is_uniform:
+                        # FIRST restrict to the highest score (i.e. lowest difference) for intra-cluster uniformity
+                        base_score = base_score * (difference_sum == np.min(difference_sum))
+                        # note this should work, since "difference_sum" is only associated with ACTUAL candidates
+                        # (i.e. it would be a problem if the vector was the length of all possible patches, with 0
+                        # score for patches that are not actually eligible neighbours and no actual candidates
+                        # happening to also have a score of zero - as then no real candidate would be able to match
+                        # the apparent "best" minimum added complexity).
+                        if is_box:
                             # if applicable, THEN further scale by the adjacency (min. 1)
                             base_score = base_score * adjacency_counter
+                    else:
+                        # no box or uniform restrictions/preferences
+                        # check options are consistent:
+                        if is_box or is_uniform:
+                            raise Exception("generate_fast_cluster() has is_box or is_uniform flag but no"
+                                            "box_uniform_state is specified.")
+                        pass
+
 
                     # after possible modifications, draw one of the best
                     short_list = np.where(base_score == np.max(base_score))[0]
@@ -190,7 +210,7 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                             # find the existing index for this neighbour
                             potential_index = potential_neighbours.index(potential_element)
 
-                        if is_box_ensured or is_box_preferred:
+                        if is_box:
                             # for box style, must update all neighbours of the added patch with their additional
                             # adjacency, which may go from 0 to 1 (for new neighbours) or simply be incremented
                             adjacency_counter[potential_index] += 1
@@ -238,9 +258,9 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised,
             max_attempts=1,
             admissible_elements=elements_to_partition,
             num_species=num_species,
-            is_box_ensured=False,  # irregular systems sensitive to this - depends on topological restrictions desired
-            is_box_preferred=True,  # in this case, we want uniformity to take precedence, THEN box as far as possible
-            is_uniform=True,
+            box_uniform_state="balance",  # depends on topological restrictions desired, but we obtain the best results
+            is_box=True,                  # here from a balance which avoids the most 'obvious' undesirable outcomes
+            is_uniform=True,              # from either uniformity or box restrictions being ignored.
             all_elements_admissible=False,
             initial_patch=cluster_init_patch,
             return_undersized_cluster=True,

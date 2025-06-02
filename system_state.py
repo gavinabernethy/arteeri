@@ -1173,8 +1173,8 @@ class System_state:
                                 max_attempts=self.complexity_parameters["NUM_CLUSTER_DRAW_ATTEMPTS"],
                                 admissible_elements=[_ for _ in range(sub_networks[network_key]["num_patches"])],
                                 num_species=num_species,
-                                is_box_ensured=True,  # for complexity analysis (unlike partition), PRIORITISE boxes
-                                is_box_preferred=False,
+                                box_uniform_state="ensure_box",     # for complexity analysis (unlike partition),
+                                is_box=True,                        # PRIORITISE boxes and ignore uniformity
                                 is_uniform=False,
                                 all_elements_admissible=True,
                                 initial_patch=i,

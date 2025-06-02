@@ -235,7 +235,7 @@ master_para = {
                 "MAX_DELTA": 64,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
                 "IS_PARTITION_ANALYSIS": True,  # toggle partition analysis to determine resolution for max complexity
                 "MAX_NUM_PARTITIONS": 100,  # max number of partitions is min(num_patches_in_subnetwork, this_value)
-                "PARTITION_SUCCESS_THRESHOLD": 0.9,  # what fraction (of the max possible) patches must be in clusters
+                "PARTITION_SUCCESS_THRESHOLD": 0.8,  # what fraction (of the max possible) patches must be in clusters
                     # of precisely the required size, for the partition to be considered a success?
             },
         },
