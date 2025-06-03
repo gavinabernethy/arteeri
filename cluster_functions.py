@@ -122,11 +122,11 @@ def generate_fast_cluster(sub_network, size, max_attempts, admissible_elements, 
                     # if either is_box or is_uniform or both, need to specify implementation with box_uniform_state
                     if box_uniform_state == "balance" and is_box and is_uniform:
                         if np.max(adjacency_counter) - np.min(adjacency_counter) != 0.0:
-                            adj_modifier = ((adjacency_counter - np.min(adjacency_counter)) /
+                            adj_modifier = 1.0 + ((adjacency_counter - np.min(adjacency_counter)) /
                                             (np.max(adjacency_counter) - np.min(adjacency_counter)))
                             base_score = base_score * adj_modifier
                         if np.max(difference_sum) - np.min(difference_sum) != 0.0:
-                            uni_modifier = 1.0 - ((difference_sum - np.min(difference_sum)) /
+                            uni_modifier = 2.0 - ((difference_sum - np.min(difference_sum)) /
                                             (np.max(difference_sum) - np.min(difference_sum)))
                             base_score = base_score * uni_modifier
                     elif box_uniform_state == "ensure_box" and is_box:
@@ -233,58 +233,109 @@ def determine_difference(patch_1, patch_2, target_array, num_species):
         total_difference += np.abs(target_array[patch_1, species_index] - target_array[patch_2, species_index])
     return total_difference
 
-def draw_partition(sub_network, size, initial_patch, num_species, is_normalised, partition_success_threshold):
+def draw_partition(sub_network, size, num_species, is_normalised, partition_success_threshold,
+                   initial_patch=None, is_evo=False):
     # As far as possible, cluster the elements of the network into highly-uniform clusters of the given size.
     # Note that we opt for box-clusters only as this is less ambiguous in what we 'expect' to see, and it feels like
     # a more natural interpretation of the space than the visually-strange but topologically-admissible patterns that
     # *could* get detected otherwise - i.e. it seeks more obvious approximately-square 2D clusters, rather than
     # recognising two clusters joined by a long thin string as a single 'cluster' even though topologically equivalent.
-    #
+
     # partition consists of a numbered dictionary of cluster lists
     partition = {}
     total_patches = sub_network["num_patches"]
     elements_to_partition = [_ for _ in range(total_patches)]
     partition_lookup = np.zeros(sub_network["num_patches"])  # returns cluster of the patch
-    cluster_init_patch = initial_patch
     cluster_num = 0
     total_elements_partitioned = 0
     partition_internal_complexity = []
+    partition_failed_elements = 0
+    partition_target_base = size * np.divmod(total_patches, size)[0]  # the amount which COULD be precisely partitioned
+    partition_target = partition_success_threshold * np.floor(partition_target_base)
+    cluster_init_patch = initial_patch
 
     while len(elements_to_partition) > 0:
-        # generate each box cluster
-        cluster, is_success, internal_complexity = generate_fast_cluster(
-            sub_network=sub_network,
-            size=size,
-            max_attempts=1,
-            admissible_elements=elements_to_partition,
-            num_species=num_species,
-            box_uniform_state="balance",  # depends on topological restrictions desired, but we obtain the best results
-            is_box=True,                  # here from a balance which avoids the most 'obvious' undesirable outcomes
-            is_uniform=True,              # from either uniformity or box restrictions being ignored.
-            all_elements_admissible=False,
-            initial_patch=cluster_init_patch,
-            return_undersized_cluster=True,
-            is_normalised=is_normalised,
-        )
-        total_elements_partitioned += size * is_success  # how many patches put into full-size clusters so far?
-        if is_success:
+
+        if is_evo:
+            # number of attempts
+            if len(elements_to_partition) > size:
+                how_many_cluster_draws = 5
+            else:
+                how_many_cluster_draws = 1
+
+            best_internal_complexity = float('inf')
+            best_cluster = []
+            best_success = False
+            for try_cluster in range(how_many_cluster_draws):
+                cluster_init_patch = np.random.choice(elements_to_partition)
+
+                # generate each box cluster
+                cluster, is_success, internal_complexity = generate_fast_cluster(
+                    sub_network=sub_network,
+                    size=size,
+                    max_attempts=1,
+                    admissible_elements=elements_to_partition,
+                    num_species=num_species,
+                    box_uniform_state="balance",  # depends on topological restrictions desired, but best results here
+                    is_box=True,                  # from a balance which avoids the most 'obvious' undesirable outcomes
+                    is_uniform=True,              # from either uniformity or box restrictions being ignored.
+                    all_elements_admissible=False,
+                    initial_patch=cluster_init_patch,
+                    return_undersized_cluster=True,
+                    is_normalised=is_normalised,
+                )
+
+                if is_success and internal_complexity < best_internal_complexity:
+                    best_cluster = cluster
+                    best_internal_complexity = internal_complexity
+                    best_success = True
+                elif try_cluster == 0:
+                    # record the first one as a default option
+                    best_cluster = cluster
+                    best_internal_complexity = internal_complexity
+
+        else:
+            # generate each box cluster
+            best_cluster, best_success, best_internal_complexity = generate_fast_cluster(
+                sub_network=sub_network,
+                size=size,
+                max_attempts=1,
+                admissible_elements=elements_to_partition,
+                num_species=num_species,
+                box_uniform_state="balance",
+                # depends on topological restrictions desired, but we obtain the best results
+                is_box=True,  # here from a balance which avoids the most 'obvious' undesirable outcomes
+                is_uniform=True,  # from either uniformity or box restrictions being ignored.
+                all_elements_admissible=False,
+                initial_patch=cluster_init_patch,
+                return_undersized_cluster=True,
+                is_normalised=is_normalised,
+            )
+
+        # choose the best one
+        if best_success:
+            total_elements_partitioned += size  # how many patches put into full-size clusters so far?
             # only record internal complexity for the properly partitioned elements - i.e. so that we can give a
             # conservative estimate of how much of the system can be partitioned for a given delta
-            partition_internal_complexity.append(internal_complexity)
+            partition_internal_complexity.append(best_internal_complexity)
+        else:
+            partition_failed_elements += len(best_cluster)
 
-        for element in cluster:
+        for element in best_cluster:
             elements_to_partition.remove(element)
             partition_lookup[element] = cluster_num
-        partition[cluster_num] = cluster
+        partition[cluster_num] = best_cluster
 
-        if len(elements_to_partition) > 0:
-            # set up for next cluster
-            cluster_num += 1
+        if partition_failed_elements >= total_patches - partition_target:
+            # cannot possibly succeed now, no point continuing
+            break
+
+        if not is_evo and len(elements_to_partition) > 0:
             # choose next largest element from the smallest in the cluster to start with if possible,
             # otherwise choose the smallest overall from those eligible
             temp_init_upper = float('inf')
             temp_init_lower = elements_to_partition[0]
-            min_cluster_element = min(cluster)
+            min_cluster_element = min(best_cluster)
             for element in elements_to_partition:
                 temp_init_lower = min(temp_init_lower, element)
                 if element > min_cluster_element:
@@ -294,9 +345,11 @@ def draw_partition(sub_network, size, initial_patch, num_species, is_normalised,
             else:
                 cluster_init_patch = temp_init_lower
 
+        # set up for next cluster
+        cluster_num += 1
+
     # did we partition > required fraction of the POSSIBLE patches (with remainder zero) into clusters of required size?
-    partition_target = size * np.divmod(total_patches, size)[0]  # the amount which COULD be precisely partitioned
-    is_partition_success = (total_elements_partitioned > partition_success_threshold * np.floor(partition_target))
+    is_partition_success = (total_elements_partitioned > partition_target)
     return partition, partition_lookup, is_partition_success, partition_internal_complexity
 
 def partition_analysis(sub_network, partition, partition_lookup, num_species, is_normalised):
