@@ -1,12 +1,13 @@
-# Artemis
-## Artemis spatial population dynamics tool.
+# A.R.T.E.E.R.I.
+## Arteeri spatial population dynamics tool (formerly 'Artemis').
 
 Dr Gavin M Abernethy,
 University of Stirling.
 
 ## What is this software for?
 
-This is designed to be a general-purpose Python tool enabling the simulation and analysis of highly-generalised 
+A.R.T.E.E.R.I. (A Ranged Terrestrial, Ecological and Evolutionary model with Reserves Iterator) is designed to be a
+general-purpose Python tool enabling the simulation and analysis of highly-generalised 
 mathematical ecological models.
 
 ### The models may potentially involve:
@@ -21,6 +22,7 @@ mathematical ecological models.
   - Perturbations induced upon the space or upon particular species.
   - Numerical simulation of either continuous or discrete methods.
   - Ordering of the ecological sub-steps (predation, reproduction, dispersal) with an iteration.
+- Future releases will incorporate eco-evolutionary capabilities.
 
 The tools are sufficiently general that non-ecological dynamical systems, such as simple coupled maps, can be 
 specified and analysed.
