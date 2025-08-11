@@ -1,12 +1,13 @@
+from source_code.degree_distribution import power_law_curve_fit
+from source_code.data_save_functions import update_local_population_nets
+from source_code.system_state_functions import (tuple_builder, linear_model_report, determine_complexity,
+                                    rank_abundance, inter_species_predictions_correlation_coefficients,
+                                    complexity_scaling_vector_analysis)
+from source_code.cluster_functions import generate_fast_cluster, draw_partition, partition_analysis
 import numpy as np
 from copy import deepcopy
 from collections import Counter
-from degree_distribution import power_law_curve_fit
-from data_save_functions import update_local_population_nets
-from system_state_functions import (tuple_builder, linear_model_report, determine_complexity,
-                                    rank_abundance, inter_species_predictions_correlation_coefficients,
-                                    complexity_scaling_vector_analysis)
-from cluster_functions import generate_fast_cluster, draw_partition, partition_analysis
+
 
 class System_state:
 
@@ -17,7 +18,6 @@ class System_state:
                  habitat_species_feeding=None,
                  current_patch_list=None,
                  dimensions=None,
-                 sim_path=None,
                  ):
         self.step = step
         self.time = 0

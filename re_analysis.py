@@ -6,7 +6,7 @@
 # only a specific property (e.g. local_growth or r_mod) to easily inspect them, rather than having to spend time
 # formatting the large JSONs to be able to actually read these data streams.
 import numpy as np
-from data_manager import load_json, pickle_load, retrospective_network_plots
+from source_code.data_manager import load_json, pickle_load, retrospective_network_plots
 import os.path
 import functools
 

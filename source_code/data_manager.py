@@ -1,6 +1,6 @@
-import os
-from data_save_functions import *
+from source_code.data_save_functions import *
 import shutil
+import os
 
 
 # ----------------------------- FUNCTIONS USED IN SYSTEM INITIALISATION ----------------------- #
@@ -8,7 +8,7 @@ import shutil
 def generate_simulation_number(minimum=99, save_data=True, is_sub_folders=False, sub_folder_capacity=100):
     # finds the next simulation number, and generates the required folder structure
 
-    sim_path = 'results'  # over-written default to avoid "possibly unassigned" warning
+    sim_path = '../results'  # over-written default to avoid "possibly unassigned" warning
     sim_number = 100  # over-written default to avoid "possibly unassigned" warning
     if is_sub_folders:
         current_parent_folder_num = 0
@@ -205,7 +205,7 @@ def print_key_outputs_to_console(simulation_obj):
 
 
 def save_all_data(simulation_obj):
-    from data_plot_functions import global_species_time_series_properties
+    from source_code.data_plot_functions import global_species_time_series_properties
     # Access required properties:
     metadata = simulation_obj.metadata
     species_set = simulation_obj.system_state.species_set
@@ -257,7 +257,7 @@ def save_all_data(simulation_obj):
 # ----------------------------- SAVING PLOTS AT THE END OF THE SIMULATION ----------------------- #
 
 def all_plots(simulation_obj):
-    from data_plot_functions import (plot_network_properties, create_time_series_plot,
+    from source_code.data_plot_functions import (plot_network_properties, create_time_series_plot,
                                      plot_current_local_population_attribute, plot_accessible_sub_graphs,
                                      global_species_time_series_properties)
     #
@@ -420,35 +420,36 @@ def all_plots(simulation_obj):
                                           is_save_plots=True, is_save_data=False)
     is_local_plots = parameters["plot_save_para"]["LOCAL_PLOTS"]  # individual plot files per patch?
     if parameters["plot_save_para"]["IS_PLOT_LOCAL_TIME_SERIES"]:
-        from data_plot_functions import plot_local_time_series
+        from source_code.data_plot_functions import plot_local_time_series
         plot_local_time_series(patch_list=patch_list, species_set=species_set, parameters=parameters,
                                sim_path=sim_path, step=step, is_local_plots=is_local_plots)
 
     # ---- Type V: Optional extras ---- #
     if parameters["plot_save_para"]["IS_PLOT_UNRESTRICTED_PATHS"]:
         # plots all reachable foraging/direct dispersal paths per species WITHOUT threshold and path-length restriction
-        from data_plot_functions import plot_unrestricted_shortest_paths
+        from source_code.data_plot_functions import plot_unrestricted_shortest_paths
         plot_unrestricted_shortest_paths(patch_list=patch_list, species_set=species_set, sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_BIODIVERSITY_ANALYSIS"]:
         # species-area curves (SAR analysis)
-        from data_plot_functions import biodiversity_analysis
+        from source_code.data_plot_functions import biodiversity_analysis
         biodiversity_analysis(patch_list=patch_list, species_set=species_set, parameters=parameters,
                               sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_ADJACENCY_SUB_GRAPHS"]:
         # plots the undirected adjacency-based sub-graphs, regardless of any species ability to traverse them
-        from data_plot_functions import plot_adjacency_sub_graphs
+        from source_code.data_plot_functions import plot_adjacency_sub_graphs
         plot_adjacency_sub_graphs(system_state=simulation_obj.system_state, sim_path=sim_path)
     if parameters["plot_save_para"]["IS_PLOT_INTERACTIONS"]:
-        from data_plot_functions import plot_interactions
+        from source_code.data_plot_functions import plot_interactions
         plot_interactions(patch_list=patch_list, adjacency_path_list=adjacency_path_list, sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_DEGREE_DISTRIBUTION"]:
-        from data_plot_functions import plot_degree_distribution
+        from source_code.data_plot_functions import plot_degree_distribution
         plot_degree_distribution(
             degree_distribution_history=simulation_obj.system_state.degree_distribution_history,
             degree_dist_power_law_fit_history=simulation_obj.system_state.degree_dist_power_law_fit_history,
             sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_DISTANCE_METRICS_LM"]:
-        from data_plot_functions import plot_distance_metrics_lm, complexity_plotting, partition_spectrum_plotting
+        from source_code.data_plot_functions import (plot_distance_metrics_lm,
+                                                     complexity_plotting, partition_spectrum_plotting)
         plot_distance_metrics_lm(distance_metrics_store=simulation_obj.system_state.distance_metrics_store,
                                  sim_path=sim_path, step=step)
         complexity_plotting(distance_metrics_store=simulation_obj.system_state.distance_metrics_store,
@@ -469,7 +470,7 @@ def population_snapshot(system_state, sim_path, update_stored, output_figures):
     save_current_local_population_attribute(patch_list=system_state.patch_list, sim_path=sim_path,
                                             attribute_name="population", step=system_state.step)
     if output_figures:
-        from data_plot_functions import plot_current_local_population_attribute
+        from source_code.data_plot_functions import plot_current_local_population_attribute
         adjacency_path_list = create_adjacency_path_list(
             patch_list=system_state.patch_list,
             patch_adjacency_matrix=system_state.patch_adjacency_matrix)
@@ -513,7 +514,7 @@ def change_snapshot(system_state, sim_path, output_figures):
                                             )
     if output_figures:
         # change visualisation
-        from data_plot_functions import plot_current_local_population_attribute
+        from source_code.data_plot_functions import plot_current_local_population_attribute
         adjacency_path_list = create_adjacency_path_list(
             patch_list=system_state.patch_list,
             patch_adjacency_matrix=system_state.patch_adjacency_matrix)

@@ -1,8 +1,9 @@
+from source_code.population_dynamics import build_interacting_populations_list, build_actual_dispersal_targets, \
+    reset_dispersal_values, pre_dispersal_of_local_population
+from source_code.cluster_functions import cluster_next_element
 import numpy as np
 from copy import deepcopy
-from population_dynamics import build_interacting_populations_list, build_actual_dispersal_targets, \
-    reset_dispersal_values, pre_dispersal_of_local_population
-from cluster_functions import cluster_next_element
+
 
 # VISUALISATION: be aware that perturbations will not show up in the species dispersal time series, and that a full
 # iteration will also occur before the recording of data, so that isolated impact of the perturbation alone will never

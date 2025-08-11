@@ -1,3 +1,4 @@
+from source_code.data_core_functions import *
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -8,7 +9,6 @@ from matplotlib.cm import ScalarMappable
 import os.path
 from copy import deepcopy
 from matplotlib.pyplot import xlabel, ylabel
-from data_core_functions import *
 
 
 # ----------------------------------------------- FIGURE MANAGEMENT ----------------------------------------------- #

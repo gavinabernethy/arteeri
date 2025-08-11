@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import spearmanr, pearsonr, linregress
 from scipy.optimize import curve_fit
 
+
 # Additional static functions used by system_state methods
 
 def tuple_builder(property_list):

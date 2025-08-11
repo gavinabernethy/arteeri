@@ -1,17 +1,17 @@
-from data_manager import (save_all_data, generate_simulation_number, write_initial_files, save_adj_variables,
-                          load_adj_variables, load_reserve_list, \
+from source_code.data_manager import (save_all_data, generate_simulation_number, write_initial_files,
+                          save_adj_variables, load_adj_variables, load_reserve_list, \
     save_reserve_list, print_key_outputs_to_console)
-from data_core_functions import create_adjacency_path_list
+from source_code.data_core_functions import create_adjacency_path_list
 from sample_spatial_data import run_sample_spatial_data
-import os
-from patch import Patch
-from local_population import Local_population
-from species import Species
-from datetime import datetime
-from population_dynamics import *
-from system_state import System_state
-from perturbation import *
+from source_code.patch import Patch
+from source_code.local_population import Local_population
+from source_code.species import Species
+from source_code.population_dynamics import *
+from source_code.system_state import System_state
+from source_code.perturbation import *
 import json.decoder
+import os
+from datetime import datetime
 
 
 def load_dataset(filename, force_dimension=None):
@@ -235,7 +235,7 @@ class Simulation_obj:
                 print(f"{self.sim_number}: Completed data saves.")
             if self.is_plot:
                 # only at this stage import necessary function
-                from data_manager import all_plots
+                from source_code.data_manager import all_plots
                 print(f"{self.sim_number}: Beginning plot exports.")
                 all_plots(simulation_obj=self)
                 print(f"{self.sim_number}: Completed plot exports.")
@@ -316,7 +316,7 @@ class Simulation_obj:
         # do we require a visualisation of the system after initialisation BEFORE the first (0th) time-step has run?
         if self.is_allow_file_creation and self.is_plot:
             # only at this stage import necessary functions
-            from data_plot_functions import plot_network_properties
+            from source_code.data_plot_functions import plot_network_properties
             if -1 in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
@@ -337,7 +337,7 @@ class Simulation_obj:
                 pert_paras = self.parameters["perturbation_para"]["PERT_ARCHETYPE_DICTIONARY"][pert_archetype]
                 if (self.is_allow_file_creation and self.is_plot and
                         self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]):
-                    from data_manager import population_snapshot
+                    from source_code.data_manager import population_snapshot
                     save_all_data(simulation_obj=self)
                     population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
@@ -348,7 +348,7 @@ class Simulation_obj:
             if step - 1 in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
                 if (self.is_allow_file_creation and self.is_plot and
                         self.parameters["perturbation_para"]["IS_OUTPUT_DATAFILES"]):
-                    from data_manager import population_snapshot, change_snapshot
+                    from source_code.data_manager import population_snapshot, change_snapshot
                     population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                     save_all_data(simulation_obj=self)
@@ -383,7 +383,7 @@ class Simulation_obj:
             # print the spatial network of the system during the simulation at the END OF STEP if manually specified
             if self.is_allow_file_creation and self.is_plot and\
                     step in self.parameters["plot_save_para"]["MANUAL_SPATIAL_NETWORK_SAVE_STEPS"]:
-                from data_plot_functions import plot_network_properties
+                from source_code.data_plot_functions import plot_network_properties
                 adjacency_path_list = create_adjacency_path_list(
                     patch_list=self.system_state.patch_list,
                     patch_adjacency_matrix=self.system_state.patch_adjacency_matrix)

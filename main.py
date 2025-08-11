@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from simulation_obj import Simulation_obj
-from data_save_functions import save_network_properties
-from data_core_functions import create_adjacency_path_list
+from source_code.simulation_obj import Simulation_obj
+from source_code.data_save_functions import save_network_properties
+from source_code.data_core_functions import create_adjacency_path_list
 import random
 from datetime import datetime
-from data_manager import load_json
+from source_code.data_manager import load_json
 import numpy as np
 from sample_spatial_data import run_sample_spatial_data
 import importlib
@@ -51,7 +51,7 @@ def call_program(parameters, metadata, parameters_basename):
         adjacency_path_list = create_adjacency_path_list(
             patch_list=simulation_obj.system_state.patch_list,
             patch_adjacency_matrix=simulation_obj.system_state.patch_adjacency_matrix)
-        from data_plot_functions import plot_network_properties
+        from source_code.data_plot_functions import plot_network_properties
         plot_network_properties(patch_list=simulation_obj.system_state.patch_list,
                                 sim_path=simulation_obj.sim_path,
                                 step="initial_network",  # name of sub-folder

@@ -4,7 +4,7 @@ import numpy as np
 import os
 import networkx  # https://networkx.org/documentation/stable/reference/generators.html
 import random
-from cluster_functions import cluster_next_element
+from source_code.cluster_functions import cluster_next_element
 
 # ----------------------------- FOLDER PREPARATION ----------------------- #
 

@@ -1,5 +1,5 @@
+from source_code.population_dynamics import temporal_function
 import numpy as np
-from population_dynamics import temporal_function
 
 
 # ------------------------ FUNCTIONAL RESPONSES ------------------------ #
