@@ -448,10 +448,11 @@ def all_plots(simulation_obj):
             degree_dist_power_law_fit_history=simulation_obj.system_state.degree_dist_power_law_fit_history,
             sim_path=sim_path, step=step)
     if parameters["plot_save_para"]["IS_PLOT_DISTANCE_METRICS_LM"]:
-        from source_code.data_plot_functions import (plot_distance_metrics_lm,
-                                                     complexity_plotting, partition_spectrum_plotting)
+        from source_code.data_plot_functions import (plot_distance_metrics_lm)
         plot_distance_metrics_lm(distance_metrics_store=simulation_obj.system_state.distance_metrics_store,
                                  sim_path=sim_path, step=step)
+    if parameters["plot_save_para"]["IS_PLOT_COMPLEXITY"]:
+        from source_code.data_plot_functions import (complexity_plotting, partition_spectrum_plotting)
         complexity_plotting(distance_metrics_store=simulation_obj.system_state.distance_metrics_store,
                             sim_path=sim_path, step=step)
         partition_spectrum_plotting(distance_metrics_store=simulation_obj.system_state.distance_metrics_store,

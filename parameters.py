@@ -14,6 +14,104 @@ meta_para = {
 }
 
 master_para = {
+"main_para":
+        {
+            # ---------- CONTROL PARAMETERS: ---------- #
+            "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
+            "NUM_TRANSIENT_STEPS": 1000,
+            "NUM_RECORD_STEPS": 1000,
+            "NUM_PATCHES": 100,
+            # ----------------------------------------- #
+
+            "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
+            "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
+            "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
+
+            "ECO_PRIORITIES": {0: {'foraging', 'direct_impact', 'growth', 'dispersal'}, 1: {}, 2: {}, 3: {}},
+            # What is the order or concurrence in which foraging (predation), growth (reproduction and mortality),
+            # direct impact, and dispersal should be resolved?
+
+            "MAX_CENTRALITY_MEASURE": 10,  # Max amount of NxN matrix multiplication when determining patch.centrality
+            "ASSUMED_MAX_PATH_LENGTH": 3,  # used for shortcuts in rebuilding paths AND multiplying adjacency matrix!
+            # THIS VALUE NEEDS TO BE AT LEAST EQUAL TO THE MAXIMUM MAX_DISPERSAL_PATH_LENGTH ACROSS ALL SPECIES!!!
+            # and IF YOU CHANGE THIS then "IS_LOAD_ADJ_VARIABLES" BELOW MUST BE "FALSE" AS WE NEED TO REBUILD THEM!!!
+            #
+            # Note that saving the adjacency variables does seem to be extremely slow in DEBUG mode.
+            "IS_SAVE_ADJ_VARIABLES": False,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+            "IS_LOAD_ADJ_VARIABLES": False,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
+
+            # ------------- Generation data - needs to be set before spatial habitat generation ------------- #
+            "SPECIES_TYPES": {
+                # This is the broader dictionary of what types of species are "known" to the system, even if they do
+                # not actually feature in the simulation at the beginning (or at all!).
+                # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
+                # name loaded (below) from the parameters_species_repository.py:
+                0: "prey",
+                1: "predator",
+            },  # key numbering must remain consistent with column ordering of the loaded arrays
+
+            "HABITAT_TYPES": {
+                # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
+                0: 'habitat_type_0',
+                1: 'habitat_type_1',
+            },
+            "GENERATED_SPEC": {
+                #
+                # NOTE THAT IF YOU WISH TO CHANGE THESE YOU MUST RE-RUN SPATIAL HABITAT GENERATION BEFORE MAIN.PY
+                #
+                "FEEDING": {
+                    "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
+                    # distribution over [MIN_SCORE, MAX_SCORE]
+                    "MIN_SCORE": None,
+                    "MAX_SCORE": None,
+                    # specify habitat scores for generation
+                    # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
+                    # length equal to the total possible number of scores (i.e. the number of species)
+                    "HABITAT_SCORES": {0: [1.0, 1.0],
+                                       1: [0.0, 1.0],
+                                       },
+                },
+                "TRAVERSAL": {
+                    "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
+                    # distribution over [MIN_SCORE, MAX_SCORE]
+                    "MIN_SCORE": None,
+                    "MAX_SCORE": None,
+                    "HABITAT_SCORES": {0: [1.0, 1.0],
+                                       1: [1.0, 1.0],
+                                       },
+                },
+            },
+
+            # --- Initial choice of the above species and habitats that should actually be present at the start --- #
+
+            # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
+            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
+
+            # each must be present in the types dictionary, ordering not needed
+            # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
+            "INITIAL_HABITAT_SET": {0, 1},
+            # if the following is None then probabilities are treated as uniform when combined with auto-correlation
+            "INITIAL_HABITAT_BASE_PROBABILITIES": None,
+
+            # do we load the hurst module and attempt to calculate Hurst exponents?
+            "IS_CALCULATE_HURST": False,
+
+            # When conducting distance metric, network and complexity analyses that include linear regressions, do we
+            # record the vectors of values, to reconstruct the raw data scatter plots against the fitted models later?
+            "IS_RECORD_METRICS_LM_VECTORS": False,
+
+            # Parameters for conducting the complexity analysis - increasing these can be computationally-expensive.
+            "COMPLEXITY_ANALYSIS": {
+                "NUM_CLUSTER_DRAWS": 100,  # how many samples do we try to draw for each delta?
+                "NUM_CLUSTER_DRAW_ATTEMPTS": 20,  # how many attempts to draw each sample (may fail if disconnected)?
+                "MAX_DELTA": 64,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
+                "IS_PARTITION_ANALYSIS": True,  # toggle partition analysis to determine resolution for max complexity
+                "NUM_EVO_PARTITIONS": 10,
+                "NUM_REG_PARTITIONS": 10,
+                "PARTITION_SUCCESS_THRESHOLD": 0.8,  # what fraction (of the max possible) patches must be in clusters
+                    # of precisely the required size, for the partition to be considered a success?
+            },
+        },
     "graph_para":
         {
             # This set of parameters is accessed during the execution of sample_spatial_data.py for generating
@@ -24,7 +122,7 @@ master_para = {
             "GRAPH_TYPE": "lattice",
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
+            "LATTICE_GRAPH_CONNECTIVITY": 0.75,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": False,
             "RANDOM_GRAPH_CONNECTIVITY": None,
@@ -34,82 +132,20 @@ master_para = {
             "CLUSTER_PROBABILITY": None,
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
-            "HABITAT_TYPE_MANUAL_ALL_SPEC": [1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0,
-                                             0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-                                             0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-                                             0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1,
-                                             1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1],
-
-            # [1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
-            #                              1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1,
-            #                              1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1,
-            #                              0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0,
-            #                              0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0,
-            #                              0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1,
-            #                              1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            #                              1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-            #                              1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1,
-            #                              0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1,
-            #                              1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1,
-            #                              1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1,
-            #                              1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
-            #                              1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1],
-
-            # [0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
-            #                              0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
-            #                              0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
-            #                              0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            #                              0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-            #                              0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-            #                              0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-            #                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-
-            # should be None if we want to generate habitats by probability, otherwise a list of the habitat nums
-            "HABITAT_SPATIAL_AUTO_CORRELATION": 1.0,  # in range [-1, 1]
+            "HABITAT_TYPE_MANUAL_ALL_SPEC": None, # should be None if we want to generate habitats by probability,
+                # otherwise a list of the habitat nums
+            "HABITAT_SPATIAL_AUTO_CORRELATION": 0.8,  # in range [-1, 1]
             "HABITAT_TYPE_MANUAL_OVERWRITE": None,  # set this to None or empty dict, unless you want
             # to manually specify the habitat types of only certain patches in an otherwise randomly-generated system.
             # If you want to specify ALL patches then use the MANUAL_ALL_SPEC option instead.
             "IS_HABITAT_CLUSTERS": False,  # if True then all else ignored except the following two options...
-            "HABITAT_CLUSTER_SIZE": [17],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
+            "HABITAT_CLUSTER_SIZE": [],  # if IS_HABITAT_CLUSTERS, then what size of clusters should be drawn?
                 # This should be either a single value for all clusters to be the same, or a list of the desired cluster
                 # sizes to be sequentially alternated through. If IS_BIND_HABITAT_TO_CLUSTER_SIZE then this needs to be
                 # the same length as the number of habitats at generation. Otherwise, this is not bound to specific
                 # habitat types, so simply list the range of same-habitat sizes desired and each cluster is assigned
                 # a habitat type to minimise overlapping boundaries.
-            "HABITAT_CLUSTER_TYPE_STR": "chess_box",  # cluster topology (box, star, chain, random, disconnected).
+            "HABITAT_CLUSTER_TYPE_STR": None,  # cluster topology (box, star, chain, random, disconnected).
             # But also select "chess_box" to use "box" but with constraints to resemble a chess board. Note that this
             # has limited effectiveness if used in conjunction with different cluster sizes, so most effective if
             # content with a single cluster size across all habitat types.
@@ -141,103 +177,6 @@ master_para = {
                 "HABITAT_TYPE_NUM_DESIRED": None,
             },
         },
-    "main_para":
-        {
-            # ---------- CONTROL PARAMETERS: ---------- #
-            "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
-            "NUM_TRANSIENT_STEPS": 1000,
-            "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 400,
-            # ----------------------------------------- #
-
-            "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
-            "EULER_STEP": 0.1,  # ONLY used if continuous - solve ODEs by Euler method
-            "STEPS_TO_DAYS": 1,  # be aware that this affects how often temporal functions are updated!
-
-            "ECO_PRIORITIES": {0: {'foraging', 'direct_impact', 'growth', 'dispersal'}, 1: {}, 2: {}, 3: {}},
-            # What is the order or concurrence in which foraging (predation), growth (reproduction and mortality),
-            # direct impact, and dispersal should be resolved?
-
-            "MAX_CENTRALITY_MEASURE": 10,  # Max amount of NxN matrix multiplication when determining patch.centrality
-            "ASSUMED_MAX_PATH_LENGTH": 3,  # used for shortcuts in rebuilding paths AND multiplying adjacency matrix!
-            # THIS VALUE NEEDS TO BE AT LEAST EQUAL TO THE MAXIMUM MAX_DISPERSAL_PATH_LENGTH ACROSS ALL SPECIES!!!
-            # and IF YOU CHANGE THIS then "IS_LOAD_ADJ_VARIABLES" BELOW MUST BE "FALSE" AS WE NEED TO REBUILD THEM!!!
-            #
-            # Note that saving the adjacency variables does seem to be extremely slow in DEBUG mode.
-            "IS_SAVE_ADJ_VARIABLES": False,  # Save patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
-            "IS_LOAD_ADJ_VARIABLES": False,  # Load patch.stepping_stone_list,.species_movement_scores,.adjacency_lists?
-
-            # ------------- Generation data - needs to be set before spatial habitat generation ------------- #
-            "SPECIES_TYPES": {
-                # This is the broader dictionary of what types of species are "known" to the system, even if they do
-                # not actually feature in the simulation at the beginning (or at all!).
-                # Key (index) must be non-negative integers without gaps, and the value must be a recognised species
-                # name loaded (below) from the parameters_species_repository.py:
-                0: "prey",
-            },  # key numbering must remain consistent with column ordering of the loaded arrays
-
-            "HABITAT_TYPES": {
-                # Key (indexing) must be non-negative integers without gaps. Value can be any given name.
-                0: 'habitat_type_0',
-                1: 'habitat_type_1',
-            },
-            "GENERATED_SPEC": {
-                #
-                # NOTE THAT IF YOU WISH TO CHANGE THESE YOU MUST RE-RUN SPATIAL HABITAT GENERATION BEFORE MAIN.PY
-                #
-                "FEEDING": {
-                    "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
-                    # distribution over [MIN_SCORE, MAX_SCORE]
-                    "MIN_SCORE": None,
-                    "MAX_SCORE": None,
-                    # specify habitat scores for generation
-                    # If used, this needs to have keys from 0, ...,  total_possible_habitats, indexing lists with
-                    # length equal to the total possible number of scores (i.e. the number of species)
-                    "HABITAT_SCORES": {0: [1.0],
-                                       1: [0.0],
-                                       },
-                },
-                "TRAVERSAL": {
-                    "IS_SPECIES_SCORES_SPECIFIED": True,  # if false, then randomly generated from the uniform
-                    # distribution over [MIN_SCORE, MAX_SCORE]
-                    "MIN_SCORE": None,
-                    "MAX_SCORE": None,
-                    "HABITAT_SCORES": {0: [1.0],
-                                       1: [1.0],
-                                       },
-                },
-            },
-
-            # --- Initial choice of the above species and habitats that should actually be present at the start --- #
-
-            # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
-
-            # each must be present in the types dictionary, ordering not needed
-            # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1},
-            # if the following is None then probabilities are treated as uniform when combined with auto-correlation
-            "INITIAL_HABITAT_BASE_PROBABILITIES": None,
-
-            # do we load the hurst module and attempt to calculate Hurst exponents?
-            "IS_CALCULATE_HURST": False,
-
-            # When conducting distance metric, network and complexity analyses that include linear regressions, do we
-            # record the vectors of values, to reconstruct the raw data scatter plots against the fitted models later?
-            "IS_RECORD_METRICS_LM_VECTORS": True,
-
-            # Parameters for conducting the complexity analysis - increasing these can be computationally-expensive.
-            "COMPLEXITY_ANALYSIS": {
-                "NUM_CLUSTER_DRAWS": 100,  # how many samples do we try to draw for each delta?
-                "NUM_CLUSTER_DRAW_ATTEMPTS": 20,  # how many attempts to draw each sample (may fail if disconnected)?
-                "MAX_DELTA": 64,  # maximum delta is min(num_patches_in_subnetwork/2 , this_value)
-                "IS_PARTITION_ANALYSIS": True,  # toggle partition analysis to determine resolution for max complexity
-                "NUM_EVO_PARTITIONS": 10,
-                "NUM_REG_PARTITIONS": 10,
-                "PARTITION_SUCCESS_THRESHOLD": 0.8,  # what fraction (of the max possible) patches must be in clusters
-                    # of precisely the required size, for the partition to be considered a success?
-            },
-        },
     "plot_save_para":
         {
             "IS_ALLOW_FILE_CREATION": True,  # prevents creation of any files for running on remote clusters
@@ -247,8 +186,9 @@ master_para = {
             "IS_PRINT_DISTANCE_METRICS_TO_CONSOLE": True,  # JSON.dumps() of species and community distribution analysis
             "IS_SAVE": True,  # do you save ANY data files?
             "IS_PLOT": True,  # do you plot ANY final graphs? Must be enabled to save any subsets controlled below.
-            "IS_PLOT_DISTANCE_METRICS_LM": True,  # Do you plot the complexity/distance-metric linear models (with
-            # scatter plots of the base data, IF COLLECTED - see option in main_para) and the complexity power laws?
+            "IS_PLOT_DISTANCE_METRICS_LM": False,  # Do you plot the distance-metric linear models (with
+            # scatter plots of the base data, IF COLLECTED - see option in main_para)?
+            "IS_PLOT_COMPLEXITY": True,  # Do you plot the complexity power laws?
             "IS_RECORD_AND_PLOT_LESSER_LM": False,  # if True, then also attempt to fit, store, and then plot _base,
             # _nz, and shifted (less reliable) fitted linear models for inter_species_predictions.
             "PLOT_INIT_NETWORK": True,  # do we plot the initial network before the simulation (before species pathing)?
@@ -332,7 +272,7 @@ master_para = {
     # so that everything is saved and not overwritten
     "species_para":
         {
-            x: ARTEMIS_01_MASTER[x] for x in ARTEMIS_01_MASTER
+            x: ARTEMIS_SAMPLE_MASTER[x] for x in ARTEMIS_SAMPLE_MASTER
         },
 }
 
