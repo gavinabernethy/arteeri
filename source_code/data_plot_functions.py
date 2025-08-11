@@ -679,7 +679,7 @@ def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_p
     # this function is currently unused, but the idea is that it could be called after a reload or re-analysis
     # and then used to plot the abiotic properties of the spatial network at any given time (i.e. after various
     # perturbations) without having to re-run the simulation, since we save both the initial state of the network
-    # (as the initial patch list) and record for each patch all of the changes that have been made due to perturbation!
+    # (as the initial patch list) and record for each patch all the changes that have been made due to perturbation!
     modified_patch_list = deepcopy(initial_patch_list)  # don't change the initial list!
     mod_patch_adjacency_matrix = deepcopy(initial_patch_adjacency_matrix)  # don't change the initial matrix!
     #

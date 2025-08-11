@@ -651,7 +651,7 @@ def remove_patch(system_state,
                         system_state.patch_adjacency_matrix[patch.number, patch_number] = 0
 
             # only do this after reducing the degree of connected patches
-            system_state.current_patch_list.remove(patch_number)
+            system_state.current_patch_list.remove(patch_number)  # ok as iterating over "patches_to_remove", not this!
             system_state.patch_list[patch_number].removal_history[system_state.step] = 'removed'
     # after removing a patch, update all patch centrality and record history of average properties for CURRENT patches
     system_state.update_centrality_history(parameters=parameters)

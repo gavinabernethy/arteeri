@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # this script loads all overview data from a specified complete simulation,
 # then conducts whatever additional analysis is required
 #
@@ -6,27 +8,27 @@
 # only a specific property (e.g. local_growth or r_mod) to easily inspect them, rather than having to spend time
 # formatting the large JSONs to be able to actually read these data streams.
 import numpy as np
-from source_code.data_manager import load_json, pickle_load, retrospective_network_plots
+from source_code.data_core_functions import load_json
+from source_code.data_save_functions import pickle_load
+from source_code.data_plot_functions import retrospective_network_plots
 import os.path
 import functools
 
 # ---------------------- REQUEST ---------------------- #
-SIM_NUMBER = 107
-TIME = 5099
+# Set the simulation number and the time-step of the data you want to reload:
+SIM_NUMBER = 111
+TIME = 1999
 
-# Load specific nested values from a JSON file:
-SPECIFIC_PATCH_NUMBER = 33
-SPECIFIC_SPECIES_NAME = "predator"
-SPECIFIC_PROPERTY_PATH = ("species",)  # For first-depth (e.g. "species"), need to
-# include a comma after - e.g. ("species", )
-
-# Combine values from a JSON (e.g. produce the time-series of r_mod, or local_growth for a local population)
-# specify the local population JSON file that you want (i.e. patch and species),
+# Load specific nested values from a JSON file. To combine values from a JSON (e.g. produce the time-series of r_mod,
+# or local_growth for a local population) specify the local population JSON file that you want (i.e. patch and species),
 # then two paths in a list - specifying where the root of the iterable (list of dictionary) is, and then the local path
 # of what you want to retrieve for the nest of *each item* in this iterable object.
-COMBINED_PATCH_NUMBER = 33
-COMBINED_SPECIES_NAME = "predator"
-COMBINED_PROPERTY_PATHS = [("ode_recording",), ("local_growth",)]
+SPECIFIC_DATA = [
+    {"patch_number": 1,
+     "species_name": "predator",
+     "property_path": [("ode_recording",), ("new_population",)], # e.g. [("name", )], [("ode_recording",), ("local_growth",)]
+     }
+]
 
 
 # ----------------------------------------------------- #
@@ -51,36 +53,35 @@ def load_overview_data(sim, time):
     }
     return overview_data_int
 
+def load_data_stream(sim, time, patch_number, species_name, property_path):
+    file_name = f"results/{sim}/{time}/data/local_pop_json/patch_{patch_number}_{species_name}.json"
+    if os.path.exists(file_name):
+        json_file = load_json(file_name)
+        root_path = property_path[0]
+        root_property = functools.reduce(dict.get, root_path, json_file)
+        if len(property_path) == 1:
+            return root_property
+        elif len(property_path) == 2:
+            relative_path = property_path[1]
+            combined_data_stream = []
+            if type(root_property) is list:
+                iterable_object = root_property
+            elif type(root_property) is dict:
+                iterable_object = root_property.values()
+            else:
+                raise 'Error - not a list or dictionary to iterate through.'
 
-def load_specific_data_stream(sim, time, patch_number, species_name, property_path):
-    file_name = f"results/{sim}/{time}/data/patch_{patch_number}_{species_name}.json"
-    json_file = load_json(file_name)
-    ask_property = functools.reduce(dict.get, property_path, json_file)
-    return ask_property
-
-
-def load_combined_data_stream(sim, time, patch_number, species_name, property_path):
-    file_name = f"results/{sim}/{time}/data/patch_{patch_number}_{species_name}.json"
-    json_file = load_json(file_name)
-    root_path = property_path[0]
-    relative_path = property_path[1]
-    root_property = functools.reduce(dict.get, root_path, json_file)
-    combined_data_stream = []
-    if type(root_property) is list:
-        iterable_object = root_property
-    elif type(root_property) is dict:
-        iterable_object = root_property.values()
-    else:
-        raise 'Error - not a list or dictionary to iterate through.'
-
-    for iter_item in iterable_object:
-        if type(iter_item) is dict:
-            combined_data_stream.append(functools.reduce(dict.get, relative_path, iter_item))
+            for iter_item in iterable_object:
+                if type(iter_item) is dict:
+                    combined_data_stream.append(functools.reduce(dict.get, relative_path, iter_item))
+                else:
+                    raise 'Error - not a dictionary to continue searching.'
+            return combined_data_stream
         else:
-            raise 'Error - not a dictionary to continue searching.'
-
-    return combined_data_stream
-
+            raise Exception('Data stream not suitable.')
+    else:
+        print (f"File patch_{patch_number}_{species_name}.json not found. Did you enable patch JSON storage "
+                        f"for this simulation?")
 
 def load_population_history_data(sim, time, num_patches, species_dictionary):
     population_history_dictionary = {}
@@ -96,26 +97,26 @@ def load_population_history_data(sim, time, num_patches, species_dictionary):
 
 # ---------------------- EXECUTE ---------------------- #
 overview_data = load_overview_data(sim=SIM_NUMBER, time=TIME)
-special_data = load_specific_data_stream(
-    sim=SIM_NUMBER,
-    time=TIME,
-    patch_number=SPECIFIC_PATCH_NUMBER,
-    species_name=SPECIFIC_SPECIES_NAME,
-    property_path=SPECIFIC_PROPERTY_PATH,
-)
-combined_data = load_combined_data_stream(
-    sim=SIM_NUMBER,
-    time=TIME,
-    patch_number=COMBINED_PATCH_NUMBER,
-    species_name=COMBINED_SPECIES_NAME,
-    property_path=COMBINED_PROPERTY_PATHS,
-)
-simulation_obj = pickle_load(sim=SIM_NUMBER, step=TIME)
-# break here
-pass
+if len(SPECIFIC_DATA) > 0:
+    combined_data = []
+    for element in SPECIFIC_DATA:
+        combined_data.append(
+            load_data_stream(
+                sim=SIM_NUMBER,
+                time=TIME,
+                patch_number=element["patch_number"],
+                species_name=element["species_name"],
+                property_path=element["property_path"],
+            )
+        )
+simulation_obj = pickle_load(sim_path=f'results/{SIM_NUMBER}', step=TIME)
 # want to produce some spatial network plots at an arbitrary time-step?
-retrospective_network_plots(
-    initial_patch_list=simulation_obj.system_state.initial_patch_list,
-    actual_patch_list=simulation_obj.system_state.patch_list,
-    initial_patch_adjacency_matrix=simulation_obj.system_state.initial_patch_adjacency_matrix,
-    sim=SIM_NUMBER, step=TIME)
+if simulation_obj is not None:  # i.e. if there WAS a pickle file to find...
+    retrospective_network_plots(
+        initial_patch_list=simulation_obj.system_state.initial_patch_list,
+        actual_patch_list=simulation_obj.system_state.patch_list,
+        initial_patch_adjacency_matrix=simulation_obj.system_state.initial_patch_adjacency_matrix,
+        sim_path=f'results/{SIM_NUMBER}', step=TIME)
+
+# break here to show data in the console when run in debugger
+x=1

@@ -105,10 +105,14 @@ def pickle_save(simulation_obj, sim_path, step):
 
 def pickle_load(sim_path, step):
     pickle_file_name = f"{sim_path}/{step}/data/simulation_obj.pkl"
-    file = open(pickle_file_name, "rb")
-    simulation_obj = pickle.load(file)
-    file.close()
-    return simulation_obj
+    if os.path.exists(pickle_file_name):
+        file = open(pickle_file_name, "rb")
+        simulation_obj = pickle.load(file)
+        file.close()
+        return simulation_obj
+    else:
+        print("Pickle file not found.")
+        return None
 
 
 # ------------------------ UPDATING AND SAVING CURRENT VALUES OF LOCAL POPULATION ATTRIBUTES ------------------------ #
