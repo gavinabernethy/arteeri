@@ -4,6 +4,8 @@
 Dr Gavin M Abernethy,
 University of Stirling.
 
+DOI: 10.5281/zenodo.16794869
+
 ## What is this software for?
 
 A.R.T.E.E.R.I. (A Ranged Terrestrial, Ecological and Evolutionary model with Reserves Iterator) is designed to be a
