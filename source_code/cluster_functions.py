@@ -56,6 +56,8 @@ def cluster_next_element(adjacency_matrix, patch_list, current_cluster: list,
 
     elif cluster_arch_type == "position_box":
         # choose a box consisting of positionally-close patches, regardless of actual connectivity
+        # although this should be used sparingly as we typically take patch.position to just be about the visualisation
+        # whilst adjacency represents the "real" physical connections that matter to the simulation.
         distance_counter = []
         for patch_num in actual_patch_nums:
             summative_distance = 0.0

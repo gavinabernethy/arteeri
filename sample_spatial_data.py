@@ -39,12 +39,55 @@ def generate_patch_position_adjacency(num_patches, graph_para):
     num_rows = int(np.ceil(np.sqrt(num_patches)))
     num_columns = int(np.ceil(num_patches / num_rows))
     position_array = np.zeros([num_patches, 2])
-    for patch in range(num_patches):
-        x = np.mod(patch, num_columns)
-        y = np.floor(patch / num_columns)
-        position_array[patch, 0] = x
-        position_array[patch, 1] = y
 
+    # Layout of positions
+
+    # Default is grid
+    if graph_para["GRAPH_LAYOUT"] == "grid":
+        for patch in range(num_patches):
+            x = np.mod(patch, num_columns)
+            y = np.floor(patch / num_columns)
+            position_array[patch, 0] = x
+            position_array[patch, 1] = y
+    elif graph_para["GRAPH_LAYOUT"] == "space_filling_curve":
+        # set in a curving pattern that becomes more and more spaced out
+        x = -1
+        y = 0
+        x_direction = 1
+        for patch in range(num_patches):
+            x += x_direction * (1.0 + 0.05*patch)
+            y += 0.005*patch
+            if x >= num_columns or x <= -1:
+                x_direction *= -1
+                x += x_direction
+                y += 2
+            position_array[patch, 0] = x
+            position_array[patch, 1] = y
+    elif graph_para["GRAPH_LAYOUT"] == "tree":
+        # a full tree. Hard to see if too many patches
+        x = 0
+        y = 0
+        y_direction = 1
+        for patch in range(num_patches):
+            y_direction *= -1
+            x += 0.5
+            y += (1 + 0.1*patch)**3.0 * y_direction
+            position_array[patch, 0] = x
+            position_array[patch, 1] = y
+    elif graph_para["GRAPH_LAYOUT"] == "spiral":
+        # a full tree. Hard to see if too many patches
+        radius = 0.0
+        theta = 0.0
+        for patch in range(num_patches):
+            radius += (0.1 + 1 / (1 + 0.5 * patch))
+            theta += (0.1 + 0.2 / (1 + 0.1 * patch))
+            position_array[patch, 0] = radius*np.cos(theta)
+            position_array[patch, 1] = radius*np.sin(theta)
+    else:
+        raise Exception("GRAPH_LAYOUT must be 'grid', 'tree', 'space_filling_curve' or 'spiral'.")
+
+    # ------------------------------------------
+    #
     # Now adjacency
     graph_type = graph_para["GRAPH_TYPE"]
     adjacency_array = np.zeros([num_patches, num_patches])
@@ -169,6 +212,36 @@ def generate_patch_position_adjacency(num_patches, graph_para):
             graph = networkx.powerlaw_cluster_graph(n=num_patches,
                                                     m=graph_para["CLUSTER_NUM_NEIGHBOURS"],
                                                     p=graph_para["CLUSTER_PROBABILITY"], )
+            adjacency_array = networkx.to_numpy_array(graph)
+        elif graph_type == "erdos_renyi_random":
+            # https://networkx.org/documentation/stable/reference/generated/
+            # networkx.generators.random_graphs.erdos_renyi_graph.html
+            graph = networkx.erdos_renyi_graph(n=num_patches, p=graph_para["RANDOM_GRAPH_CONNECTIVITY"])
+            adjacency_array = networkx.to_numpy_array(graph)
+        elif graph_type == "balanced_tree":
+            # https://networkx.org/documentation/stable/reference/generated/
+            # networkx.generators.classic.balanced_tree.html
+            test_num_nodes = 0
+            possible_height = 0
+            test_difference = 0
+            for possible_height in range(num_patches):
+                test_num_nodes += graph_para["TREE_BRANCHING"]**possible_height
+                test_difference = test_num_nodes - num_patches
+                if test_difference >= 0:
+                    break
+            tree_height = possible_height
+            graph = networkx.balanced_tree(r=graph_para["TREE_BRANCHING"], h=tree_height)
+            # now prune back down to desired number of patches
+            # these will be from the last graph_para["TREE_BRANCHING"]**possible_height amount added to the nodes
+            if test_difference > 0:
+                last_nodes_to_remove = list(np.random.choice(graph_para["TREE_BRANCHING"]**possible_height,
+                                                             size=test_difference, replace=False))
+                graph.remove_nodes_from(list(n for n in graph.nodes if test_num_nodes-n-1 in last_nodes_to_remove))
+            adjacency_array = networkx.to_numpy_array(graph)
+        elif graph_type == "power_law_tree":
+            # https://networkx.org/documentation/stable/reference/generated/
+            # networkx.generators.random_graphs.random_powerlaw_tree.html
+            graph = networkx.random_powerlaw_tree(n=num_patches, gamma=graph_para["TREE_POWER"], tries=10000)
             adjacency_array = networkx.to_numpy_array(graph)
         else:
             raise Exception("Which type of graph is the spatial network?")

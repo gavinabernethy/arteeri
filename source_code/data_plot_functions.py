@@ -1,3 +1,5 @@
+from numpy.distutils.fcompiler import none
+
 from source_code.data_core_functions import *
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -252,8 +254,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
             c_bar_max_pos = 3.8
         c_bar.ax.text(c_bar_min_pos, color_offset, f'${"{:.4g}".format(min_color_value)}$', ha='center', va='center')
         c_bar.ax.text(c_bar_max_pos, 1.0, f'${"{:.4g}".format(max_color_value)}$', ha='center', va='center')
-    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    plt.axis('off')  # remove both the box and the ticks on both axes
     print_and_close(fig, file_path)
 
 
@@ -1001,12 +1002,15 @@ def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
                         if data_type == "part_complexity":
                             natural_delta = base_dict["part_minmax_delta"]  # delta with single best partition value
                             target_height = base_dict["part_target"]  # above line may classify peaks for natural scale
-                            plt.axhline(y=target_height, color=[0.2, 0.2, 0.2], linestyle=':',
-                                        linewidth=1.5, label='_nolegend_')
-                            plt.axvline(x=natural_delta, color='k', linestyle='--', label='_nolegend_')
-                            plt.plot([], [], ' ')
-                            plot_legend.append(r'$(\delta, P_{\delta})$ of peaks: ' + str([(x[0], float(
-                                f'{"{:.2f}".format(x[1])}')) for x in base_dict["part_peak_spectrum"]]))
+                            if target_height is not None:
+                                plt.axhline(y=target_height, color=[0.2, 0.2, 0.2], linestyle=':',
+                                            linewidth=1.5, label='_nolegend_')
+                            if natural_delta is not None:
+                                plt.axvline(x=natural_delta, color='k', linestyle='--', label='_nolegend_')
+                            if target_height is not None and natural_delta is not None:
+                                plt.plot([], [], ' ')
+                                plot_legend.append(r'$(\delta, P_{\delta})$ of peaks: ' + str([(x[0], float(
+                                    f'{"{:.2f}".format(x[1])}')) for x in base_dict["part_peak_spectrum"]]))
 
                         plt.xlabel(r"$\delta$")
                         plt.ylabel(type_info[data_type]["y_label"])
@@ -1017,20 +1021,21 @@ def partition_spectrum_plotting(distance_metrics_store, sim_path, step):
                         print_and_close(fig, file_path)
 
                     # delta-threshold internal complexity heatmap:
-                    fig = plt.figure()
-                    output_matrix = np.transpose(base_dict["internal_matrix"])
-                    plt.imshow(output_matrix, cmap='Greys_r', origin='lower', aspect=1.5)
-                    plt.colorbar(fraction=0.022, pad=0.12)
-                    plt.clim(vmin=0, vmax=1)
-                    xlabel(r"$\delta$")
-                    ylabel("Intra-cluster complexity threshold")
-                    plt.xticks(list(range(0, np.size(output_matrix, 1), 10)),
-                               list(range(1, np.size(output_matrix, 1) + 1, 10)))
-                    plt.yticks(ticks=[0, 4, 8, 12, 16, 20], labels=[0, 0.2, 0.4, 0.6, 0.8, 1])
-                    plt.tight_layout()
-                    print_name = path.replace('|', '_')
-                    file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{base_type}_internal.png"
-                    print_and_close(fig, file_path)
+                    if "internal_matrix" in base_dict:
+                        fig = plt.figure()
+                        output_matrix = np.transpose(base_dict["internal_matrix"])
+                        plt.imshow(output_matrix, cmap='Greys_r', origin='lower', aspect=1.5)
+                        plt.colorbar(fraction=0.022, pad=0.12)
+                        plt.clim(vmin=0, vmax=1)
+                        xlabel(r"$\delta$")
+                        ylabel("Intra-cluster complexity threshold")
+                        plt.xticks(list(range(0, np.size(output_matrix, 1), 10)),
+                                   list(range(1, np.size(output_matrix, 1) + 1, 10)))
+                        plt.yticks(ticks=[0, 4, 8, 12, 16, 20], labels=[0, 0.2, 0.4, 0.6, 0.8, 1])
+                        plt.tight_layout()
+                        print_name = path.replace('|', '_')
+                        file_path = f"{sim_path}/{step}/figures/complexity/{print_name}_{base_type}_internal.png"
+                        print_and_close(fig, file_path)
     else:
         # If IS_PARTITION_ANALYSIS was false but IS_PLOT_DISTANCE_METRICS_LM was true, this routine will fail to find
         # anything, as the default partition outputs will be empty dictionaries without the identifying keys.

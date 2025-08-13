@@ -20,7 +20,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 100,
+            "NUM_PATCHES": 400,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -118,18 +118,27 @@ master_para = {
             # the spatial network files that are then used in the simulation.
             "SPATIAL_TEST_SET": 1,
             "SPATIAL_DESCRIPTION": "artemis_01",
-            # choices are: "manual", "lattice", "line", "star", "random", "small_world", "scale_free", "cluster"
-            "GRAPH_TYPE": "lattice",
+            #
+            # Network topology:
+            "GRAPH_TYPE": "balanced_tree", # choices are: "manual", "lattice", "line",
+            #  "star", "random", "small_world", "scale_free", "cluster", "balanced_tree", "power_law_tree"
+            #
+            # Drawing the visual layout of the network - the only simulation impact that take any account of the
+            # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box".
+            "GRAPH_LAYOUT": "grid",  # choices are "grid", "tree", "space_filling_curve, "spiral"
+
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
             "LATTICE_GRAPH_CONNECTIVITY": 0.75,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
-            "IS_LATTICE_WRAPPED": False,
+            "IS_LATTICE_WRAPPED": False,  # should only be used for GRAPH_TYPE 'lattice' and GRAPH_LAYOUT 'grid'.
             "RANDOM_GRAPH_CONNECTIVITY": None,
             "SMALL_WORLD_NUM_NEIGHBOURS": None,  # if num_patches > 2, this need to be at least 2 or graph fails
             "SMALL_WORLD_SHORTCUT_PROBABILITY": None,
             "CLUSTER_NUM_NEIGHBOURS": None,
             "CLUSTER_PROBABILITY": None,
+            "TREE_BRANCHING": 3,  # for balanced_tree
+            "TREE_POWER": None,  # for power_law_tree
             # Habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None, # should be None if we want to generate habitats by probability,
