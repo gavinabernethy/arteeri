@@ -20,7 +20,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 400,
+            "NUM_PATCHES": 60,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -120,12 +120,12 @@ master_para = {
             "SPATIAL_DESCRIPTION": "artemis_01",
             #
             # Network topology:
-            "GRAPH_TYPE": "balanced_tree", # choices are: "manual", "lattice", "line",
+            "GRAPH_TYPE": "cliquey_network", # choices are: "manual", "lattice", "line",
             #  "star", "random", "small_world", "scale_free", "cluster", "balanced_tree", "power_law_tree"
             #
             # Drawing the visual layout of the network - the only simulation impact that take any account of the
             # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box".
-            "GRAPH_LAYOUT": "grid",  # choices are "grid", "tree", "space_filling_curve, "spiral"
+            "GRAPH_LAYOUT": "cliquey_network",  # choices are "grid", "tree", "space_filling_curve, "spiral"
 
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
@@ -139,7 +139,14 @@ master_para = {
             "CLUSTER_PROBABILITY": None,
             "TREE_BRANCHING": 3,  # for balanced_tree
             "TREE_POWER": None,  # for power_law_tree
-            # Habitat type:
+            #
+            # Cliquey Network options:
+            "WITHIN_CLIQUE_PROBABILITY": 0.9,  # for cliquey networks
+            "BETWEEN_CLIQUE_PROBABILITY": 0.01,  # for cliquey networks
+            "NUMBER_OF_CLIQUES": 5,  # for cliquey networks
+            "IS_HABITAT_CLIQUE": True,  # if true then cliques will have uniform habitat type
+            #
+            # Determine habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
             "HABITAT_TYPE_MANUAL_ALL_SPEC": None, # should be None if we want to generate habitats by probability,
                 # otherwise a list of the habitat nums

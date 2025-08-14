@@ -153,6 +153,12 @@ class Local_population:
             probability = self.species.initial_population_para["HABITAT_TYPE_NUM_BINOMIAL_DICT"][patch.habitat_type_num]
             self.population = self.species.initial_population_para[
                                   "BINOMIAL_MAXIMUM_MULTIPLIER"] * np.random.binomial(n=1, p=probability)
+        elif self.species.initial_population_mechanism == "clique_binomial":
+            # In a clique network, a clique-specific probability of spawning (with fixed size)
+            probability = self.species.initial_population_para["CLIQUE_BINOMIAL_DICT"][patch.clique_membership]
+            self.population = self.species.initial_population_para[
+                                  "BINOMIAL_MAXIMUM_MULTIPLIER"] * np.random.binomial(n=1, p=probability)
+
         elif self.species.initial_population_mechanism == "patch_vector":
             patch_vector = self.species.initial_population_para["PATCH_VECTOR"]
             # check for errors

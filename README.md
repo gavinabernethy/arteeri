@@ -55,8 +55,8 @@ To use Artemis, only the files parameters.py and parameters_species_repository.p
      - main_para - Properties including the number of patches, number of time-steps, number of habitat types and their 
         frequencies and associated reproduction and traversal scores for each species, which species and habitat types
         should be present at habitat generation (rather than being introduced subsequently via a perturbation).
-     - graph_para - Further specifying the spatial network (which may have already been generated separately),  
-        including the graph type and associated connectivity parameters, the size and quality of patches, the habitat 
+     - graph_para - Further specifying the spatial network (which may have already been generated separately),
+       including the graph type and associated connectivity parameters, the size and quality of patches, the habitat 
         distribution (manual, clusters, auto-correlation), and restoration characteristics against perturbations.
      - plot_save_para - Options controlling the post-simulation analysis and the amount and detail of files and figures 
         to be generated and saved.

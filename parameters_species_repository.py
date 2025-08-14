@@ -20,6 +20,7 @@ default_species = {
         "BINOMIAL_MAXIMUM_MULTIPLIER": 1.5,
         "BINOMIAL_PROBABILITY": 1.0,  # probability of occurrence in a given patch under any '_binomial' scheme
         "HABITAT_TYPE_NUM_BINOMIAL_DICT": {},  # probability of occurrence in patch of given habitat_type_num
+        "CLIQUE_BINOMIAL_DICT": {},  # probability of occurrence in patch of given clique (clique networks only)
         "PATCH_VECTOR": [],
     },
 

@@ -11,11 +11,13 @@ class Patch:
             patch_size=0.0,
             habitat_type=None,
             habitat_type_num=0,
+            clique_membership=None,
     ):
         self.number = patch_number
         self.local_populations = None
         self.habitat_type = habitat_type
         self.habitat_type_num = habitat_type_num
+        self.clique_membership = clique_membership
         self.quality = patch_quality
         self.size = patch_size
         self.degree = 0  # can change

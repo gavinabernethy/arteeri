@@ -39,11 +39,33 @@ def generate_patch_position_adjacency(num_patches, graph_para):
     num_rows = int(np.ceil(np.sqrt(num_patches)))
     num_columns = int(np.ceil(num_patches / num_rows))
     position_array = np.zeros([num_patches, 2])
+    clique_membership = np.zeros([num_patches, 1])
 
     # Layout of positions
+    #
+    if graph_para["GRAPH_LAYOUT"] == "cliquey_network" or graph_para["GRAPH_TYPE"] == "cliquey_network":
+        # clustered cliquey network inspired by Cui and O'Hare
+        number_of_cliques = graph_para["NUMBER_OF_CLIQUES"]
+        # first assign clique membership
+        patches_per_clique = int(np.ceil(num_patches / number_of_cliques))
+        clique_membership = np.array(
+            [x for x in range(number_of_cliques) for _ in range(patches_per_clique)][:num_patches])
+        # use here to assign positions, and later for drawing the actual adjacency
+        little_theta_increment = 1 / patches_per_clique * 2.0 * np.pi
+        little_scale_factor = 0.75  # if typical patch size (radius) is 1, set this >0.5 to separate patches in clique
+        little_radius = max(2, little_scale_factor / np.sin(little_theta_increment / 2))
+        big_theta_increment = 1 / number_of_cliques * 2.0 * np.pi
+        big_radius = max(6, 1.5*little_radius/np.sin(big_theta_increment / 2))
+        for patch in range(num_patches):
+            centre_x = big_radius * np.cos(big_theta_increment * clique_membership[patch])
+            centre_y = big_radius * np.sin(big_theta_increment * clique_membership[patch])
+            x = centre_x + little_radius * np.cos(little_theta_increment * patch)
+            y = centre_y + little_radius * np.sin(little_theta_increment * patch)
+            position_array[patch, 0] = x
+            position_array[patch, 1] = y
 
-    # Default is grid
-    if graph_para["GRAPH_LAYOUT"] == "grid":
+    # Apart from drawing the clusters for a cliquey network, the default is grid
+    elif graph_para["GRAPH_LAYOUT"] == "grid":
         for patch in range(num_patches):
             x = np.mod(patch, num_columns)
             y = np.floor(patch / num_columns)
@@ -243,6 +265,21 @@ def generate_patch_position_adjacency(num_patches, graph_para):
             # networkx.generators.random_graphs.random_powerlaw_tree.html
             graph = networkx.random_powerlaw_tree(n=num_patches, gamma=graph_para["TREE_POWER"], tries=10000)
             adjacency_array = networkx.to_numpy_array(graph)
+        elif graph_type == "cliquey_network":
+            # clustered cliquey network inspired by Cui and O'Hare
+            within_clique_probability = graph_para["WITHIN_CLIQUE_PROBABILITY"]
+            between_clique_probability = graph_para["BETWEEN_CLIQUE_PROBABILITY"]
+            for x in range(num_patches):
+                for y in range(x+1, num_patches):
+                    if clique_membership[x] == clique_membership[y]:
+                        draw = np.random.binomial(n=1, p=within_clique_probability)
+                        adjacency_array[x, y] = draw
+                        adjacency_array[y, x] = draw
+                    else:
+                        draw = np.random.binomial(n=1, p=between_clique_probability)
+                        adjacency_array[x, y] = draw
+                        adjacency_array[y, x] = draw
+            # we would also want to return clique membership
         else:
             raise Exception("Which type of graph is the spatial network?")
 
@@ -261,7 +298,7 @@ def generate_patch_position_adjacency(num_patches, graph_para):
                 if adjacency_array[x, y] == 1:
                     adjacency_array[y, x] = 1
 
-    return adjacency_array, position_array
+    return adjacency_array, position_array, clique_membership
 
 
 def generate_patch_quality(num_patches, adjacency_array, position_array, graph_para):
@@ -364,17 +401,36 @@ def generate_patch_size(num_patches, min_patch_size, max_patch_size, graph_para)
 
 
 def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_probabilities, adjacency_array,
-                          is_clusters, is_chess_bind_habitat_to_size, cluster_size, cluster_type_str,
-                          position_array, graph_para):
+                          position_array, graph_para, clique_membership):
     actual_habitat_list = list(generated_habitat_set)  # needs to be ordered for weighting the probability vector
     actual_num_habitats = len(actual_habitat_list)
     auto_correlation = graph_para["HABITAT_SPATIAL_AUTO_CORRELATION"]
     is_habitat_probability_rebalanced = graph_para["IS_HABITAT_PROBABILITY_REBALANCED"]
+    is_clusters = graph_para["IS_HABITAT_CLUSTERS"]
+    is_chess_bind_habitat_to_size = graph_para["IS_CHESS_BIND_HABITAT_TO_SIZE"]
+    cluster_size = graph_para["HABITAT_CLUSTER_SIZE"]
+    cluster_type_str = graph_para["HABITAT_CLUSTER_TYPE_STR"]
+    is_habitat_clique = graph_para["IS_HABITAT_CLIQUE"]
     habitat_array = np.zeros(shape=(num_patches, 1))
 
-    if is_clusters:
-        # In this case, we build clusters of the required size using cluster_functions.cluster_next_element()
-        # From a choice of box, star, chain, or also (not useful for this application) random or disconnected.
+    if (is_habitat_clique and graph_para["GRAPH_TYPE"] == "cliquey_network" and
+            graph_para["GRAPH_LAYOUT"] == "cliquey_network"):
+        # If already built in a Cliquey Network, we have this additional option to place the habitats by clique.
+        # In this case, patches are already assigned in discrete cliques, which will all assigned the same habitat
+        for clique in range(graph_para["NUMBER_OF_CLIQUES"]):
+            if generated_habitat_probabilities is not None:
+                clique_habitat = actual_habitat_list[np.random.choice(
+                    actual_num_habitats, p=np.transpose(generated_habitat_probabilities)[0])]
+            else:
+                clique_habitat = actual_habitat_list[np.random.choice(actual_num_habitats)]
+            for patch_num in range(num_patches):
+                if clique_membership[patch_num] == clique:
+                    habitat_array[patch_num, 0] = clique_habitat
+
+    elif is_clusters:
+        # In this case (compatible with "grid" layout), we build clusters of the required size
+        # using cluster_functions.cluster_next_element() from a choice of box, star,
+        # chain, or also (not useful for this application) random or disconnected.
         #
         if cluster_type_str == "chess_box":
             # if selected, we draw possibles using "box" type but impose additional selection criteria in this function
@@ -603,7 +659,7 @@ def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_
                 # while there are patches still to assign a habitat type to...
                 while len(list_of_unassigned) > 0:
 
-                    # select a unassigned patch number totally at random (i.e. uniform probability)
+                    # select an unassigned patch number totally at random (i.e. uniform probability)
                     patch_num = np.random.choice(list_of_unassigned)
 
                     # construct probability arrays of existing distributions
@@ -721,7 +777,8 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
         check_and_create_directory(test_set=test_set, dir_path=dir_path,
                                    can_overwrite_existing_dataset=can_overwrite_existing_dataset)
         create_description_file(desc, dir_path=dir_path)
-    adjacency_array, position_array = generate_patch_position_adjacency(num_patches=num_patches, graph_para=graph_para)
+    adjacency_array, position_array, clique_membership = generate_patch_position_adjacency(num_patches=num_patches,
+                                                                                           graph_para=graph_para)
     patch_size_array = generate_patch_size(num_patches=num_patches, min_patch_size=graph_para["MIN_SIZE"],
                                            max_patch_size=graph_para["MAX_SIZE"], graph_para=graph_para)
     patch_quality_array = generate_patch_quality(num_patches=num_patches, adjacency_array=adjacency_array,
@@ -729,13 +786,9 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
     patch_habitat_array = generate_habitat_type(generated_habitat_set=generated_habitat_set, num_patches=num_patches,
                                                 generated_habitat_probabilities=generated_habitat_probabilities,
                                                 adjacency_array=adjacency_array,
-                                                is_clusters=graph_para["IS_HABITAT_CLUSTERS"],
-                                                is_chess_bind_habitat_to_size=graph_para[
-                                                    "IS_CHESS_BIND_HABITAT_TO_SIZE"],
-                                                cluster_size=graph_para["HABITAT_CLUSTER_SIZE"],
-                                                cluster_type_str=graph_para["HABITAT_CLUSTER_TYPE_STR"],
                                                 position_array=position_array,
-                                                graph_para=graph_para)
+                                                graph_para=graph_para,
+                                                clique_membership=clique_membership)
 
     scores_dict = {}
     for score_type in ["FEEDING", "TRAVERSAL"]:
@@ -751,9 +804,10 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
         save_array(f'{dir_path}/patch_habitat_type.csv', patch_habitat_array)
         save_array(f'{dir_path}/habitat_species_feeding.csv', scores_dict["feeding"])
         save_array(f'{dir_path}/habitat_species_traversal.csv', scores_dict["traversal"])
+        save_array(f'{dir_path}/clique_membership.csv', clique_membership)
 
     return position_array, adjacency_array, patch_size_array, patch_quality_array, \
-        patch_habitat_array, scores_dict["feeding"], scores_dict["traversal"]
+        patch_habitat_array, scores_dict["feeding"], scores_dict["traversal"], clique_membership
 
 
 # ---------------------- EXECUTE ---------------------- #
@@ -778,7 +832,7 @@ def run_sample_spatial_data(parameters, is_output_files=False):
             raise Exception(f'{check_num} is missing from the global set of habitat types.')
 
     position_array, adjacency_array, patch_size_array, patch_quality_array, patch_habitat_array, \
-        habitat_feeding_scores, habitat_traversal_scores \
+        habitat_feeding_scores, habitat_traversal_scores, clique_membership \
         = generate_all_spatial_settings(
             is_output_files=is_output_files,
             desc=description,
@@ -795,7 +849,7 @@ def run_sample_spatial_data(parameters, is_output_files=False):
         )
     print(f"Test set {test_set} generation complete.")
     return position_array, adjacency_array, patch_size_array, patch_quality_array, \
-        patch_habitat_array, habitat_feeding_scores, habitat_traversal_scores
+        patch_habitat_array, habitat_feeding_scores, habitat_traversal_scores, clique_membership
 
 
 # # so that this method is called when the script is executed

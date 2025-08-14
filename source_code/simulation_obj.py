@@ -69,12 +69,14 @@ class Simulation_obj:
                             os.rename(new_filename, filepath)
             habitat_species_traversal_array = load_dataset(
                 f'{dir_path}/habitat_species_traversal.csv', force_dimension=2)
-            habitat_species_feeding_array = load_dataset(f'{dir_path}/habitat_species_feeding.csv', force_dimension=2)
+            habitat_species_feeding_array = load_dataset(f'{dir_path}/habitat_species_feeding.csv',
+                                                         force_dimension=2)
             patch_habitat_type_array = load_dataset(f'{dir_path}/patch_habitat_type.csv', force_dimension=1)
             patch_quality_array = load_dataset(f'{dir_path}/patch_quality.csv', force_dimension=1)
             patch_size_array = load_dataset(f'{dir_path}/patch_size.csv', force_dimension=1)
             patch_position_array = load_dataset(f'{dir_path}/patch_position.csv')
             patch_adjacency_array = load_dataset(f'{dir_path}/patch_adjacency.csv')
+            clique_membership = load_dataset(f'{dir_path}/clique_membership.csv')
 
             # A test set has been successfully loaded - but we must check that it is suitable for this parameter setup.
             # Otherwise - halt. It will not work and the user probably forgot to check their spatial test setting.
@@ -88,7 +90,8 @@ class Simulation_obj:
         except FileNotFoundError:
             # if (any) of the spatial network files do not exist, we MUST now create them here
             patch_position_array, patch_adjacency_array, patch_size_array, patch_quality_array, \
-            patch_habitat_type_array, habitat_species_feeding_array, habitat_species_traversal_array = \
+            patch_habitat_type_array, habitat_species_feeding_array, habitat_species_traversal_array,\
+                clique_membership = \
                 run_sample_spatial_data(parameters=self.parameters,
                                         is_output_files=self.is_allow_file_creation)
             # flatten the Nx1 arrays to N vectors
@@ -176,6 +179,7 @@ class Simulation_obj:
                 patch_size=patch_size_array[patch_num],
                 habitat_type_num=int(patch_habitat_type_array[patch_num]),
                 habitat_type=habitat_type_dictionary[int(patch_habitat_type_array[patch_num])],
+                clique_membership=int(clique_membership[patch_num]),
             )
             patch_list.append(new_patch)
 
