@@ -17,7 +17,7 @@ class Patch:
         self.local_populations = None
         self.habitat_type = habitat_type
         self.habitat_type_num = habitat_type_num
-        self.clique_membership = clique_membership
+        self.clique_membership = clique_membership  # integer clique number (if applicable)
         self.quality = patch_quality
         self.size = patch_size
         self.degree = 0  # can change
