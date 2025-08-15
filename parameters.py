@@ -142,7 +142,7 @@ master_para = {
             #
             # Cliquey Network options:
             "WITHIN_CLIQUE_PROBABILITY": 0.9,  # for cliquey networks
-            "BETWEEN_CLIQUE_PROBABILITY": 0.01,  # for cliquey networks
+            "BETWEEN_CLIQUE_PROBABILITY": 0.0,  # for cliquey networks
             "NUMBER_OF_CLIQUES": 5,  # for cliquey networks
             "IS_HABITAT_CLIQUE": True,  # if true then cliques will have uniform habitat type
             #

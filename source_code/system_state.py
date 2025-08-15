@@ -1416,10 +1416,11 @@ class System_state:
                                             # note that this will overwrite if precisely occurs at larger delta
                                             max_comp_binary_lookup = deepcopy(partition_lookup)
 
-                        if base_values["num_successful_partitions"][delta - 1] == 0:
-                            # no point looking for bigger partitions
-                            break
-                        else:
+                        if base_values["num_successful_partitions"][delta - 1] > 0:
+                            # note that we do not break if this fails, because in disconnected networks it may become
+                            # possible to partition properly at a larger delta (since there will be no "spillover" of
+                            # isolated patches not assigned to large enough clusters in the partition).
+                            #
                             # normalise running sums [1, :] to obtain mean values over set of partitions at this delta:
                             base_values["part_complexity"][1, delta - 1] = base_values["part_complexity"][1, delta - 1
                                                                            ] / base_values["num_successful_partitions"][
