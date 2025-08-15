@@ -13,7 +13,8 @@ class Patch:
             habitat_type_num=0,
             clique_membership=None,
     ):
-        self.number = patch_number
+        self.number = patch_number  # this is set at initialisation and is never changed, even if 'earlier' patches
+        # in the system_state.patch_list are removed
         self.local_populations = None
         self.habitat_type = habitat_type
         self.habitat_type_num = habitat_type_num
@@ -39,6 +40,10 @@ class Patch:
         # for population_perturbations we only count NET change in population due to dispersal events etc.
         self.latest_perturbation_code = 0.1  # 0.0 if reserve, 0.1 if none, otherwise randomly assign all patches in a
         # perturbation cluster a value from [0.2, 1] to help with clearer visualisation of the perturbation histories.
+        #
+        self.num_times_restored = 0  # add 1 every time this patch is chosen to be subject to a restoration
+        self.num_times_meaningfully_restored = 0  # same except do not count change to SAME type of habitat etc. and
+        # for population_perturbations we only count NET change in population due to dispersal events etc.
         #
         # history dictionaries - update (with step as key) if changed by a patch_perturbation
         self.habitat_history = {0: habitat_type_num}
@@ -71,3 +76,9 @@ class Patch:
 
     def increment_meaningful_perturbation_count(self):
         self.num_times_meaningfully_perturbed = int(self.num_times_meaningfully_perturbed + 1)
+
+    def increment_restoration_count(self):
+        self.num_times_restored = int(self.num_times_restored + 1)
+
+    def increment_meaningful_restoration_count(self):
+        self.num_times_meaningfully_restored = int(self.num_times_meaningfully_restored + 1)

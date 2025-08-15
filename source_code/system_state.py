@@ -21,7 +21,9 @@ class System_state:
                  ):
         self.step = step
         self.time = 0
-        self.patch_list = patch_list
+        self.patch_list = patch_list  # use a list, rather than as a dict with patch.number as key, because during
+        # perturbations we may remove patches. In such a case, the position in this list (rather than the patch.number)
+        # will still match with the corresponding row and column in the adjacency matrix following deletions from both.
         self.initial_patch_list = None
         self.species_set = species_set
         self.current_patch_list = current_patch_list
@@ -52,7 +54,9 @@ class System_state:
         self.habitat_spatial_auto_correlation_history = {}  # normalised by the expectation given habitat amounts
         self.habitat_regular_auto_correlation_history = {}  # plain ratio of same-habitat : any-habitat links
         self.num_perturbations = 0
+        self.num_restorations = 0
         self.num_perturbations_history = {0: 0}
+        self.num_restorations_history = {0: 0}
         self.patch_centrality_history = {}
         self.patch_degree_history = {}
         self.patch_lcc_history = {_: {} for _ in ['all', 'same', 'different'] + list(habitat_type_dictionary.keys())}
@@ -139,6 +143,11 @@ class System_state:
         # find the previous amount and add 1
         self.num_perturbations += 1
         self.num_perturbations_history[self.step] = self.num_perturbations
+
+    def increment_num_restorations(self):
+        # find the previous amount and add 1
+        self.num_restorations += 1
+        self.num_restorations_history[self.step] = self.num_restorations
 
     def update_local_capacity_history(self):
         # this is used for calculating source and sink indices of local populations,
@@ -464,7 +473,7 @@ class System_state:
                         if 0 < len(path_list) <= parameters["main_para"]["ASSUMED_MAX_PATH_LENGTH"] + 1:
                             stepping_stone_set = stepping_stone_set.union(set(path_list + [int(target)]))
         patch.stepping_stone_list = list(stepping_stone_set)
-        print(f"Paths built for patch {patch.number}/{len(self.patch_list) - 1}")
+        print(f"{self.step}: Paths built for patch {patch.number}/{len(self.patch_list) - 1}")
 
     # --------------------------- SPECIES / COMMUNITY DISTRIBUTION ANALYSIS ----------------------------------------- #
     def update_distance_metrics(self, parameters):
@@ -1147,6 +1156,8 @@ class System_state:
             print(f"..... complexity analysis for sub-network: {network_key}")
 
             current_num_patches = sub_networks[network_key]["num_patches"]
+            if current_num_patches < 1:
+                continue
             max_delta = int(min(current_num_patches / 2, self.complexity_parameters["MAX_DELTA"]))
             num_clusters = self.complexity_parameters["NUM_CLUSTER_DRAWS"]  # how many samples we try to draw?
             cluster_per_patch = max(1, int(np.floor(num_clusters / current_num_patches)))

@@ -61,6 +61,8 @@ def perturbation(system_state, parameters, pert_paras):
     print(f" ...Step {system_state.step} - implementing "
           f"{pert_paras['perturbation_type']}: {pert_paras['perturbation_subtype']}.")
 
+    contagion_return=None
+
     # prepare defaults to pass in
     try:
         patch_list_overwrite = pert_paras["patch_list_overwrite"]
@@ -114,6 +116,20 @@ def perturbation(system_state, parameters, pert_paras):
         rebuild_all_patches = pert_paras["rebuild_all_patches"]
     except KeyError:
         rebuild_all_patches = False
+    try:
+        is_restoration = pert_paras["is_restoration"]
+    except KeyError:
+        is_restoration = False
+
+    # patch perturbation only
+    try:
+        contagion_probability = pert_paras["contagion_probability"]
+    except KeyError:
+        contagion_probability = 0.0
+    try:
+        contagion_delay = pert_paras["contagion_delay"]
+    except KeyError:
+        contagion_delay = 0
 
     # population perturbation only
     try:
@@ -139,7 +155,7 @@ def perturbation(system_state, parameters, pert_paras):
 
     if pert_paras["perturbation_type"] == "patch_perturbation":
 
-        patch_perturbation(system_state=system_state,
+        contagion = patch_perturbation(system_state=system_state,
                            parameters=parameters,
                            perturbation_subtype=pert_paras["perturbation_subtype"],
                            patch_list_overwrite=pert_paras["patch_list_overwrite"],
@@ -156,7 +172,22 @@ def perturbation(system_state, parameters, pert_paras):
                            prev_weighting=prev_weighting,
                            all_weighting=all_weighting,
                            rebuild_all_patches=rebuild_all_patches,
+                           is_restoration=is_restoration,
+                           contagion_probability=contagion_probability,
+                           contagion_delay=contagion_delay,
                            )
+
+        if contagion is not None:
+            # perturbation has spawned follow-on perturbations at time list(contagion_dict.keys())[0]
+            contagion_step = contagion["step"]
+            contagion_patch_list = contagion["patch_list"]
+            contagion_type = deepcopy(pert_paras)
+            contagion_type["patch_list_overwrite"] = contagion_patch_list
+            contagion_return = {
+                "step": contagion_step,
+                "name": "contagion",
+                "desc": contagion_type,
+            }
 
     elif pert_paras["perturbation_type"] == "population_perturbation":
 
@@ -175,13 +206,17 @@ def perturbation(system_state, parameters, pert_paras):
                                 proximity_to_previous=proximity_to_previous,
                                 prev_weighting=prev_weighting,
                                 all_weighting=all_weighting,
+                                is_restoration=is_restoration,
                                 )
     else:
         # Note that habitat types (particularly species-specific feeding and traversal scores) should NEVER be altered.
         raise 'Perturbation main type not recognised. Expected "population_perturbation" or "patch_perturbation".'
 
-    system_state.increment_num_perturbations()
-
+    if is_restoration:
+        system_state.increment_num_restorations()
+    else:
+        system_state.increment_num_perturbations()
+    return contagion_return
 
 #
 # ----------------------------------------- PERTURBATION TYPES: POPULATION ----------------------------------------- #
@@ -204,6 +239,7 @@ def population_perturbation(
         proximity_to_previous: int = 0,
         prev_weighting=None,
         all_weighting=None,
+        is_restoration=False
 ):
     if perturbation_subtype in ['dispersal', 'displacement']:
         reset_dispersal_values(patch_list=system_state.patch_list)
@@ -266,7 +302,10 @@ def population_perturbation(
                 # probabilistic implementation
                 if np.random.binomial(1, max(0.0, min(1.0, probability))):
                     # implement!
-                    system_state.patch_list[patch_num].increment_perturbation_count()  # count (per species) perturb.
+                    if is_restoration:
+                        system_state.patch_list[patch_num].increment_restoration_count()
+                    else:
+                        system_state.patch_list[patch_num].increment_perturbation_count()  # count (per species) perturb
                     system_state.patch_list[patch_num].perturbation_history_list.append(
                         [system_state.step, perturbation_subtype, local_pop.name])
                     if perturbation_subtype == 'extinction':
@@ -277,7 +316,10 @@ def population_perturbation(
                         else:
                             local_pop.population = temp_pop
                         if old_population != local_pop.population:
-                            system_state.patch_list[patch_num].increment_meaningful_perturbation_count()
+                            if is_restoration:
+                                system_state.patch_list[patch_num].increment_meaningful_restoration_count()
+                            else:
+                                system_state.patch_list[patch_num].increment_meaningful_perturbation_count()
                     elif perturbation_subtype == 'dispersal':
                         # uses (and may be limited by) CURRENT species-specific dispersal scores and mechanisms
                         pre_dispersal_of_local_population(
@@ -311,7 +353,10 @@ def population_perturbation(
                     # for dispersal / displacement, count every time any population has a NET change - including from
                     # a neighbouring patch being perturbed, while perturbations that cancel each other exactly will
                     # NOT be counted in the "meaningful" metric
-                    patch.increment_meaningful_perturbation_count()
+                    if is_restoration:
+                        patch.increment_meaningful_restoration_count()
+                    else:
+                        patch.increment_meaningful_perturbation_count()
 
 
 #
@@ -321,7 +366,7 @@ def population_perturbation(
 def patch_perturbation(
         system_state,
         parameters,
-        perturbation_subtype,
+        perturbation_subtype,  # "change_habitat" / "change_parameter" / "remove_patch" / "change_adjacency"
         patch_list_overwrite=None,
         patches_affected=None,
         is_pairs=False,
@@ -336,6 +381,9 @@ def patch_perturbation(
         prev_weighting=None,
         all_weighting=None,
         rebuild_all_patches=False,
+        contagion_probability=0.0,
+        contagion_delay=None,
+        is_restoration=False  # for restorations, we usually don't want to record the timings and amounts of pert.
 ):
     # Note that habitat properties (in particular species-specific habitat feeding and traversal scores)
     # SHOULD NEVER BE CHANGED even in a perturbation.
@@ -390,14 +438,16 @@ def patch_perturbation(
     else:
         raise "No patches provided to patch perturbation."
 
-    # record history of the perturbations enacted
-    system_state.perturbation_history[system_state.step] = perturbation_list
-    # assign a colour code to all patches in each cluster
-    for cluster in perturbation_list:
-        draw_cluster_code = np.random.uniform(low=0.2, high=1)
-        for patch_num in cluster:
-            system_state.patch_list[patch_num].latest_perturbation_code = draw_cluster_code
-            system_state.patch_list[patch_num].latest_perturbation_code_history[system_state.step] = draw_cluster_code
+    if not is_restoration:
+        # record history of the perturbations enacted
+        system_state.perturbation_history[system_state.step] = perturbation_list
+        # assign a colour code to all patches in each cluster
+        for cluster in perturbation_list:
+            draw_cluster_code = np.random.uniform(low=0.2, high=1)
+            for patch_num in cluster:
+                system_state.patch_list[patch_num].latest_perturbation_code = draw_cluster_code
+                system_state.patch_list[patch_num].latest_perturbation_code_history[
+                    system_state.step] = draw_cluster_code
 
     # replace any random habitats or patch adjacency required:
     if patches_to_alter is not None and len(patches_to_alter) > 0 and not is_pairs:
@@ -425,6 +475,7 @@ def patch_perturbation(
         parameter_change_attr=parameter_change_attr,
         patch_pairs_to_change=patch_pairs_to_change,
         adjacency_change=adjacency_change,
+        is_restoration=is_restoration,
     )
 
     # build the list of all patches that were directly perturbed
@@ -436,8 +487,14 @@ def patch_perturbation(
 
     # count the patch perturbations (whether or not they resulted in a meaningful change)
     for patch_num in altered_patch_numbers:
-        system_state.patch_list[patch_num].increment_perturbation_count()
+        # both types go in the full list
         system_state.patch_list[patch_num].perturbation_history_list.append([system_state.step, perturbation_subtype])
+        if is_restoration:
+            system_state.patch_list[patch_num].increment_restoration_count()
+        else:
+            # perturbation count is only non-restorations
+            system_state.patch_list[patch_num].increment_perturbation_count()
+
     # pass only the non-duplicated, numbers of patches that have been changed, to rebuild purely internal properties
     reset_local_population_attributes(patch_list=system_state.patch_list, altered_patch_numbers=altered_patch_numbers)
 
@@ -497,6 +554,25 @@ def patch_perturbation(
         time=system_state.time,
     )
 
+    # Contagion to adjacent patches if applicable:
+    contagion_patch_nums = []
+    # now build the parameter set to pass back
+    if contagion_probability > 0.0:
+        for patch_num in altered_patch_numbers:
+            patch = system_state.patch_list[patch_num]
+            # find neighbours - ensure counted only once and cannot be in the current round of impacted patches
+            for neighbour in patch.set_of_adjacent_patches:
+                if (np.random.binomial(n=1, p=contagion_probability) and neighbour not in contagion_patch_nums
+                        and neighbour not in altered_patch_numbers):
+                    contagion_patch_nums.append(neighbour)
+    if len(contagion_patch_nums) > 0:
+        target_time = system_state.step + contagion_delay
+        return {"step": target_time,
+                "patch_list": contagion_patch_nums,
+                }
+    else:
+        return None
+
 
 # ------------------------------------------- PATCH PERTURBATION SUBTYPES ------------------------------------------- #
 
@@ -510,6 +586,7 @@ def change_patch_to_habitat(system_state,
                             parameter_change_attr=None,
                             patch_pairs_to_change=None,
                             adjacency_change=None,
+                            is_restoration=False,
                             ):
     # pass in a list of the numbers of the patches to change, and the habitats (as a name string) to change them to
     # remember that the patch numbers start at 0!
@@ -521,7 +598,10 @@ def change_patch_to_habitat(system_state,
             new_habitat_type_num = habitat_nums_to_change_to[num_in_temp_list]
             # count if it actually makes a difference
             if system_state.patch_list[patch_number].habitat_type_num != new_habitat_type_num:
-                system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
+                if is_restoration:
+                    system_state.patch_list[patch_number].increment_meaningful_restoration_count()
+                else:
+                    system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
                 system_state.patch_list[patch_number].habitat_type_num = new_habitat_type_num
                 system_state.patch_list[patch_number].habitat_type = habitat_types[new_habitat_type_num]
                 system_state.update_patch_habitat_based_properties(system_state.patch_list[patch_number])
@@ -541,6 +621,7 @@ def change_patch_parameter(system_state,
                            habitat_nums_to_change_to=None,
                            patch_pairs_to_change=None,
                            adjacency_change=None,
+                           is_restoration=False,
                            ):
     if parameter_change_attr not in ["size", "quality"]:
         # ensure that either "size" or "quality" is specified:
@@ -583,7 +664,10 @@ def change_patch_parameter(system_state,
                 system_state.patch_list[patch_number].quality_history[system_state.step] = new_parameter_value
             # record if real change
             if new_parameter_value != old_parameter_value:
-                system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
+                if is_restoration:
+                    system_state.patch_list[patch_number].increment_meaningful_restoration_count()
+                else:
+                    system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
     # record network-level values (mean and s.d. of values for all extant patches)
     if parameter_change_attr == "size":
         system_state.update_size_history()
@@ -601,6 +685,7 @@ def remove_patch(system_state,
                  parameter_change_type=None,
                  parameter_change_attr=None,
                  habitat_nums_to_change_to=None,
+                 is_restoration=False,
                  ):
     patches_to_remove = patches_to_change
     # Set populations and adjacency scores to zero for all species but do not delete it from the patch list so that:
@@ -611,7 +696,10 @@ def remove_patch(system_state,
         # check not already "removed"
         if patch_number not in system_state.current_patch_list:
             # count the change and proceed
-            system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
+            if is_restoration:
+                system_state.patch_list[patch_number].increment_meaningful_restoration_count()
+            else:
+                system_state.patch_list[patch_number].increment_meaningful_perturbation_count()
             # set all local populations of this patch to zero
             for local_population in system_state.patch_list[patch_number].local_populations.values():
                 local_population.population = 0.0
@@ -670,6 +758,7 @@ def change_patch_adjacency(system_state,
                            parameter_change_type=None,
                            parameter_change_attr=None,
                            habitat_nums_to_change_to=None,
+                           is_restoration=False,
                            ):
     # patch_pairs_to_change should be a N-length list of 2x1 tuples containing the pairs of patches
     # adjacency_change should be a length N list of new adjacency values from the set {0,1}
@@ -720,8 +809,12 @@ def change_patch_adjacency(system_state,
             # check actual change has occurred
             if old_adjacency[0] != system_state.patch_adjacency_matrix[pair[0], pair[1]] or \
                     old_adjacency[1] != system_state.patch_adjacency_matrix[pair[1], pair[0]]:
-                system_state.patch_list[pair[0]].increment_meaningful_perturbation_count()
-                system_state.patch_list[pair[1]].increment_meaningful_perturbation_count()
+                if is_restoration:
+                    system_state.patch_list[pair[0]].increment_meaningful_restoration_count()
+                    system_state.patch_list[pair[1]].increment_meaningful_restoration_count()
+                else:
+                    system_state.patch_list[pair[0]].increment_meaningful_perturbation_count()
+                    system_state.patch_list[pair[1]].increment_meaningful_perturbation_count()
 
     # after an adjacency change, update all patch centrality and habitat spatial auto-correlation
     system_state.calculate_all_patches_centrality(parameters=parameters)

@@ -141,8 +141,8 @@ master_para = {
             "TREE_POWER": None,  # for power_law_tree
             #
             # Cliquey Network options:
-            "WITHIN_CLIQUE_PROBABILITY": 0.9,  # for cliquey networks
-            "BETWEEN_CLIQUE_PROBABILITY": 0.0,  # for cliquey networks
+            "WITHIN_CLIQUE_PROBABILITY": 0.8,  # for cliquey networks
+            "BETWEEN_CLIQUE_PROBABILITY": 0.01,  # for cliquey networks
             "NUMBER_OF_CLIQUES": 5,  # for cliquey networks
             "IS_HABITAT_CLIQUE": True,  # if true then cliques will have uniform habitat type
             #
@@ -182,12 +182,12 @@ master_para = {
             "MAX_QUALITY": 1.0,
             "QUALITY_FLUCTUATION": 0.0,
             "QUALITY_AXIS": "x+y",  # 'x' or 'y' or 'x+y'
-            "IS_ENVIRONMENT_NATURAL_RESTORATION": False,  # is there a tendency to return to certain characteristics?
+            "IS_ENVIRONMENT_NATURAL_RESTORATION": True,  # is there a tendency to return to certain characteristics?
             "RESTORATION_PARA": {
-                "IS_QUALITY_CHANGE": False,
-                "QUALITY_CHANGE_PROBABILITY": None,
-                "QUALITY_CHANGE_SCALE": None,  # should be in range (0, 1] - how much do we move towards the target?
-                "QUALITY_DESIRED": None,
+                "IS_QUALITY_CHANGE": True,
+                "QUALITY_CHANGE_PROBABILITY": 1.0,
+                "QUALITY_CHANGE_SCALE": 0.1,  # should be in range (0, 1] - how much do we move towards the target?
+                "QUALITY_DESIRED": 1.0,
                 "IS_HABITAT_CHANGE": False,
                 "HABITAT_CHANGE_PROBABILITY": None,
                 "HABITAT_TYPE_NUM_DESIRED": None,
@@ -276,9 +276,37 @@ master_para = {
             "IS_OUTPUT_DATAFILES": False,
             # NO MORE THAN ONE PERTURBATION ARCHETYPE SHOULD BE ENACTED IN A GIVEN TIME-STEP - AS THEY WILL NOT BE
             # SIMULTANEOUS AND AS SYSTEM_STATE.PERTURBATION_HISTORY IS A DICTIONARY AND ONLY HOLDS ONE VALUE PER STEP!
-            "PERT_STEP_DICTIONARY": {},  # {100 * x + 50: 'b' for x in range(100)}
+            "PERT_STEP_DICTIONARY": {13: "a"},  # {100 * x + 50: 'b' for x in range(100)}
             # e.g. {x: 'a' for x in range(2000)} so that pert type 'a' occurs at step x
-            "PERT_ARCHETYPE_DICTIONARY": {},  # see comment examples at base of script
+            "PERT_ARCHETYPE_DICTIONARY": {
+                "a": {
+                    "perturbation_type": "patch_perturbation",
+                    "perturbation_subtype": "change_parameter",
+                    # "change_habitat" or "change_parameter" or "remove_patch" or ""change_adjacency"
+                    "patch_list_overwrite": None,  # list if desired
+                    "patches_affected": [{"num_patches": 2,
+                                          "habitat_nums_permitted": None,  # if None then all by default
+                                          "initial": ["random"],
+                                          "arch_type": "box",
+                                          }],
+                    "is_pairs": False,
+                    "habitat_nums_to_change_to": None,
+                    "parameter_change": 0.5,  # numerical value
+                    "parameter_change_type": "relative_multiply",  # 'absolute', 'relative_add', or 'relative_multiply'
+                    "parameter_change_attr": "quality",  # 'quality' or 'size'
+                    "adjacency_change": None,
+                    "is_reserves_overwrite": False,
+                    "clusters_must_be_separated": True,
+                    "proximity_to_previous": 0,  # 0, 1, 2, 3 - will not apply to removal perturbations
+                    # [relative_weight, alpha, beta, gamma] or None - preference of total distance from last pert.
+                    "prev_weighting": [1, 1, 5, 0],
+                    # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
+                    "all_weighting": None,
+                    "rebuild_all_patches": False,
+                    "contagion_probability": 0.2,  # applies to patch perturbation only
+                    "contagion_delay": 10,  # applies to patch perturbation only. Must be >0 to take effect.
+                },
+            },  # see comment examples at base of script
         },
     # ------------------------------------- COPY FROM SPECIES REPOSITORY ------------------------------------- #
     # convert these to attributes of the species class, rather than storing them in the parameters
@@ -316,7 +344,10 @@ master_para = {
 #         "prev_weighting": [1, 1, 5, 0],
 #         # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
 #         "all_weighting": None,
+#         "is_restoration": False,
 #         "rebuild_all_patches": False,
+#         "contagion_probability": 0.0,  # applies to patch perturbation only
+#         "contagion_delay": 0,  # applies to patch perturbation only
 #     },
 # },
 #
@@ -338,4 +369,5 @@ master_para = {
 #         "prev_weighting": None,
 #         # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
 #         "all_weighting": [1, 1, 3, 0],
+#         "is_restoration": False,
 #     },

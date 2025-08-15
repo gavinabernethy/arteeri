@@ -5,7 +5,6 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.patheffects as pe
-import matplotlib.ticker as ticker
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.cm import ScalarMappable
 import os.path
@@ -584,6 +583,17 @@ def plot_network_properties(patch_list, sim_path, step, adjacency_path_list,
              'use_colors': True,  # easier to see differences in perturbation clusters and reserves.
              'patch_label_color': 'white',
              },
+        'restorations':
+            {'attribute_id': 'num_times_restored',
+             "sub_attribute_list": [None],  # this should be a list containing None
+             'use_color_bar': True,
+             'label_patches': True,
+             'patch_label_attr': 'num_times_restored',
+             'path_list': adjacency_path_list,
+             'path_color': [0.01, 0.2, 0.2],
+             'use_colors': False,
+             'patch_label_color': 'white',
+             },
         'lcc':
             {'attribute_id': 'local_clustering',
              "sub_attribute_list": ['all', 'same', 'different'],
@@ -716,6 +726,13 @@ def retrospective_network_plots(initial_patch_list, actual_patch_list, initial_p
             if perturbation[0] <= step:
                 num_perturbations_increase += 1
         setattr(modified_patch_list[patch.number], "num_times_perturbed", num_perturbations_increase)
+        # count the total number of (potentially species-specific) restorations to date in this patch
+        num_restorations_increase = getattr(modified_patch_list[patch.number], "num_times_restored")
+        for restoration in patch.restoration_history_list:
+            if restoration[0] <= step:
+                num_restorations_increase += 1
+        setattr(modified_patch_list[patch.number], "num_times_restored", num_restorations_increase)
+
     # now build the list of adjacency paths to draw on, based on this matrix
     adjacency_path_list = create_adjacency_path_list(patch_list=modified_patch_list,
                                                      patch_adjacency_matrix=mod_patch_adjacency_matrix)

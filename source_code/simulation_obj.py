@@ -346,7 +346,13 @@ class Simulation_obj:
                     population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                 # then enact the perturbation and reset the lists
-                perturbation(system_state=self.system_state, parameters=self.parameters, pert_paras=pert_paras)
+                contagion = perturbation(system_state=self.system_state,
+                                         parameters=self.parameters, pert_paras=pert_paras)
+                if contagion is not None:
+                    self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"].update(
+                        {contagion["step"]: contagion["name"]})
+                    self.parameters["perturbation_para"]["PERT_ARCHETYPE_DICTIONARY"].update(
+                        {contagion["name"]: contagion["desc"]})
 
             # immediately after the perturbation and one iteration:
             if step - 1 in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
@@ -480,11 +486,12 @@ class Simulation_obj:
             perturbation(system_state=self.system_state, parameters=self.parameters,
                          pert_paras={
                              "perturbation_type": "patch_perturbation",
-                             "perturbation_subtype": "change_quality",
+                             "perturbation_subtype": "change_parameter",
                              "patch_list_overwrite": patch_quality_change_list,
-                             "quality_change": actual_quality_change_list,
-                             "is_absolute": False,
-                             "is_relative_add": True,
+                             "parameter_change": actual_quality_change_list,
+                             "parameter_change_attr": "quality",
+                             "parameter_change_type": "relative_add",
+                             "is_restoration": True,
                          },
                          )
         if len(patch_habitat_change_list) > 0:
@@ -494,6 +501,7 @@ class Simulation_obj:
                              "perturbation_subtype": "change_habitat",
                              "patch_list_overwrite": patch_habitat_change_list,
                              "habitat_nums_to_change_to": actual_habitat_change_list,
+                             "is_restoration": True,
                          },
                          )
 
