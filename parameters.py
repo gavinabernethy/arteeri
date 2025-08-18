@@ -303,7 +303,8 @@ master_para = {
                     # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
                     "all_weighting": None,
                     "rebuild_all_patches": False,
-                    "contagion_probability": 0.2,  # applies to patch perturbation only
+                    "contagion_probability": [0.01, 0.99],  # applies to patch perturbation only - either float or
+                    # list of length equal to the number of habitats
                     "contagion_delay": 10,  # applies to patch perturbation only. Must be >0 to take effect.
                 },
             },  # see comment examples at base of script
@@ -346,7 +347,8 @@ master_para = {
 #         "all_weighting": None,
 #         "is_restoration": False,
 #         "rebuild_all_patches": False,
-#         "contagion_probability": 0.0,  # applies to patch perturbation only
+#         "contagion_probability": 0.0,  # applies to patch perturbation only - either float or list of length
+#               # equal to num habitats
 #         "contagion_delay": 0,  # applies to patch perturbation only
 #     },
 # },

@@ -381,7 +381,7 @@ def patch_perturbation(
         prev_weighting=None,
         all_weighting=None,
         rebuild_all_patches=False,
-        contagion_probability=0.0,
+        contagion_probability=None,
         contagion_delay=None,
         is_restoration=False  # for restorations, we usually don't want to record the timings and amounts of pert.
 ):
@@ -556,20 +556,44 @@ def patch_perturbation(
 
     # Contagion to adjacent patches if applicable:
     contagion_patch_nums = []
-    # now build the parameter set to pass back
-    if contagion_probability > 0.0:
-        for patch_num in altered_patch_numbers:
-            patch = system_state.patch_list[patch_num]
-            # find neighbours - ensure counted only once and cannot be in the current round of impacted patches
-            for neighbour in patch.set_of_adjacent_patches:
-                if (np.random.binomial(n=1, p=contagion_probability) and neighbour not in contagion_patch_nums
-                        and neighbour not in altered_patch_numbers):
-                    contagion_patch_nums.append(neighbour)
-    if len(contagion_patch_nums) > 0:
-        target_time = system_state.step + contagion_delay
-        return {"step": target_time,
-                "patch_list": contagion_patch_nums,
-                }
+    # We determine the list of patches the contagion spreads to.
+    #
+    # eiter contagion probability is a float (universal) or a list (probability of spreading to patch of given habitat)
+    if contagion_probability is not None:
+        if type(contagion_probability) in [float, np.float64]:
+            if np.sum(contagion_probability) > 0.0:
+                # base probability independent of habitat type
+                for patch_num in altered_patch_numbers:
+                    patch = system_state.patch_list[patch_num]
+                    # find neighbours - ensure counted only once and cannot be in the current round of impacted patches
+                    for neighbour in patch.set_of_adjacent_patches:
+                        if (np.random.binomial(n=1, p=contagion_probability) and neighbour not in contagion_patch_nums
+                                and neighbour not in altered_patch_numbers):
+                            contagion_patch_nums.append(neighbour)
+
+        elif type(contagion_probability) == list and len(contagion_probability) == len(
+                system_state.habitat_type_dictionary):
+            # contagion probability depends on the type of habitat potentially spreading too (e.g. forest fires burning
+            # dense woodland; contaminants or pollution spreading through a water course)
+            if np.sum(contagion_probability) > 0.0:
+                for patch_num in altered_patch_numbers:
+                    patch = system_state.patch_list[patch_num]
+                    # find neighbours - ensure counted only once and cannot be in the current round of impacted patches
+                    for neighbour in patch.set_of_adjacent_patches:
+                        if neighbour not in contagion_patch_nums and neighbour not in altered_patch_numbers:
+                            neighbour_habitat_num = system_state.patch_list[neighbour].habitat_type_num
+                            if np.random.binomial(n=1, p=contagion_probability[neighbour_habitat_num]):
+                                contagion_patch_nums.append(neighbour)
+        else:
+            raise Exception("Patch perturbation contagion_probability incorrectly specified.")
+        # reporting
+        if len(contagion_patch_nums) > 0:
+            target_time = system_state.step + contagion_delay
+            return {"step": target_time,
+                    "patch_list": contagion_patch_nums,
+                    }
+        else:
+            return None
     else:
         return None
 
