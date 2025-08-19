@@ -57,7 +57,7 @@ def reserve_construction(system_state, cluster_spec, clusters_must_be_separated)
 #
 
 # Implementing the perturbation
-def perturbation(system_state, parameters, pert_paras):
+def perturbation(system_state, parameters, pert_paras, perturbation_name):
     print(f" ...Step {system_state.step} - implementing "
           f"{pert_paras['perturbation_type']}: {pert_paras['perturbation_subtype']}.")
 
@@ -130,6 +130,10 @@ def perturbation(system_state, parameters, pert_paras):
         contagion_delay = pert_paras["contagion_delay"]
     except KeyError:
         contagion_delay = 0
+    try:
+        contagion_cooldown = pert_paras["contagion_cooldown"]
+    except KeyError:
+        contagion_cooldown = 0
 
     # population perturbation only
     try:
@@ -155,7 +159,9 @@ def perturbation(system_state, parameters, pert_paras):
 
     if pert_paras["perturbation_type"] == "patch_perturbation":
 
-        contagion = patch_perturbation(system_state=system_state,
+        contagion = patch_perturbation(
+                           perturbation_name=perturbation_name,
+                           system_state=system_state,
                            parameters=parameters,
                            perturbation_subtype=pert_paras["perturbation_subtype"],
                            patch_list_overwrite=pert_paras["patch_list_overwrite"],
@@ -175,6 +181,7 @@ def perturbation(system_state, parameters, pert_paras):
                            is_restoration=is_restoration,
                            contagion_probability=contagion_probability,
                            contagion_delay=contagion_delay,
+                           contagion_cooldown=contagion_cooldown,
                            )
 
         if contagion is not None:
@@ -185,7 +192,7 @@ def perturbation(system_state, parameters, pert_paras):
             contagion_type["patch_list_overwrite"] = contagion_patch_list
             contagion_return = {
                 "step": contagion_step,
-                "name": "contagion",
+                "name": perturbation_name,
                 "desc": contagion_type,
             }
 
@@ -364,6 +371,7 @@ def population_perturbation(
 #
 
 def patch_perturbation(
+        perturbation_name,
         system_state,
         parameters,
         perturbation_subtype,  # "change_habitat" / "change_parameter" / "remove_patch" / "change_adjacency"
@@ -383,6 +391,7 @@ def patch_perturbation(
         rebuild_all_patches=False,
         contagion_probability=None,
         contagion_delay=None,
+        contagion_cooldown=None,
         is_restoration=False  # for restorations, we usually don't want to record the timings and amounts of pert.
 ):
     # Note that habitat properties (in particular species-specific habitat feeding and traversal scores)
@@ -489,6 +498,8 @@ def patch_perturbation(
     for patch_num in altered_patch_numbers:
         # both types go in the full list
         system_state.patch_list[patch_num].perturbation_history_list.append([system_state.step, perturbation_subtype])
+        # update the time of the latest perturbation of this type (for cooldowns)
+        system_state.patch_list[patch_num].perturbation_type_latest[perturbation_name] = system_state.step
         if is_restoration:
             system_state.patch_list[patch_num].increment_restoration_count()
         else:
@@ -560,6 +571,7 @@ def patch_perturbation(
     #
     # eiter contagion probability is a float (universal) or a list (probability of spreading to patch of given habitat)
     if contagion_probability is not None:
+        target_time = system_state.step + contagion_delay
         if type(contagion_probability) in [float, np.float64]:
             if np.sum(contagion_probability) > 0.0:
                 # base probability independent of habitat type
@@ -567,9 +579,15 @@ def patch_perturbation(
                     patch = system_state.patch_list[patch_num]
                     # find neighbours - ensure counted only once and cannot be in the current round of impacted patches
                     for neighbour in patch.set_of_adjacent_patches:
-                        if (np.random.binomial(n=1, p=contagion_probability) and neighbour not in contagion_patch_nums
-                                and neighbour not in altered_patch_numbers):
-                            contagion_patch_nums.append(neighbour)
+                        if perturbation_name in system_state.patch_list[neighbour].perturbation_type_latest:
+                            time_elapsed = target_time - system_state.patch_list[
+                                neighbour].perturbation_type_latest[perturbation_name]
+                        else:
+                            time_elapsed = contagion_cooldown + 1
+                        if time_elapsed > contagion_cooldown:
+                            if (np.random.binomial(n=1, p=contagion_probability) and neighbour not in
+                                    contagion_patch_nums and neighbour not in altered_patch_numbers):
+                                contagion_patch_nums.append(neighbour)
 
         elif type(contagion_probability) == list and len(contagion_probability) == len(
                 system_state.habitat_type_dictionary):
@@ -581,14 +599,19 @@ def patch_perturbation(
                     # find neighbours - ensure counted only once and cannot be in the current round of impacted patches
                     for neighbour in patch.set_of_adjacent_patches:
                         if neighbour not in contagion_patch_nums and neighbour not in altered_patch_numbers:
-                            neighbour_habitat_num = system_state.patch_list[neighbour].habitat_type_num
-                            if np.random.binomial(n=1, p=contagion_probability[neighbour_habitat_num]):
-                                contagion_patch_nums.append(neighbour)
+                            if perturbation_name in system_state.patch_list[neighbour].perturbation_type_latest:
+                                time_elapsed = target_time - system_state.patch_list[
+                                    neighbour].perturbation_type_latest[perturbation_name]
+                            else:
+                                time_elapsed = contagion_cooldown + 1
+                            if time_elapsed > contagion_cooldown:
+                                neighbour_habitat_num = system_state.patch_list[neighbour].habitat_type_num
+                                if np.random.binomial(n=1, p=contagion_probability[neighbour_habitat_num]):
+                                    contagion_patch_nums.append(neighbour)
         else:
             raise Exception("Patch perturbation contagion_probability incorrectly specified.")
         # reporting
         if len(contagion_patch_nums) > 0:
-            target_time = system_state.step + contagion_delay
             return {"step": target_time,
                     "patch_list": contagion_patch_nums,
                     }

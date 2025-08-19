@@ -473,7 +473,7 @@ class System_state:
                         if 0 < len(path_list) <= parameters["main_para"]["ASSUMED_MAX_PATH_LENGTH"] + 1:
                             stepping_stone_set = stepping_stone_set.union(set(path_list + [int(target)]))
         patch.stepping_stone_list = list(stepping_stone_set)
-        print(f"{self.step}: Paths built for patch {patch.number}/{len(self.patch_list) - 1}")
+        print(f"...{self.step}: Paths built for patch {patch.number}/{len(self.patch_list) - 1}")
 
     # --------------------------- SPECIES / COMMUNITY DISTRIBUTION ANALYSIS ----------------------------------------- #
     def update_distance_metrics(self, parameters):

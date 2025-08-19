@@ -194,12 +194,16 @@ def generate_patch_position_adjacency(num_patches, graph_para):
                         draw = np.random.binomial(n=1, p=graph_para["LATTICE_GRAPH_CONNECTIVITY"])
                         adjacency_array[x, y] = draw
                         adjacency_array[y, x] = draw
-        elif graph_type == "line":
+        elif graph_type in ["line", "ring"]:
             for x in range(num_patches):
                 if x > 0:
                     adjacency_array[x - 1, x] = 1
                 if x < num_patches - 1:
                     adjacency_array[x, x + 1] = 1
+            if graph_type == "ring":
+                # then connect the ends
+                adjacency_array[0, num_patches-1] = 1
+                adjacency_array[num_patches-1, 0] = 1
         elif graph_type == "star":
             # all patches only adjacent to the first patch
             for x in range(num_patches):

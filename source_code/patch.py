@@ -57,6 +57,7 @@ class Patch:
         self.adjacency_history_list = []  # this should be a list as it can record multiple changes per step
         self.perturbation_history_list = []  # this should be a list as it can record multiple changes per step
         self.latest_perturbation_code_history = {}
+        self.perturbation_type_latest = {}  # records latest time when a particular contagion occurred for cooldown
         #
         # The largest object when printing to JSON:
         self.species_movement_scores = {}

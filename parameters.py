@@ -20,7 +20,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 60,
+            "NUM_PATCHES": 20,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -120,16 +120,16 @@ master_para = {
             "SPATIAL_DESCRIPTION": "artemis_01",
             #
             # Network topology:
-            "GRAPH_TYPE": "cliquey_network", # choices are: "manual", "lattice", "line",
+            "GRAPH_TYPE": "ring", # choices are: "manual", "lattice", "line", "ring",
             #  "star", "random", "small_world", "scale_free", "cluster", "balanced_tree", "power_law_tree"
             #
             # Drawing the visual layout of the network - the only simulation impact that take any account of the
             # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box".
-            "GRAPH_LAYOUT": "cliquey_network",  # choices are "grid", "tree", "space_filling_curve, "spiral"
+            "GRAPH_LAYOUT": "spiral",  # choices are "grid", "tree", "space_filling_curve, "spiral"
 
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
-            "LATTICE_GRAPH_CONNECTIVITY": 0.75,
+            "LATTICE_GRAPH_CONNECTIVITY": 1.0,
             "IS_LATTICE_INCLUDE_DIAGONALS": False,
             "IS_LATTICE_WRAPPED": False,  # should only be used for GRAPH_TYPE 'lattice' and GRAPH_LAYOUT 'grid'.
             "RANDOM_GRAPH_CONNECTIVITY": None,
@@ -182,12 +182,12 @@ master_para = {
             "MAX_QUALITY": 1.0,
             "QUALITY_FLUCTUATION": 0.0,
             "QUALITY_AXIS": "x+y",  # 'x' or 'y' or 'x+y'
-            "IS_ENVIRONMENT_NATURAL_RESTORATION": True,  # is there a tendency to return to certain characteristics?
+            "IS_ENVIRONMENT_NATURAL_RESTORATION": False,  # is there a tendency to return to certain characteristics?
             "RESTORATION_PARA": {
-                "IS_QUALITY_CHANGE": True,
-                "QUALITY_CHANGE_PROBABILITY": 1.0,
-                "QUALITY_CHANGE_SCALE": 0.1,  # should be in range (0, 1] - how much do we move towards the target?
-                "QUALITY_DESIRED": 1.0,
+                "IS_QUALITY_CHANGE": False,
+                "QUALITY_CHANGE_PROBABILITY": 0.0,
+                "QUALITY_CHANGE_SCALE": 0.0,  # should be in range (0, 1] - how much do we move towards the target?
+                "QUALITY_DESIRED": 0.0,
                 "IS_HABITAT_CHANGE": False,
                 "HABITAT_CHANGE_PROBABILITY": None,
                 "HABITAT_TYPE_NUM_DESIRED": None,
@@ -284,7 +284,7 @@ master_para = {
                     "perturbation_subtype": "change_parameter",
                     # "change_habitat" or "change_parameter" or "remove_patch" or ""change_adjacency"
                     "patch_list_overwrite": None,  # list if desired
-                    "patches_affected": [{"num_patches": 2,
+                    "patches_affected": [{"num_patches": 1,
                                           "habitat_nums_permitted": None,  # if None then all by default
                                           "initial": ["random"],
                                           "arch_type": "box",
@@ -303,9 +303,10 @@ master_para = {
                     # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
                     "all_weighting": None,
                     "rebuild_all_patches": False,
-                    "contagion_probability": [0.01, 0.99],  # applies to patch perturbation only - either float or
+                    "contagion_probability": 0.95,  # applies to patch perturbation only - either float or
                     # list of length equal to the number of habitats
-                    "contagion_delay": 10,  # applies to patch perturbation only. Must be >0 to take effect.
+                    "contagion_delay": 10,  # applies to patch perturbation only. Must be >0 for pert to take effect.
+                    "contagion_cooldown": 20,  # applies to patch perturbation only. Prevents immediate reinfection if >=2*delay.
                 },
             },  # see comment examples at base of script
         },
@@ -349,7 +350,8 @@ master_para = {
 #         "rebuild_all_patches": False,
 #         "contagion_probability": 0.0,  # applies to patch perturbation only - either float or list of length
 #               # equal to num habitats
-#         "contagion_delay": 0,  # applies to patch perturbation only
+#         "contagion_delay": 0,  # applies to patch perturbation only. Must be >0 for pert to take effect.
+#         "contagion_cooldown": 0,  # applies to patch perturbation only. Prevents immediate reinfection if >=2*delay.
 #     },
 # },
 #

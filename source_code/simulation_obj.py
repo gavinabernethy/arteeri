@@ -346,8 +346,8 @@ class Simulation_obj:
                     population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                 # then enact the perturbation and reset the lists
-                contagion = perturbation(system_state=self.system_state,
-                                         parameters=self.parameters, pert_paras=pert_paras)
+                contagion = perturbation(system_state=self.system_state, parameters=self.parameters,
+                                         pert_paras=pert_paras, perturbation_name=pert_archetype)
                 if contagion is not None:
                     self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"].update(
                         {contagion["step"]: contagion["name"]})
@@ -493,6 +493,7 @@ class Simulation_obj:
                              "parameter_change_type": "relative_add",
                              "is_restoration": True,
                          },
+                         perturbation_name="restoration",
                          )
         if len(patch_habitat_change_list) > 0:
             perturbation(system_state=self.system_state, parameters=self.parameters,
@@ -503,6 +504,7 @@ class Simulation_obj:
                              "habitat_nums_to_change_to": actual_habitat_change_list,
                              "is_restoration": True,
                          },
+                         perturbation_name="restoration",
                          )
 
     def species_induced_perturbations(self):
@@ -600,6 +602,7 @@ class Simulation_obj:
                                  "perturbation_subtype": "patch_removal",
                                  "patch_list_overwrite": self.system_state.perturbation_holding["remove"],
                              },
+                             perturbation_name="species_induced_patch_removal",
                              )
             # for habitat change
             if len(self.system_state.perturbation_holding["habitat_change"]) != 0:
@@ -616,6 +619,7 @@ class Simulation_obj:
                                  "patch_list_overwrite": final_patch_num_list,
                                  "habitat_nums_to_change_to": final_habitat_change_list,
                              },
+                             perturbation_name="species_induced_habitat_change",
                              )
             # for quality change
             if len(self.system_state.perturbation_holding["quality_change"]) != 0:
@@ -634,6 +638,7 @@ class Simulation_obj:
                                  "is_absolute": False,
                                  "is_relative_add": True,
                              },
+                             perturbation_name="species_induced_quality_change",
                              )
             # for adjacency change
             if len(self.system_state.perturbation_holding["adjacency_change"]) != 0:
@@ -655,6 +660,7 @@ class Simulation_obj:
                                  "is_pairs": True,
                                  "adjacency_change": final_adjacency_change_list,
                              },
+                             perturbation_name="species_induced_adjacency_change",
                              )
 
     def record_perturbation(self, patch_num, perturbation_para):
