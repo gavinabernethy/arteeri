@@ -51,7 +51,7 @@ def generate_patch_position_adjacency(num_patches, graph_para):
         clique_membership = np.array(
             [x for x in range(number_of_cliques) for _ in range(patches_per_clique)][:num_patches])
         # use here to assign positions, and later for drawing the actual adjacency
-        little_theta_increment = 1 / patches_per_clique * 2.0 * np.pi
+        little_theta_increment = 2.0 * np.pi / patches_per_clique
         little_scale_factor = 0.75  # if typical patch size (radius) is 1, set this >0.5 to separate patches in clique
         little_radius = max(2, little_scale_factor / np.sin(little_theta_increment / 2))
         big_theta_increment = 1 / number_of_cliques * 2.0 * np.pi
@@ -71,6 +71,22 @@ def generate_patch_position_adjacency(num_patches, graph_para):
             y = np.floor(patch / num_columns)
             position_array[patch, 0] = x
             position_array[patch, 1] = y
+    elif graph_para["GRAPH_LAYOUT"] == "ring":
+        theta_increment = 2.0 * np.pi / num_patches
+        scale_factor = 0.75  # if typical patch size (radius) is 1, set this >0.5 to separate patches in clique
+        radius = max(2, scale_factor / np.sin(theta_increment / 2))
+        for patch in range(num_patches):
+            position_array[patch, 0] = radius * np.cos(theta_increment * patch)
+            position_array[patch, 1] = radius * np.sin(theta_increment * patch)
+    elif graph_para["GRAPH_LAYOUT"] == "star":
+        if num_patches > 1:
+            theta_increment = 2.0 * np.pi / (num_patches - 1)
+            scale_factor = 0.75  # if typical patch size (radius) is 1, set this >0.5 to separate patches in clique
+            radius = max(2, scale_factor / np.sin(theta_increment / 2))
+            # patch 0 (the centre of the star) is at [0,0] by default. Assign (r,theta) for the remaining n-1 patches:
+            for patch in range(1, num_patches):
+                position_array[patch, 0] = radius * np.cos(theta_increment * (patch-1))
+                position_array[patch, 1] = radius * np.sin(theta_increment * (patch-1))
     elif graph_para["GRAPH_LAYOUT"] == "space_filling_curve":
         # set in a curving pattern that becomes more and more spaced out
         x = -1

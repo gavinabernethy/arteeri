@@ -120,12 +120,13 @@ master_para = {
             "SPATIAL_DESCRIPTION": "artemis_01",
             #
             # Network topology:
-            "GRAPH_TYPE": "ring", # choices are: "manual", "lattice", "line", "ring",
-            #  "star", "random", "small_world", "scale_free", "cluster", "balanced_tree", "power_law_tree"
+            "GRAPH_TYPE": "star", # choices are: "manual", "lattice", "line", "ring", "star", "random", "small_world",
+            #  "scale_free", "cluster", "erdos_renyi_random", "balanced_tree", "power_law_tree", "cliquey_network
             #
-            # Drawing the visual layout of the network - the only simulation impact that take any account of the
-            # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box".
-            "GRAPH_LAYOUT": "spiral",  # choices are "grid", "tree", "space_filling_curve, "spiral"
+            # Drawing the visual layout of the network (note the only simulation impact that take any account of the
+            # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box"):
+            "GRAPH_LAYOUT": "star",  # choices are "grid", "tree", "space_filling_curve, "spiral",
+            # "cliquey_network", "ring", "star"
 
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
