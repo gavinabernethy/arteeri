@@ -276,7 +276,7 @@ master_para = {
             "IS_OUTPUT_DATAFILES": False,
             # NO MORE THAN ONE PERTURBATION ARCHETYPE SHOULD BE ENACTED IN A GIVEN TIME-STEP - AS THEY WILL NOT BE
             # SIMULTANEOUS AND AS SYSTEM_STATE.PERTURBATION_HISTORY IS A DICTIONARY AND ONLY HOLDS ONE VALUE PER STEP!
-            "PERT_STEP_DICTIONARY": {13: "a"},  # {100 * x + 50: 'b' for x in range(100)}
+            "PERT_STEP_DICTIONARY": {13: "b"},  # {100 * x + 50: 'b' for x in range(100)}
             # e.g. {x: 'a' for x in range(2000)} so that pert type 'a' occurs at step x
             "PERT_ARCHETYPE_DICTIONARY": {
                 "a": {
@@ -303,11 +303,38 @@ master_para = {
                     # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
                     "all_weighting": None,
                     "rebuild_all_patches": False,
-                    "contagion_probability": 0.95,  # applies to patch perturbation only - either float or
-                    # list of length equal to the number of habitats
-                    "contagion_delay": 10,  # applies to patch perturbation only. Must be >0 for pert to take effect.
-                    "contagion_cooldown": 20,  # applies to patch perturbation only. Prevents immediate reinfection if >=2*delay.
+                    "contagion_probability": 1.0,  # either float or list of length equal to the number of habitats
+                    "contagion_delay": 10,  # Must be >0 for pert to take effect.
+                    "contagion_cooldown": 20,  # Prevents immediate reinfection if >=2*delay.
                 },
+
+                "b": {
+                    "perturbation_type": "population_perturbation",
+                    "perturbation_subtype": "extinction",  # 'dispersal' or 'extinction' or 'displacement'
+                    "probability": 1.0,
+                    "fraction_of_population": 0.5,
+                    "patch_list_overwrite": None,
+                    "is_reserves_overwrite": False,
+                    "species_affected": None,  # if None (list of names of species) then default is all
+                    "all_patches_habitats_affected": None,  # if None (list of numbers of habitat types) then default
+                    # is all - but note that this option is only in the case that all patches are being selected from.
+                    "patches_affected": [{"num_patches": 1,
+                                          "habitat_nums_permitted": None,  # if None then all by default
+                                          "initial": ["random"],
+                                          "arch_type": "box",
+                                          }],  # if None (list of patch numbers) default is all except reserves
+                    "clusters_must_be_separated": False,
+                    "proximity_to_previous": 0,
+                    # [relative_weight, alpha, beta, gamma] or None - preference of total distance from last pert.
+                    "prev_weighting": None,
+                    # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
+                    "all_weighting": [1, 1, 3, 0],
+                    "is_restoration": False,
+                    "contagion_probability": 1.0,  # either float or list of length equal to num habitats
+                    "contagion_delay": 10,  # Must be >0 for pert to take effect.
+                    "contagion_cooldown": 20,  # Prevents immediate reinfection if >=2*delay.
+                },
+
             },  # see comment examples at base of script
         },
     # ------------------------------------- COPY FROM SPECIES REPOSITORY ------------------------------------- #
@@ -348,10 +375,9 @@ master_para = {
 #         "all_weighting": None,
 #         "is_restoration": False,
 #         "rebuild_all_patches": False,
-#         "contagion_probability": 0.0,  # applies to patch perturbation only - either float or list of length
-#               # equal to num habitats
-#         "contagion_delay": 0,  # applies to patch perturbation only. Must be >0 for pert to take effect.
-#         "contagion_cooldown": 0,  # applies to patch perturbation only. Prevents immediate reinfection if >=2*delay.
+#         "contagion_probability": 0.0,  # either float or list of length equal to num habitats
+#         "contagion_delay": 0,  # Must be >0 for pert to take effect.
+#         "contagion_cooldown": 0,  # Prevents immediate reinfection if >=2*delay.
 #     },
 # },
 #
@@ -374,4 +400,7 @@ master_para = {
 #         # [relative_weight, alpha, beta, gamma] or None - preference function of previously pert. patches
 #         "all_weighting": [1, 1, 3, 0],
 #         "is_restoration": False,
+#         "contagion_probability": 0.0,  # either float or list of length equal to num habitats
+#         "contagion_delay": 0,  # Must be >0 for pert to take effect.
+#         "contagion_cooldown": 0,  # Prevents immediate reinfection if >=2*delay.
 #     },
