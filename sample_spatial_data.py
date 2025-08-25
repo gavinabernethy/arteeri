@@ -121,8 +121,13 @@ def generate_patch_position_adjacency(num_patches, graph_para):
             theta += (0.1 + 0.2 / (1 + 0.1 * patch))
             position_array[patch, 0] = radius*np.cos(theta)
             position_array[patch, 1] = radius*np.sin(theta)
+    elif graph_para["GRAPH_LAYOUT"] == "rgg":
+        # draw position uniformly from [0, 1]^2
+        for patch in range(num_patches):
+            position_array[patch, 0] = np.random.uniform(low=0.0, high=1.0)
+            position_array[patch, 1] = np.random.uniform(low=0.0, high=1.0)
     else:
-        raise Exception("GRAPH_LAYOUT must be 'grid', 'tree', 'space_filling_curve' or 'spiral'.")
+        raise Exception("What is the GRAPH_LAYOUT of the spatial network?")
 
     # ------------------------------------------
     #
@@ -299,7 +304,15 @@ def generate_patch_position_adjacency(num_patches, graph_para):
                         draw = np.random.binomial(n=1, p=between_clique_probability)
                         adjacency_array[x, y] = draw
                         adjacency_array[y, x] = draw
-            # we would also want to return clique membership
+            # we return clique membership from this function
+        elif graph_type == "rgg":
+            # requires the positions to have been generated from a uniform distribution already ("GRAPH_LAYOUT" = rgg)
+            for x in range(num_patches):
+                for y in range(x+1, num_patches):
+                    if np.sqrt((position_array[x,0]-position_array[y,0])**2.0 + (
+                            position_array[x,1]-position_array[y,1])**2.0) < graph_para["RGG_RADIUS"]:
+                        adjacency_array[x, y] = 1
+                        adjacency_array[y, x] = 1
         else:
             raise Exception("Which type of graph is the spatial network?")
 

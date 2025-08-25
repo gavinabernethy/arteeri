@@ -20,7 +20,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 20,
+            "NUM_PATCHES": 400,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -85,11 +85,11 @@ master_para = {
             # --- Initial choice of the above species and habitats that should actually be present at the start --- #
 
             # Now indicate which species from the "SPECIES_TYPES" keys that you want to be present at the beginning.
-            "INITIAL_SPECIES_SET": {0, 1},  # each must exist as a key in the types dictionary, ordering not needed
+            "INITIAL_SPECIES_SET": {0},  # each must exist as a key in the types dictionary, ordering not needed
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0, 1},
+            "INITIAL_HABITAT_SET": {0},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -120,13 +120,14 @@ master_para = {
             "SPATIAL_DESCRIPTION": "artemis_01",
             #
             # Network topology:
-            "GRAPH_TYPE": "star", # choices are: "manual", "lattice", "line", "ring", "star", "random", "small_world",
-            #  "scale_free", "cluster", "erdos_renyi_random", "balanced_tree", "power_law_tree", "cliquey_network
+            "GRAPH_TYPE": "rgg", # choices are: "manual", "lattice", "line", "ring", "star",
+            #  "random", "small_world", "scale_free", "cluster", "erdos_renyi_random", "balanced_tree",
+            # "power_law_tree", "cliquey_network", "rgg"
             #
             # Drawing the visual layout of the network (note the only simulation impact that take any account of the
             # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box"):
-            "GRAPH_LAYOUT": "star",  # choices are "grid", "tree", "space_filling_curve, "spiral",
-            # "cliquey_network", "ring", "star"
+            "GRAPH_LAYOUT": "rgg",  # choices are "grid", "tree", "space_filling_curve,
+            #  "spiral", "cliquey_network", "ring", "star", "rgg"
 
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
             # other means, and a list (length = num_patches) of lists (length = num_patches) if we want to use it
@@ -140,6 +141,7 @@ master_para = {
             "CLUSTER_PROBABILITY": None,
             "TREE_BRANCHING": 3,  # for balanced_tree
             "TREE_POWER": None,  # for power_law_tree
+            "RGG_RADIUS": 0.2,  # for RGG networks
             #
             # Cliquey Network options:
             "WITHIN_CLIQUE_PROBABILITY": 0.8,  # for cliquey networks
@@ -175,6 +177,7 @@ master_para = {
             "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
             "MIN_SIZE": 1.0,
             "MAX_SIZE": 1.0,
+            "PATCH_SIZE_VISUAL_OVERWRITE": 0.001,  # if None, use actual patch size for drawing in create_patches_plot.
             # Patch quality (scales the reproductive rate (r-parameter) for all local populations):
             "QUALITY_TYPE": "gradient",  # quality types are: 'manual', 'random', 'auto_correlation', 'gradient'
             "QUALITY_MANUAL_SPEC": None,  # should be None if we want to generate quality by other means
@@ -277,7 +280,7 @@ master_para = {
             "IS_OUTPUT_DATAFILES": False,
             # NO MORE THAN ONE PERTURBATION ARCHETYPE SHOULD BE ENACTED IN A GIVEN TIME-STEP - AS THEY WILL NOT BE
             # SIMULTANEOUS AND AS SYSTEM_STATE.PERTURBATION_HISTORY IS A DICTIONARY AND ONLY HOLDS ONE VALUE PER STEP!
-            "PERT_STEP_DICTIONARY": {13: "b"},  # {100 * x + 50: 'b' for x in range(100)}
+            "PERT_STEP_DICTIONARY": {},  # {100 * x + 50: 'b' for x in range(100)}
             # e.g. {x: 'a' for x in range(2000)} so that pert type 'a' occurs at step x
             "PERT_ARCHETYPE_DICTIONARY": {
                 "a": {

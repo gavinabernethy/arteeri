@@ -180,6 +180,7 @@ class Simulation_obj:
                 habitat_type_num=int(patch_habitat_type_array[patch_num]),
                 habitat_type=habitat_type_dictionary[int(patch_habitat_type_array[patch_num])],
                 clique_membership=int(clique_membership[patch_num]),
+                patch_draw_size_overwrite=self.parameters["graph_para"]["PATCH_SIZE_VISUAL_OVERWRITE"],
             )
             patch_list.append(new_patch)
 
@@ -711,6 +712,7 @@ class Simulation_obj:
                 patch_quality=patch.quality,
                 patch_size=patch.size,
                 habitat_type_num=patch.habitat_type_num,
+                patch_draw_size_overwrite=self.parameters["graph_para"]["PATCH_SIZE_VISUAL_OVERWRITE"],
             )
             new_patch.degree = deepcopy(patch.degree)
             new_patch.centrality = deepcopy(patch.centrality)

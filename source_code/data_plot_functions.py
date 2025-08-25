@@ -85,7 +85,7 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
     # Now the primary iteration of each patch to determine its position, value and color
     line_width = min(1.0, 20.0 / np.sqrt(len(patch_list)))  # both borders and paths
     for patch_num, patch in enumerate(patch_list):
-        length = np.sqrt(patch.size)
+        length = np.sqrt(patch.draw_size)
 
         position = (patch.position[0] * patch_scaling_factor, patch.position[1] * patch_scaling_factor)
         min_val = np.asarray([min(min_val[0], position[0] - length), min(min_val[1], position[1] - length)])
@@ -168,8 +168,8 @@ def create_patches_plot(patch_list, color_property, file_path, path_list=None, p
                     if {min_x, max_x} <= {patch_list[path_tuple[0]].position[0], patch_list[path_tuple[1]].position[0]}:
                         is_x_wrap = True
 
-            start_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[0]].size)
-            end_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[1]].size)
+            start_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[0]].draw_size)
+            end_patch_radius = 0.5 * np.sqrt(patch_list[path_tuple[1]].draw_size)
             if is_x_wrap or is_y_wrap:
                 patch_one = [patch_list[path_tuple[0]].position[0] * patch_scaling_factor + start_patch_radius,
                              patch_list[path_tuple[0]].position[1] * patch_scaling_factor + start_patch_radius]

@@ -12,6 +12,7 @@ class Patch:
             habitat_type=None,
             habitat_type_num=0,
             clique_membership=None,
+            patch_draw_size_overwrite=None,
     ):
         self.number = patch_number  # this is set at initialisation and is never changed, even if 'earlier' patches
         # in the system_state.patch_list are removed
@@ -21,6 +22,11 @@ class Patch:
         self.clique_membership = clique_membership  # integer clique number (if applicable)
         self.quality = patch_quality
         self.size = patch_size
+        # if we pass in a global overwrite, use it as the draw size for all patches. Otherwise, use the actual size:
+        if patch_draw_size_overwrite is None:
+            self.draw_size = patch_size
+        else:
+            self.draw_size = patch_draw_size_overwrite
         self.degree = 0  # can change
         self.centrality = 0.0  # can change
         self.local_clustering = []  # can change, takes a list of three values - LCC for all/same/different habitats
