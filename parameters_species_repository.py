@@ -4,14 +4,15 @@ import numpy as np
 # ----------------------------------------- DEFAULT ----------------------------------------- #
 
 default_species = {
-    "CORE_PARA": {
+    "CORE_PARA":  # can be None, and default values used (see Species.__init__()).
+        {
         "MINIMUM_POPULATION_SIZE": 1.0,
         "LIFESPAN": 1,
         "PREDATOR_LIST": [],  # What species are predators of this species?
         "SEASONAL_PERIOD": 0,  # used in the growth and direct impact offsets
     },
-
-    "INITIAL_POPULATION_PARA": {
+    "INITIAL_POPULATION_PARA":  # can be None, and default values used (see Species.__init__()).
+        {
         "INITIAL_POPULATION_MECHANISM": "random_binomial",
         "IS_ENSURE_MINIMUM_POPULATION": False,  # note that this overwrites even an explicit patch_vector
         "CONSTANT_VALUE": None,
@@ -23,8 +24,7 @@ default_species = {
         "CLIQUE_BINOMIAL_DICT": {},  # probability of occurrence in patch of given clique (clique networks only)
         "PATCH_VECTOR": [],
     },
-
-    "GROWTH_PARA":
+    "GROWTH_PARA":  # can be None, and default values used (see Species.__init__()).
         {
             "GROWTH_FUNCTION": "logistic",
             "R": {
@@ -52,7 +52,7 @@ default_species = {
                 "GROWTH_OFFSET_LOCAL": [],  # list of lists - each entry is list of annual offsets per patch
             },
             "CML_PARA": [
-                    # This should be an ordered list of the 1 (shift), 3 (tent) or 4 (sine) parameters used in these maps:
+                    # Should be an ordered list of the 1 (shift), 3 (tent) or 4 (sine) parameters used in these maps:
                     {"type": 'constant',  # {'constant', 'sine', 'vector_exp', 'vector_imp', 'logistic_map'}
                     "constant_value": 0,
                     "period": None,
@@ -67,7 +67,7 @@ default_species = {
                 },
             ],
         },
-    "PREDATION_PARA":
+    "PREDATION_PARA":  # can be None, and default values used (see Species.__init__()).
         {
             "PREDATION_FUNCTION": "lotka_volterra",
             "PREY_DICT": {
@@ -179,7 +179,7 @@ default_species = {
             # If false, this represents a long-lived species who need to eat to live, but they only reproduce and grow
             # the population when explicitly allowed to breed using R and the growth function.
         },
-    "DISPERSAL_PARA":
+    "DISPERSAL_PARA":  # can be None, and default values used (see Species.__init__()).
         {
             "IS_DISPERSAL": True,  # This MUST NOT be temporally-varied.
             "DISPERSAL_MECHANISM": {
@@ -281,7 +281,7 @@ default_species = {
                 "vector_imp": None,  # { 0 : value_0, ... , lower_time_limit_N : value_N }
             },
         },
-    "PURE_DIRECT_IMPACT_PARA":
+    "PURE_DIRECT_IMPACT_PARA":  # can be None, and default values used (see Species.__init__()).
         {
             "IS_PURE_DIRECT_IMPACT": False,  # direct impact but not from any species. e.g. culling
             "TYPE": "vector",
@@ -299,8 +299,10 @@ default_species = {
                 # list of lists - each entry is list of offsets per each patch for that season
             },
         },
-    "DIRECT_IMPACT_ON_ME": {},  # dictionary of species names (including self) and linear impact scores
-    "PERTURBATION_PARA": {
+    "DIRECT_IMPACT_ON_ME": # can be None, and default values used (see Species.__init__()).
+        {},  # dictionary of species names (including self) and linear impact scores
+    "PERTURBATION_PARA":  # can be None, and default values used (see Species.__init__()).
+        {
         "IS_PERTURBS_ENVIRONMENT": False,  # does this species induce perturbations in the physical environment?
         "TO_IMPACT": [],  # list containing some of 'same', 'adjacent', 'xy-adjacent'
         "IMPLEMENTATION_PROBABILITY_COEFFICIENTS": {

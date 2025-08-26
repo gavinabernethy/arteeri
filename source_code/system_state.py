@@ -1612,8 +1612,11 @@ class System_state:
                 # now store the single-habitat subnetwork
                 sub_networks[network_key] = deepcopy({
                     "num_patches": temp_num_patches,
-                    "population_arrays": population_array_dict,
-                    "normalised_population_arrays": normalised_pop_array_dict,
+                    "max_actual_population": max(temp_population),
+                    "mean_actual_population": np.mean(temp_population),
+                    "population_arrays": population_array_dict,  # vectors of population averaged over radius 0, 1, 2
+                    "normalised_population_arrays": normalised_pop_array_dict,  #  contains vectors of the subnetwork's
+                    # population aggregated over radius 0, 1, 2, and THEN normalised IN EACH CASE (rather than before).
                     "adjacency_array": temp_adjacency,
                     "neighbour_dict": temp_neighbours,
                 })

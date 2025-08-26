@@ -112,7 +112,11 @@ class Species:
         self.current_minimum_link_strength_dispersal = None
 
 def set_default_value(parameter_dict, target_name, default_value):
-    # checks the key (which can be one or two levels) and sets the default value if it does not exist.
+    # This is used throughout the Species() initialisation, allowing us to simply pass None for entire _para sections,
+    #  such as dispersal_para, perturbation_para etc. when specifying the species parameter dictionary, and the
+    #  defaults (mostly no effect) will be used. Not recommended for key parameters such as core_para and growth_para.
+    #
+    # It checks the key (which can be one or two levels) and sets the default value if it does not exist.
     if parameter_dict is None:
         return default_value
     else:
