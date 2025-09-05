@@ -89,7 +89,7 @@ master_para = {
 
             # each must be present in the types dictionary, ordering not needed
             # THIS ALSO NEEDS TO BE SET BEFORE SPATIAL HABITAT GENERATION!
-            "INITIAL_HABITAT_SET": {0},
+            "INITIAL_HABITAT_SET": {0, 1},
             # if the following is None then probabilities are treated as uniform when combined with auto-correlation
             "INITIAL_HABITAT_BASE_PROBABILITIES": None,
 
@@ -120,13 +120,13 @@ master_para = {
             "SPATIAL_DESCRIPTION": "artemis_01",
             #
             # Network topology:
-            "GRAPH_TYPE": "rgg", # choices are: "manual", "lattice", "line", "ring", "star",
+            "GRAPH_TYPE": "lattice", # choices are: "manual", "lattice", "line", "ring", "star",
             #  "random", "small_world", "scale_free", "cluster", "erdos_renyi_random", "balanced_tree",
             # "power_law_tree", "cliquey_network", "rgg"
             #
             # Drawing the visual layout of the network (note the only simulation impact that take any account of the
             # patch.position are "IS_LATTICE_WRAPPED" and the cluster type "position_box"):
-            "GRAPH_LAYOUT": "rgg",  # choices are "grid", "tree", "space_filling_curve,
+            "GRAPH_LAYOUT": "grid",  # choices are "grid", "tree", "space_filling_curve,
             #  "spiral", "cliquey_network", "ring", "star", "rgg"
 
             "ADJACENCY_MANUAL_SPEC": None,  # should be None if we want to generate the patch adjacency matrix by
@@ -146,8 +146,8 @@ master_para = {
             # Cliquey Network options:
             "WITHIN_CLIQUE_PROBABILITY": 0.8,  # for cliquey networks
             "BETWEEN_CLIQUE_PROBABILITY": 0.01,  # for cliquey networks
-            "NUMBER_OF_CLIQUES": 5,  # for cliquey networks
-            "IS_HABITAT_CLIQUE": True,  # if true then cliques will have uniform habitat type
+            "NUMBER_OF_CLIQUES": 2,  # for cliquey networks
+            "IS_HABITAT_CLIQUE": False,  # if true then cliques will have uniform habitat type
             #
             # Determine habitat type:
             "IS_HABITAT_PROBABILITY_REBALANCED": True,  # are habitat probabilities sequentially biased to recover?
@@ -171,13 +171,27 @@ master_para = {
             "IS_CHESS_BIND_HABITAT_TO_SIZE": False,  # if TRUE then HABITAT_CLUSTER_TYPE_STR needs to be "chess_box" and
             # HABITAT_CLUSTER_SIZE needs to be a list of length equal to the size of "main_para"["INITIAL_HABITAT_SET"].
             # Set to FALSE if not a chess-board design or just one cluster size chosen, or is a chessboard with multiple
-            # cluster sizes but you do not want to swap habitat types to minimise overlap.
+            # cluster sizes - but you do not want to swap habitat types to minimise overlap.
             #
             # Patch size (scales the carrying capacity for all local populations):
-            "PATCH_SIZE_MANUAL_SPEC": None,  # should be None if we want to generate size by probability
-            "MIN_SIZE": 1.0,
-            "MAX_SIZE": 1.0,
-            "PATCH_SIZE_VISUAL_OVERWRITE": 0.001,  # if None, use actual patch size for drawing in create_patches_plot.
+            "SIZE_PARA": {
+                "PATCH_SIZE_RULE": "random_uniform",  # manual, random_uniform, random_normal,
+                    # habitat_normal, clique_normal, balanced_tree_self_similar
+                "PATCH_SIZE_MANUAL_SPEC": None,
+                "MIN_SIZE": 0.1,  # this should not actually be set to 0, as a size 0 patch causes all kinds of errors
+                "MAX_SIZE": 1.0,
+                "PATCH_SIZE_NORMAL_MEAN": 0.5,
+                "PATCH_SIZE_NORMAL_SD": 0.1,
+                "HABITAT_NORMAL_DICT": {
+                    0: {"mean": 0.2, "sd": 0.01},
+                    1: {"mean": 0.5, "sd": 0.7},
+                },
+                "CLIQUE_NORMAL_DICT": {},
+                "TREE_INITIAL_PATCH_SIZE": 0.0,
+                "TREE_SS_RATIO": 0.0,
+            },
+            "PATCH_SIZE_VISUAL_OVERWRITE": None,  # if None, use actual patch size for drawing in create_patches_plot.
+
             # Patch quality (scales the reproductive rate (r-parameter) for all local populations):
             "QUALITY_TYPE": "gradient",  # quality types are: 'manual', 'random', 'auto_correlation', 'gradient'
             "QUALITY_MANUAL_SPEC": None,  # should be None if we want to generate quality by other means
