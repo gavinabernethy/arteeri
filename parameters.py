@@ -20,7 +20,7 @@ master_para = {
             "IS_SIMULATION": True,  # if False then we init Simulation_obj but do not execute .full_simulation()
             "NUM_TRANSIENT_STEPS": 1000,
             "NUM_RECORD_STEPS": 1000,
-            "NUM_PATCHES": 40,
+            "NUM_PATCHES": 900,
             # ----------------------------------------- #
 
             "MODEL_TIME_TYPE": "discrete",  # continuous ODEs ('continuous') or discrete maps ('discrete')?
@@ -175,31 +175,47 @@ master_para = {
             #
             # Patch size (scales the carrying capacity for all local populations):
             "SIZE_PARA": {
-                "PATCH_SIZE_RULE": "random_uniform",  # manual, random_uniform, random_normal,
-                    # habitat_normal, clique_normal, balanced_tree_self_similar
-                "PATCH_SIZE_MANUAL_SPEC": None,
-                "MIN_SIZE": 0.1,  # this should not actually be set to 0, as a size 0 patch causes all kinds of errors
-                "MAX_SIZE": 1.0,
-                "PATCH_SIZE_NORMAL_MEAN": 0.5,
-                "PATCH_SIZE_NORMAL_SD": 0.1,
+                "PATCH_PROPERTY_RULE": "auto_correlation",  # 'manual', 'random_uniform', 'random_normal',
+                    # 'habitat_normal', 'clique_normal', 'balanced_tree_self_similar', 'auto_correlation', 'gradient'
+                "PATCH_PROPERTY_MANUAL_SPEC": None,
+                "MIN_VALUE": 0.1,  # should not actually be set to 0, as a size=0 patch causes all kinds of errors
+                "MAX_VALUE": 1.0,
+                "PATCH_PROPERTY_NORMAL_MEAN": 0.5,
+                "PATCH_PROPERTY_NORMAL_SD": 0.1,
                 "HABITAT_NORMAL_DICT": {
                     0: {"mean": 0.2, "sd": 0.01},
                     1: {"mean": 0.5, "sd": 0.7},
                 },
                 "CLIQUE_NORMAL_DICT": {},
-                "TREE_INITIAL_PATCH_SIZE": 0.0,
+                "TREE_INITIAL_PATCH_VALUE": 0.0,
                 "TREE_SS_RATIO": 0.0,
+                "SPATIAL_AUTO_CORRELATION": -1.0,  # in range [-1, 1]
+                "GRADIENT_FLUCTUATION": 0.3,
+                "GRADIENT_AXIS": "x",  # 'x' or 'y' or 'x+y'
             },
             "PATCH_SIZE_VISUAL_OVERWRITE": None,  # if None, use actual patch size for drawing in create_patches_plot.
 
             # Patch quality (scales the reproductive rate (r-parameter) for all local populations):
-            "QUALITY_TYPE": "gradient",  # quality types are: 'manual', 'random', 'auto_correlation', 'gradient'
-            "QUALITY_MANUAL_SPEC": None,  # should be None if we want to generate quality by other means
-            "QUALITY_SPATIAL_AUTO_CORRELATION": 0.5,  # in range [-1, 1]
-            "MIN_QUALITY": 1.0,
-            "MAX_QUALITY": 1.0,
-            "QUALITY_FLUCTUATION": 0.0,
-            "QUALITY_AXIS": "x+y",  # 'x' or 'y' or 'x+y'
+            "QUALITY_PARA": {
+                "PATCH_PROPERTY_RULE": "random_normal",  # 'manual', 'random_uniform', 'random_normal',
+                    # 'habitat_normal', 'clique_normal', 'balanced_tree_self_similar', 'auto_correlation', 'gradient'
+                "PATCH_PROPERTY_MANUAL_SPEC": None,
+                "MIN_VALUE": 0.1,  # should not actually be set to 0, as a quality=0 patch causes all kinds of errors
+                "MAX_VALUE": 1.0,
+                "PATCH_PROPERTY_NORMAL_MEAN": 0.7,
+                "PATCH_PROPERTY_NORMAL_SD": 0.0,
+                "HABITAT_NORMAL_DICT": {
+                    0: {"mean": 0.2, "sd": 0.01},
+                    1: {"mean": 0.5, "sd": 0.7},
+                },
+                "CLIQUE_NORMAL_DICT": {},
+                "TREE_INITIAL_PATCH_VALUE": 0.0,
+                "TREE_SS_RATIO": 0.0,
+                "SPATIAL_AUTO_CORRELATION": 0.0,  # in range [-1, 1]
+                "GRADIENT_FLUCTUATION": 0.0,
+                "GRADIENT_AXIS": "x+y",  # 'x' or 'y' or 'x+y'
+            },
+
             "IS_ENVIRONMENT_NATURAL_RESTORATION": False,  # is there a tendency to return to certain characteristics?
             "RESTORATION_PARA": {
                 "IS_QUALITY_CHANGE": False,

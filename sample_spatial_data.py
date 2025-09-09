@@ -1,5 +1,7 @@
 # generates sample spatial networks and habitat data in .CSV files for testing
 import shutil
+from random import shuffle
+
 import numpy as np
 import os
 import networkx  # https://networkx.org/documentation/stable/reference/generators.html
@@ -334,61 +336,129 @@ def generate_patch_position_adjacency(num_patches, graph_para):
     return adjacency_array, position_array, clique_membership
 
 
-def generate_patch_quality(num_patches, adjacency_array, position_array, graph_para):
-    quality_type = graph_para["QUALITY_TYPE"]
-    max_quality = graph_para["MAX_QUALITY"]
-    min_quality = graph_para["MIN_QUALITY"]
-    if max_quality < min_quality or max_quality > 1.0 or min_quality < 0.0:
-        raise Exception("Max and min quality parameters not as expected in [0, 1].")
-    #
-    # quality types are {'manual', 'random', 'auto_correlation', 'gradient'}
-    if quality_type == "manual":
-        # the "QUALITY_MANUAL_SPEC" should be a list of length = num_patches
-        quality_spec = graph_para["QUALITY_MANUAL_SPEC"]
-        if quality_spec is not None and type(quality_spec) == list and len(quality_spec) == num_patches:
-            quality_array = np.zeros(shape=(num_patches, 1))
+
+def generate_patch_continuous_property(num_patches, property_para, adjacency_array, position_array,
+                                       clique_membership, patch_habitat_array):
+    # used for patch SIZE and patch QUALITY
+
+    property_rule = property_para["PATCH_PROPERTY_RULE"]
+    # options:
+    # manual, random_uniform, random_normal, habitat_normal, clique_normal,
+    # balanced_tree_self_similar, auto-correlation, gradient
+
+    patch_property_array = np.zeros(shape=(num_patches, 1))
+    min_patch_value = property_para["MIN_VALUE"]
+    # error check:
+    if min_patch_value <= 0.0:
+        raise Exception("Minimum value MUST be strictly positive.")
+    max_patch_value = property_para["MAX_VALUE"]
+
+    if property_rule == "manual":
+        specified_list = property_para["PATCH_PROPERTY_MANUAL_SPEC"]
+        if len(specified_list) == num_patches:
+            # in this case we have manually specified the patch values as a list - length MUST match num_patches
             for patch_num in range(num_patches):
-                patch_quality = quality_spec[patch_num]
-                # check valid
-                if 0.0 <= patch_quality <= 1.0:
-                    quality_array[patch_num] = patch_quality
+                # check is valid:
+                patch_value = specified_list[patch_num]
+                if min_patch_value <= patch_value <= max_patch_value:
+                    patch_property_array[patch_num, 0] = patch_value
                 else:
-                    raise Exception("Unsuitable patch quality is specified.")
+                    raise Exception("Unsuitable patch property value is specified.")
         else:
-            raise Exception("Error in the expected manual specification of patch quality (QUALITY_MANUAL_SPEC)")
-    elif quality_type == "random":
-        quality_array = min_quality + np.random.rand(num_patches, 1) * (max_quality - min_quality)
-    elif quality_type == "auto_correlation":
-        auto_correlation = graph_para["QUALITY_SPATIAL_AUTO_CORRELATION"]
-        quality_array = np.zeros(shape=(num_patches, 1))
-        # initial value:
-        quality_array[0, 0] = np.random.rand()
-        for patch in range(1, num_patches):
-            # construct mean
-            num_neighbours = 0
-            quality_sum = 0.0
-            # iterate over those neighbors who have already been assigned their quality
-            for other_patch in range(patch):
-                if adjacency_array[patch, other_patch] == 1:
-                    num_neighbours += 1
-                    quality_sum += quality_array[other_patch, 0]
-            draw = np.random.rand()
-            if num_neighbours > 0:
-                quality_mean = quality_sum / float(num_neighbours)
-                temp_value = draw + auto_correlation * (quality_mean - draw)
-                # auto_corr = 0 => draw
-                # auto_corr = 1 => mean
-                # auto_corr = -1 => 2 draw - mean (i.e. same distance on other side of draw)
-            else:
-                temp_value = draw
-            # check against max and min
-            quality_array[patch, 0] = min(max(min_quality, temp_value), max_quality)
-    elif quality_type == "gradient":
+            raise Exception("Patch property list is not the correct length.")
+
+    elif property_rule == "random_uniform":
+        patch_property_array[:, 0] = min_patch_value + (
+                max_patch_value - min_patch_value) * np.random.rand(num_patches, 1)
+
+    elif property_rule == "random_normal":
+        patch_property_normal_mean = property_para["PATCH_PROPERTY_NORMAL_MEAN"]
+        patch_property_normal_sd = property_para["PATCH_PROPERTY_NORMAL_SD"]
+        patch_property_array[:, 0] = np.fmin(max_patch_value, np.fmax(
+            min_patch_value, np.random.normal(patch_property_normal_mean, patch_property_normal_sd, num_patches)))
+
+    elif property_rule == "habitat_normal":
+        # A unique normal distribution per habitat type. Simply use SD=0 for uniform value per habitat type.
+        habitat_dict = property_para["HABITAT_NORMAL_DICT"]
+        unique_habitats = list(np.unique(patch_habitat_array))  # list habitat types actually in the generated network
+        # check all assigned a distribution (noting the generated habitats may be a proper subset of ALL habitat types):
+        if all(i in habitat_dict for i in unique_habitats):
+            for patch_num in range(num_patches):
+                habitat_num = patch_habitat_array[patch_num, 0]
+                patch_property_array[patch_num, 0] = min(max_patch_value, max(min_patch_value, np.random.normal(
+                    habitat_dict[habitat_num]["mean"], habitat_dict[habitat_num]["sd"])))
+        else:
+            raise Exception("Habitat dictionary does not feature all habitat types present at generation.")
+
+    elif property_rule == "clique_normal":
+        # A unique normal distribution per clique. Simply use SD=0 for uniform value per habitat type.
+        # REQUIRES "GRAPH_TYPE=cliquey_networks", although this is checked indirectly by examining the clique_membership
+        # array which would only be non-trivial if generated by that previous selection.
+        clique_dict = property_para["CLIQUE_NORMAL_DICT"]
+        unique_cliques = list(np.unique(clique_membership))
+        if len(unique_cliques) > 1 and all(i in clique_dict for i in unique_cliques):
+            for patch_num in range(num_patches):
+                clique_num = clique_membership[patch_num]
+                patch_property_array[patch_num, 0] = min(max_patch_value, max(min_patch_value, np.random.normal(
+                    clique_dict[clique_num]["mean"], clique_dict[clique_num]["sd"])))
+        else:
+            raise Exception("Clique dictionary is not the correct length.")
+
+    elif property_rule == "balanced_tree_self_similar":
+        # Self-similar trees obeying Horton laws.
+        # REQUIRES "GRAPH_TYPE=balanced_tree" which ensures self-similar branching according to a branch ratio.
+        ss_ratio = property_para["TREE_SS_RATIO"]  # self-sim ratio of patch SIZE/QUALITY to accompany the branch ratio.
+        patch_property_array[0, 0] = min(max_patch_value,
+                                         max(min_patch_value, property_para["TREE_INITIAL_PATCH_VALUE"]))
+        if ss_ratio > 0.0 and property_para["TREE_INITIAL_PATCH_VALUE"] > 0.0:
+            for patch_num in range(1, num_patches):
+                for possible_parent in range(0, patch_num):
+                    if adjacency_array[patch_num, possible_parent] == 1:
+                        # parent identified
+                        patch_property_array[patch_num, 0] =  min(max_patch_value, max(
+                            min_patch_value, patch_property_array[possible_parent, 0] * ss_ratio))
+                        break
+        else:
+            raise Exception("Tree SS ratio or initial patch value are not positive scalars.")
+
+    elif property_rule == "auto_correlation":
+        auto_correlation = property_para["SPATIAL_AUTO_CORRELATION"]
+        # seed some initial values drawn from uniform distribution:
+        for seed_patch in range(int(np.floor(np.sqrt(num_patches)))):
+            patch_property_array[int(seed_patch ** 2.0), 0] = min_patch_value + np.random.rand() * (
+                    max_patch_value - min_patch_value)
+        # then randomise the list of patches to assign so as not to bias towards the initial group
+        patch_list = [_ for _ in range(num_patches)]
+        random.shuffle(patch_list)
+        for patch in patch_list:
+            # check this patch has not yet been assigned
+            if patch_property_array[patch, 0] == 0.0:
+                # initialise count and mean value of neighbours for whom value is already assigned:
+                num_assigned_neighbours = 0
+                property_sum = 0.0
+                # iterate over those neighbors who have already been assigned their property value (so it is NON-ZERO):
+                for other_patch in range(patch):
+                    if adjacency_array[patch, other_patch] == 1 and patch_property_array[other_patch, 0] != 0.0:
+                        num_assigned_neighbours += 1
+                        property_sum += patch_property_array[other_patch, 0]
+                draw = min_patch_value + np.random.rand() * (max_patch_value - min_patch_value)
+                if num_assigned_neighbours > 0:
+                    property_mean = property_sum / float(num_assigned_neighbours)
+                    temp_value = draw + auto_correlation * (property_mean - draw)
+                    # auto_corr = 0 => draw
+                    # auto_corr = 1 => mean
+                    # auto_corr = -1 => 2 draw - mean (i.e. same distance on other side of draw)
+                else:
+                    temp_value = draw
+                # check against max and min
+                patch_property_array[patch, 0] = min(max(min_patch_value, temp_value), max_patch_value)
+
+    elif property_rule == "gradient":
         if num_patches == 1:
-            quality_array = min_quality + np.random.rand(1, 1) * (max_quality - min_quality)
+            patch_property_array = min_patch_value + np.random.rand() * (max_patch_value - min_patch_value)
         else:
-            fluctuation = graph_para["QUALITY_FLUCTUATION"]
-            axis = graph_para["QUALITY_AXIS"]  # x, y, x+y
+            fluctuation = property_para["GRADIENT_FLUCTUATION"]
+            axis = property_para["GRADIENT_AXIS"]  # options: x, y, x+y
             if axis == "x":
                 value_vector = position_array[:, 0]
             elif axis == "y":
@@ -402,96 +472,14 @@ def generate_patch_quality(num_patches, adjacency_array, position_array, graph_p
             if max_pos == min_pos:
                 raise Exception("No variation along the axis specified.")
             else:
-                quality_array = np.zeros(shape=(num_patches, 1))
-                for patch in range(0, num_patches):
-                    quality_array[patch, 0] = min(1.0, max(0.0, min_quality + (value_vector[patch] - min_pos) *
-                                                           (max_quality - min_quality) / (max_pos - min_pos) +
-                                                           fluctuation * np.random.rand()))
-    else:
-        raise Exception("Which type of scheme is used for patch quality in the spatial network?")
-    return quality_array
-
-
-def generate_patch_size(num_patches, size_para, adjacency_array, clique_membership, patch_habitat_array):
-    patch_size_rule = size_para["PATCH_SIZE_RULE"]  # options:
-    # manual, random_uniform, random_normal, habitat_normal, clique_normal, balanced_tree_self_similar
-
-    patch_size_array = np.zeros(shape=(num_patches, 1))
-    min_patch_size = size_para["MIN_SIZE"]
-    # error check:
-    if min_patch_size <= 0.0:
-        raise Exception("Minimum patch size MUST be strictly positive.")
-    max_patch_size = size_para["MAX_SIZE"]
-
-    if patch_size_rule == "manual":
-        specified_size_list = size_para["PATCH_SIZE_MANUAL_SPEC"]
-        if len(specified_size_list) == num_patches:
-            # in this case we have manually specified the patch sizes as a list - length MUST match num_patches
-            for patch_num in range(num_patches):
-                # check is valid:
-                patch_size = specified_size_list[patch_num]
-                if min_patch_size <= patch_size <= max_patch_size:
-                    patch_size_array[patch_num, 0] = patch_size
-                else:
-                    raise Exception("Unsuitable patch size is specified.")
-        else:
-            raise Exception("Patch size list is not the correct length.")
-
-    elif patch_size_rule == "random_uniform":
-        patch_size_array = min_patch_size + (max_patch_size - min_patch_size) * np.random.rand(num_patches, 1)
-
-    elif patch_size_rule == "random_normal":
-        patch_size_normal_mean = size_para["PATCH_SIZE_NORMAL_MEAN"]
-        patch_size_normal_sd = size_para["PATCH_SIZE_NORMAL_SD"]
-        patch_size_array = np.fmin(max_patch_size, np.fmax(
-            min_patch_size, np.random.normal(patch_size_normal_mean, patch_size_normal_sd, num_patches)))
-
-    elif patch_size_rule == "habitat_normal":
-        # A unique normal distribution per habitat type. Simply use SD=0 for uniform value per habitat type.
-        habitat_dict = size_para["HABITAT_NORMAL_DICT"]
-        unique_habitats = list(np.unique(patch_habitat_array))  # list habitat types actually in the generated network
-        # check all assigned a distribution (noting the generated habitats may be a proper subset of ALL habitat types):
-        if all(i in habitat_dict for i in unique_habitats):
-            for patch_num in range(num_patches):
-                habitat_num = patch_habitat_array[patch_num, 0]
-                patch_size_array[patch_num, 0] = min(max_patch_size, max(min_patch_size, np.random.normal(
-                    habitat_dict[habitat_num]["mean"], habitat_dict[habitat_num]["sd"])))
-        else:
-            raise Exception("Habitat dictionary does not feature all habitat types present at generation.")
-
-    elif patch_size_rule == "clique_normal":
-        # A unique normal distribution per clique. Simply use SD=0 for uniform value per habitat type.
-        # REQUIRES "GRAPH_TYPE=cliquey_networks", although this is checked indirectly by examining the clique_membership
-        # array which would only be non-trivial if generated by that previous selection.
-        clique_dict = size_para["CLIQUE_NORMAL_DICT"]
-        unique_cliques = list(np.unique(clique_membership))
-        if len(unique_cliques) > 1 and all(i in clique_dict for i in unique_cliques):
-            for patch_num in range(num_patches):
-                clique_num = clique_membership[patch_num]
-                patch_size_array[patch_num, 0] = min(max_patch_size, max(min_patch_size, np.random.normal(
-                    clique_dict[clique_num]["mean"], clique_dict[clique_num]["sd"])))
-        else:
-            raise Exception("Clique dictionary is not the correct length.")
-
-    elif patch_size_rule == "balanced_tree_self_similar":
-        # Self-similar trees obeying Horton laws.
-        # REQUIRES "GRAPH_TYPE=balanced_tree" which ensures self-similar branching according to a branch ratio.
-        ss_ratio = size_para["TREE_SS_RATIO"]  # self-similarity ratio of patch SIZE to accompany the branch ratio.
-        patch_size_array[0, 0] = min(max_patch_size, max(min_patch_size, size_para["TREE_INITIAL_PATCH_SIZE"]))
-        if ss_ratio > 0.0 and size_para["TREE_INITIAL_PATCH_SIZE"] > 0.0:
-            for patch_num in range(1, num_patches):
-                for possible_parent in range(0, patch_num):
-                    if adjacency_array[patch_num, possible_parent] == 1:
-                        # parent identified
-                        patch_size_array[patch_num, 0] =  min(max_patch_size, max(
-                            min_patch_size, patch_size_array[possible_parent, 0] * ss_ratio))
-                        break
-        else:
-            raise Exception("Tree SS ratio or initial patch size are not positive scalars.")
+                patch_property_array[:, 0] = np.fmin(max_patch_value, np.fmax(min_patch_value, min_patch_value + (
+                        value_vector - min_pos) * (max_patch_value - min_patch_value) / (
+                        max_pos - min_pos) + fluctuation * np.random.rand(num_patches,)))
 
     else:
-        raise Exception("No valid patch size specification selected.")
-    return patch_size_array
+        raise Exception("No valid patch property specification selected.")
+
+    return patch_property_array
 
 
 def generate_habitat_type(generated_habitat_set, num_patches, generated_habitat_probabilities, adjacency_array,
@@ -873,17 +861,27 @@ def generate_all_spatial_settings(is_output_files, desc, dir_path, test_set, can
         create_description_file(desc, dir_path=dir_path)
     adjacency_array, position_array, clique_membership = generate_patch_position_adjacency(num_patches=num_patches,
                                                                                            graph_para=graph_para)
-    patch_quality_array = generate_patch_quality(num_patches=num_patches, adjacency_array=adjacency_array,
-                                                 position_array=position_array, graph_para=graph_para)
+
     patch_habitat_array = generate_habitat_type(generated_habitat_set=generated_habitat_set, num_patches=num_patches,
                                                 generated_habitat_probabilities=generated_habitat_probabilities,
                                                 adjacency_array=adjacency_array,
                                                 position_array=position_array,
                                                 graph_para=graph_para,
                                                 clique_membership=clique_membership)
-    patch_size_array = generate_patch_size(num_patches=num_patches, size_para=graph_para["SIZE_PARA"],
-                                           adjacency_array=adjacency_array, clique_membership=clique_membership,
-                                           patch_habitat_array=patch_habitat_array)
+
+    patch_quality_array = generate_patch_continuous_property(num_patches=num_patches,
+                                                             property_para=graph_para["QUALITY_PARA"],
+                                                             adjacency_array=adjacency_array,
+                                                             position_array=position_array,
+                                                             clique_membership=clique_membership,
+                                                             patch_habitat_array=patch_habitat_array)
+
+    patch_size_array = generate_patch_continuous_property(num_patches=num_patches,
+                                                             property_para=graph_para["SIZE_PARA"],
+                                                             adjacency_array=adjacency_array,
+                                                             position_array=position_array,
+                                                             clique_membership=clique_membership,
+                                                             patch_habitat_array=patch_habitat_array)
 
     scores_dict = {}
     for score_type in ["FEEDING", "TRAVERSAL"]:
