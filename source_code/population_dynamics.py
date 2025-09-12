@@ -815,7 +815,6 @@ def identify_static_species(species_list):
         is_static = True
         for check in check_list:
             if getattr(species, check[0]) is not None:
-                print(getattr(species, check[0])[check[1]])
                 if getattr(species, check[0])[check[1]] is not None:
                     if getattr(species, check[0])[check[1]]['type'] not in [None, 'constant']:
                         is_static = False
