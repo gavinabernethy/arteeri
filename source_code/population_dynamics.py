@@ -561,20 +561,30 @@ def update_and_check_func(species, time, update_and_check_list, is_change):
     return is_change
 
 
-def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonlocal_foraging, is_local_foraging_ensured):
+def change_checker(species_list, static_list, patch_list, time, step,
+                   is_dispersal, is_nonlocal_foraging, is_local_foraging_ensured):
     # this function deals with the temporal variation of species parameters.
-    #
-    # update temporary values of species properties and check if anything has changed
+    # update temporary values of species properties and check if anything has changed.
+
+    # create the list of species whose properties may actually change (unless step 0, in which case check everything
+    # to make sure that the permanent values are initially set):
+    if step == 0:
+        variable_list = species_list
+    else:
+        variable_list = []
+        for species in species_list:
+            if species.name not in static_list:
+                variable_list.append(species)
 
     # variables that do not impact path scores:
-    for species in species_list:
+    for species in variable_list:
         update_and_check = [
             ['current_r_value', 'growth_para', 'R'],
             ['current_predation_pragmatism', 'predation_para', 'PREDATION_PRAGMATISM'],
             ['current_predation_focus', 'predation_para', 'PREDATION_FOCUS'],
             ['current_predation_rate', 'predation_para', 'PREDATION_RATE'],
         ]
-        if species.is_dispersal:
+        if is_dispersal and species.is_dispersal:
             update_and_check = update_and_check + [
                 ['current_dispersal_direction', 'dispersal_para', 'DISPERSAL_DIRECTION'],
                 ['current_dispersal_mechanism', 'dispersal_para', 'DISPERSAL_MECHANISM'],
@@ -606,7 +616,7 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
 
     # check if predation has changed, and if so would need to update all prey's .predator_list's
     is_prey_lists_change = False
-    for species in species_list:
+    for species in variable_list:
         update_and_check = [['current_prey_dict', 'predation_para', 'PREY_DICT']]
         is_prey_lists_change = update_and_check_func(
             update_and_check_list=update_and_check,
@@ -617,7 +627,7 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
 
     # foraging scores
     is_foraging_variables_change = False
-    for species in species_list:
+    for species in variable_list:
         # check if any species-dependent properties have changed due to temporal variation.
         # if so, update the current values and mark a change so that the lists can be rebuilt
         # for each entry: [to update, base attribute, nested attribute (if needed)]
@@ -636,21 +646,22 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
 
     # dispersal scores
     is_dispersal_variables_change = False
-    for species in species_list:
-        # don't bother checking dispersal parameters if dispersal is not enabled (remember that is_dispersal is NOT
-        # allowed to vary with time!
-        if species.is_dispersal:
-            update_and_check = [
-                ['current_dispersal_mobility', 'dispersal_para', 'DISPERSAL_MOBILITY'],
-                ['current_minimum_link_strength_dispersal', 'dispersal_para', 'MINIMUM_LINK_STRENGTH_DISPERSAL'],
-                ['current_max_dispersal_path_length', 'dispersal_para', 'MAX_DISPERSAL_PATH_LENGTH']
-            ]
-            is_dispersal_variables_change = update_and_check_func(
-                update_and_check_list=update_and_check,
-                species=species,
-                time=time,
-                is_change=is_dispersal_variables_change,
-            )
+    if is_dispersal:
+        for species in variable_list:
+            # don't bother checking dispersal parameters if dispersal is not enabled (remember that both the global
+            # property and the species property .is_dispersal are NOT allowed to vary with time!)
+            if species.is_dispersal:
+                update_and_check = [
+                    ['current_dispersal_mobility', 'dispersal_para', 'DISPERSAL_MOBILITY'],
+                    ['current_minimum_link_strength_dispersal', 'dispersal_para', 'MINIMUM_LINK_STRENGTH_DISPERSAL'],
+                    ['current_max_dispersal_path_length', 'dispersal_para', 'MAX_DISPERSAL_PATH_LENGTH']
+                ]
+                is_dispersal_variables_change = update_and_check_func(
+                    update_and_check_list=update_and_check,
+                    species=species,
+                    time=time,
+                    is_change=is_dispersal_variables_change,
+                )
 
     # Did something change (or we are at the start of the simulation)? - need to rebuild the lists!
     # IMPORTANT: this is okay, only so long as we do not change any of:
@@ -666,6 +677,7 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
     # This gives us some modulo control over how often to expend computational time updating.
     if is_prey_lists_change or step == 0:
         # feeding habits have potentially changes, so rebuild each prey's .predator_list
+        # this should be ALL species - not just the variable species!
         for species in species_list:
             species.predator_list = []
         for predator in species_list:
@@ -776,7 +788,44 @@ def dispersal_caller(parameters, patch_list, time, alpha, is_dispersal, current_
                 local_pop.current_temp_change += local_pop.population_enter - local_pop.population_leave
 
 
-def update_populations(patch_list, species_list, time, step, parameters, current_patch_list, is_ode_recordings):
+def identify_static_species(species_list):
+    # This is called once at the beginning of the simulation to identify any species whose properties will never
+    # change (possibly excluding .core_para.predator_list, as this is dependent upon other species). Thus, these
+    # species do not need to be included in change_checker().
+    check_list = [
+        ['growth_para', 'R'],
+        ['predation_para', 'PREDATION_PRAGMATISM'],
+        ['predation_para', 'PREDATION_FOCUS'],
+        ['predation_para', 'PREDATION_RATE'],
+        ['dispersal_para', 'DISPERSAL_DIRECTION'],
+        ['dispersal_para', 'DISPERSAL_MECHANISM'],
+        ['dispersal_para', 'COEFFICIENTS_LISTS'],
+        ['predation_para', 'PREY_DICT'],
+        ['predation_para', 'FORAGING_MOBILITY'],
+        ['predation_para', 'FORAGING_KAPPA'],
+        ['predation_para', 'MINIMUM_LINK_STRENGTH_FORAGING'],
+        ['predation_para', 'MAX_FORAGING_PATH_LENGTH'],
+        ['dispersal_para', 'DISPERSAL_MOBILITY'],
+        ['dispersal_para', 'MINIMUM_LINK_STRENGTH_DISPERSAL'],
+        ['dispersal_para', 'MAX_DISPERSAL_PATH_LENGTH']
+    ]
+
+    static_list = []
+    for species in species_list:
+        is_static = True
+        for check in check_list:
+            if getattr(species, check[0]) is not None:
+                print(getattr(species, check[0])[check[1]])
+                if getattr(species, check[0])[check[1]] is not None:
+                    if getattr(species, check[0])[check[1]]['type'] not in [None, 'constant']:
+                        is_static = False
+                        break
+        if is_static:
+            static_list.append(species.name)
+    return static_list
+
+def update_populations(patch_list, species_list, static_list, time, step, parameters,
+                       current_patch_list, is_ode_recordings):
     # this is the full function for a single standard iteration of the ecological model - including growth
     # (reproduction and mortality), predation and being predated upon, any special direct impacts or pure direct
     # impacts, and dispersal.
@@ -799,8 +848,8 @@ def update_populations(patch_list, species_list, time, step, parameters, current
     reset_temp_values(patch_list=patch_list)
 
     # did any species parameters change?
-    change_checker(species_list=species_list, patch_list=patch_list, time=time, step=step,
-                   is_dispersal=is_dispersal, is_nonlocal_foraging=is_nonlocal_foraging,
+    change_checker(species_list=species_list, static_list=static_list, patch_list=patch_list, time=time,
+                   step=step, is_dispersal=is_dispersal, is_nonlocal_foraging=is_nonlocal_foraging,
                    is_local_foraging_ensured=is_local_foraging_ensured)
 
     # iterate over the 4 possible priorities (if all four sub-stages have their own separate timing within a step)
@@ -809,7 +858,7 @@ def update_populations(patch_list, species_list, time, step, parameters, current
             # are there any ecological functions at this level of priority?
             for function in function_priority_dictionary[priority]:
                 # each of the four functions makes changes to the local_population.current_temp_change, WITHOUT
-                # checking if the population would have gone negative at that point.
+                # checking if the population would have become negative at that point.
                 # thus all functions that share the same priority are enacted concurrently
                 function_name_to_actual[function](
                     parameters=parameters, patch_list=patch_list, time=time, alpha=alpha,

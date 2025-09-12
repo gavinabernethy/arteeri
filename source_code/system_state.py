@@ -26,6 +26,7 @@ class System_state:
         # will still match with the corresponding row and column in the adjacency matrix following deletions from both.
         self.initial_patch_list = None
         self.species_set = species_set
+        self.static_list = []  # used to hold the names of species whose internal properties are not time-dependent
         self.current_patch_list = current_patch_list
         self.dimensions = dimensions
         self.reserve_list = []
@@ -292,7 +293,7 @@ class System_state:
                         if neighbour_2 in self.current_patch_list and neighbour_2 != patch.number:
                             # count this triangle in 'all'
                             num_triangles[0] += 1
-                            # now check 'same' or different' habitats
+                            # now check 'same' or 'different' habitats
                             is_same_habitats = (patch.habitat_type_num == self.patch_list[neighbour_1].habitat_type_num
                                                 == self.patch_list[neighbour_2].habitat_type_num)
                             if is_same_habitats:
@@ -333,7 +334,7 @@ class System_state:
     def record_xy_adjacency(self):
         for patch_1_num, patch_1 in enumerate(self.patch_list):
             for patch_2 in self.patch_list[patch_1_num + 1:]:
-                if np.linalg.norm(patch_1.position - patch_2.position) == 1:
+                if np.abs(np.linalg.norm(patch_1.position - patch_2.position) - 1.0) < 0.000001:
                     patch_1.set_of_xy_adjacent_patches.add(patch_2.number)
                     patch_2.set_of_xy_adjacent_patches.add(patch_1_num)
 

@@ -310,7 +310,7 @@ class Simulation_obj:
             time=0,
         )
 
-        # remove any known not to exist
+        # remove any known not to exist - e.g. for simulating real-life situations
         pass
 
         # now save a deepcopy of the patch list and the adjacency matrix - this is the initial abiotic system state!
@@ -330,6 +330,9 @@ class Simulation_obj:
                                         adjacency_path_list=adjacency_path_list, is_biodiversity=True,
                                         is_reserves=True, is_partition=False, is_retro=False)
 
+        # build a list of static species who can be skipped by change_checker() at every step
+        self.system_state.static_list = identify_static_species(species_list=self.system_state.species_set["list"])
+
         # MAIN LOOP - conduct simulation
         for step in range(self.total_steps):
             time = int(step / self.parameters["main_para"]["STEPS_TO_DAYS"])  # "int" truncates, round down as input>0
@@ -347,13 +350,13 @@ class Simulation_obj:
                     population_snapshot(system_state=self.system_state, sim_path=self.sim_path, update_stored=True,
                                         output_figures=self.parameters["perturbation_para"]["IS_PLOTS"])
                 # then enact the perturbation and reset the lists
-                contagion = perturbation(system_state=self.system_state, parameters=self.parameters,
+                contagion_pert = perturbation(system_state=self.system_state, parameters=self.parameters,
                                          pert_paras=pert_paras, perturbation_name=pert_archetype)
-                if contagion is not None:
+                if contagion_pert is not None:
                     self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"].update(
-                        {contagion["step"]: contagion["name"]})
+                        {contagion_pert["step"]: contagion_pert["name"]})
                     self.parameters["perturbation_para"]["PERT_ARCHETYPE_DICTIONARY"].update(
-                        {contagion["name"]: contagion["desc"]})
+                        {contagion_pert["name"]: contagion_pert["desc"]})
 
             # immediately after the perturbation and one iteration:
             if step - 1 in self.parameters["perturbation_para"]["PERT_STEP_DICTIONARY"]:
@@ -370,6 +373,7 @@ class Simulation_obj:
             # ---- Call the main update of all local populations ---- #
             update_populations(patch_list=self.system_state.patch_list,
                                species_list=self.system_state.species_set["list"],
+                               static_list=self.system_state.static_list,
                                parameters=self.parameters,
                                time=time,
                                step=step,
