@@ -35,7 +35,7 @@ To use Artemis, only the files parameters.py and parameters_species_repository.p
 1) Within parameters_species_repository.py create a named dictionary corresponding to your experiment.
    - In this dictionary, each key should be the name of a species.
    - The value should be a dictionary copied from "default_species". Edit the properties of each species as desired:
-     - CORE_PARA - Basic properties of lifespan, and the list of predators of this species.
+     - CORE_PARA - Basic properties of lifespan and minimum population unit.
      - INITIAL_POPULATION_PARA - Choice of mechanisms and parameters governing the initial distribution of the species.
         Can be dependent upon habitat or patch.
      - GROWTH_PARA - Set the growth/reproductive function (e.g. logistic map) for the species, and associate properties

@@ -8,7 +8,7 @@ default_species = {
         {
         "MINIMUM_POPULATION_SIZE": 1.0,
         "LIFESPAN": 1,
-        "PREDATOR_LIST": [],  # What species are predators of this species?
+        "PREDATOR_LIST": [],  # LEAVE BLANK - generated from predators' properties. Holds which species predate this.
         "SEASONAL_PERIOD": 0,  # used in the growth and direct impact offsets
     },
     "INITIAL_POPULATION_PARA":  # can be None, and default values used (see Species.__init__()).
