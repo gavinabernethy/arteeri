@@ -22,7 +22,6 @@ class Species:
         self.minimum_population_size = set_default_value(core_para, "MINIMUM_POPULATION_SIZE", 0.0)
         self.lifespan = set_default_value(core_para, "LIFESPAN", 0.0)
         self.seasonal_period = set_default_value(core_para, "SEASONAL_PERIOD", 0)
-        self.predator_list = set_default_value(core_para, "PREDATOR_LIST", None)
 
         # initial:
         self.initial_population_para = initial_population_para
@@ -88,6 +87,9 @@ class Species:
         # perturbation:
         self.perturbation_para = perturbation_para
         self.is_perturbs_environment = set_default_value(perturbation_para, "IS_PERTURBS_ENVIRONMENT", False)
+
+        # CURRENT holding values - core:
+        self.predator_list = None
 
         # CURRENT holding values - growth:
         self.current_r_value = None

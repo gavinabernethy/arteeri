@@ -1551,6 +1551,7 @@ class System_state:
 
             # check for non-zero size of sub-network:
             if temp_num_patches > 0:
+                current_num_species = np.shape(temp_population)[1]
                 # now generate the radius-averaged population vectors for each species in this habitat sub-network
                 radius_one_population_array = np.zeros(np.shape(temp_population))
                 radius_two_population_array = np.zeros(np.shape(temp_population))
@@ -1568,7 +1569,7 @@ class System_state:
                         else:
                             raise Exception("Invalid ball radius.")
                         # now iterate over each species and take the average population over the elements of the ball
-                        for species_index in range(np.shape(temp_population)[1]):
+                        for species_index in range(current_num_species):
                             ball_population = 0.0
                             for ball_index in ball_patch_indices:
                                 ball_population += temp_population[ball_index, species_index]
@@ -1612,8 +1613,8 @@ class System_state:
                 # now store the single-habitat subnetwork
                 sub_networks[network_key] = deepcopy({
                     "num_patches": temp_num_patches,
-                    "max_actual_population": max(temp_population),
-                    "mean_actual_population": np.mean(temp_population),
+                    "max_actual_population": [np.max(temp_population[:, _]) for _ in range(current_num_species)],
+                    "mean_actual_population": [np.mean(temp_population[:, _]) for _ in range(current_num_species)],
                     "population_arrays": population_array_dict,  # vectors of population averaged over radius 0, 1, 2
                     "normalised_population_arrays": normalised_pop_array_dict,  #  contains vectors of the subnetwork's
                     # population aggregated over radius 0, 1, 2, and THEN normalised IN EACH CASE (rather than before).

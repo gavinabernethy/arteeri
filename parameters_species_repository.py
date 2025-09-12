@@ -348,7 +348,7 @@ ARTEMIS_SAMPLE_MASTER = {
         "CORE_PARA":{
             "MINIMUM_POPULATION_SIZE": 0.000001,
             "LIFESPAN": 100,
-            "PREDATOR_LIST": ['predator'],
+            "PREDATOR_LIST": [],
             "SEASONAL_PERIOD": 0,
         },
         "INITIAL_POPULATION_PARA": {

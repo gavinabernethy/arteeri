@@ -604,6 +604,17 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
         if species.current_predation_focus is not None and species.current_predation_focus < 0.0:
             raise Exception("ERROR: species predation_focus should be non-negative or None")
 
+    # check if predation has changed, and if so would need to update all prey's .predator_list's
+    is_prey_lists_change = False
+    for species in species_list:
+        update_and_check = [['current_prey_dict', 'predation_para', 'PREY_DICT']]
+        is_prey_lists_change = update_and_check_func(
+            update_and_check_list=update_and_check,
+            species=species,
+            time=time,
+            is_change=is_prey_lists_change,
+        )
+
     # foraging scores
     is_foraging_variables_change = False
     for species in species_list:
@@ -611,7 +622,6 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
         # if so, update the current values and mark a change so that the lists can be rebuilt
         # for each entry: [to update, base attribute, nested attribute (if needed)]
         update_and_check = [
-            ['current_prey_dict', 'predation_para', 'PREY_DICT'],
             ['current_foraging_mobility', 'predation_para', 'FORAGING_MOBILITY'],
             ['current_foraging_kappa', 'predation_para', 'FORAGING_KAPPA'],
             ['current_minimum_link_strength_foraging', 'predation_para', 'MINIMUM_LINK_STRENGTH_FORAGING'],
@@ -654,7 +664,17 @@ def change_checker(species_list, patch_list, time, step, is_dispersal, is_nonloc
     # You must also be aware that this occurs by TIME (i.e. day) rather than step - thus, for example, changes that
     # are specified to change daily by sine function will only update every 10 steps if main_para:steps_to_days=10.
     # This gives us some modulo control over how often to expend computational time updating.
-    if is_foraging_variables_change or step == 0:
+    if is_prey_lists_change or step == 0:
+        # feeding habits have potentially changes, so rebuild each prey's .predator_list
+        for species in species_list:
+            species.predator_list = []
+        for predator in species_list:
+            if predator.current_prey_dict is not None and len(predator.current_prey_dict) > 0:
+                for prey in species_list:
+                    if prey.name in predator.current_prey_dict:
+                        prey.predator_list.append(predator.name)
+
+    if is_foraging_variables_change or is_prey_lists_change or step == 0:
         print(f" ...Step {step}: species foraging behaviour change identified.")
         build_interacting_populations_list(
             patch_list=patch_list, species_list=species_list,
